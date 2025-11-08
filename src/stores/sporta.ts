@@ -36,7 +36,8 @@ export const useSportaStore = defineStore('sporta', {
     events: [] as eventInfo[],
     locations: [] as locationInfo[],
     categories: [] as categoryInfo[],
-    activeCategories: [] as string[]
+    activeCategories: [] as string[],
+    userEvent: [] as eventInfo[],
   }),
   actions: {
     async fetchUser(id: string) {
@@ -84,13 +85,19 @@ export const useSportaStore = defineStore('sporta', {
       await this.fetchEvents();
       await this.fetchLocations();
       await this.fetchCategories();
+      this.userEvent = await this.fetchEventByGuy();
     },
     //=============================================================//
     async fetchEventByGuy(): Promise<eventInfo[]> {
-      const response = await fetch(`localhost:8000/api/events/query?participant=${this.user.id}&limit=10`, {
-        method: 'GET'
-      });
-      return await response.json();
+      // const response = await fetch(`localhost:8000/api/events/query?participant=${this.user.id}&limit=10`, {
+      //   method: 'GET'
+      // });
+      // return await response.json();
+      
+      // Using mock data for now
+      const { fetchEvents } = await import('@/utils/eventsmock.js');
+      const mockEvents = await fetchEvents();
+      return mockEvents;
     }
   }
 });

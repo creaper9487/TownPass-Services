@@ -1,7 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import HomeView from '@/views/Sport/HomeSportView.vue'
+import { computed } from 'vue';
+import { useSportaStore, type userInfo } from '@/stores/sporta';
+import { useConnectionMessage } from '@/composables/useConnectionMessage';
+import { useHandleConnectionData } from '@/composables/useHandleConnectionData';
+const sportaStore = useSportaStore();
 
+useConnectionMessage('userinfo', null);
+
+useHandleConnectionData((event: { data: string }) => {
+    const result = JSON.parse(event.data);
+    sportaStore.user.id = result.data.id
+});
+
+sportaStore.fetchAllData(sportaStore.user.id);
 const tabs = [
   { key: 'home',     label: 'Home',     icon: 'home' },
   { key: 'search',   label: 'Search',   icon: 'search' },
