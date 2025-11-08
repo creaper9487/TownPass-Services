@@ -31,7 +31,7 @@ export const useSportaStore = defineStore('sporta', {
   state: () => ({
     events: [] as eventStruct[],
     categories: [] as categoryStruct[],
-    useMockData: true // Switch to control data source
+    useMockData: false // Switch to control data source
   }),
 
   actions: {
@@ -46,7 +46,7 @@ export const useSportaStore = defineStore('sporta', {
           this.events = await response.json();
         } else {
           // Use real API
-          const response = await fetch('/api/events');
+          const response = await fetch('http://localhost:8000/api/events/');
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
@@ -62,14 +62,14 @@ export const useSportaStore = defineStore('sporta', {
       try {
         if (this.useMockData) {
           // Use mock data
-          const response = await fetch('/mock/sporta/categories.json');
+          const response = await fetch('/mock/sports/categories.json');
           if (!response.ok) {
             throw new Error(`Failed to load mock categories! status: ${response.status}`);
           }
           this.categories = await response.json();
         } else {
           // Use real API
-          const response = await fetch('/api/categories');
+          const response = await fetch('http://localhost:8000/api/events/categories');
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
