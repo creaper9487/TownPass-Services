@@ -2,8 +2,9 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import FilterChip from '@/components/sporta/filterChip.vue'
 import EventCard from '@/components/sporta/card.vue'
-import { fetchCategories, fetchLocations, searchEvents } from '@/utils/filtermock.js'
-
+import { fetchCategories, fetchLocations, realSearchEvents } from '@/utils/filtermock.js'
+import { useSportaStore } from '@/stores/sporta'
+const sportaStore = useSportaStore()
 const q = ref('')
 const categories = ref([])
 const locations = ref([])
@@ -17,10 +18,13 @@ async function loadMeta() {
   categories.value = cs
   locations.value = ls
 }
-
+async function loadActualData() {
+  categories.value = sportaStore.categories
+  locations.value = sportaStore.locations
+}
 async function runSearch() {
   loading.value = true
-  results.value = await searchEvents({
+  results.value = await realSearchEvents({
     q: q.value.trim(),
     category: activeCategory.value,
     location: activeLocation.value
@@ -32,7 +36,7 @@ function clearCategory() { activeCategory.value = '' }
 function clearLocation() { activeLocation.value = '' }
 
 onMounted(async () => {
-  await loadMeta()
+  await loadActualData()
   await runSearch()
 })
 

@@ -1,7 +1,9 @@
 <script setup>
+import { eventInfo } from '@/stores/sporta';
+
 defineProps({
   event: {
-    type: Object,
+    type: eventInfo,
     required: true,
   },
 });
@@ -17,11 +19,11 @@ defineProps({
       <h3 class="title">{{ event.title }}</h3>
       <div class="row">
         <svg viewBox="0 0 24 24" class="i"><path d="M6 2h12a2 2 0 0 1 2 2v16l-8-4-8 4V4a2 2 0 0 1 2-2z"/></svg>
-        <span>{{ event.host }}</span>
+        <span>{{ event.organizer }}</span>
       </div>
       <div class="row">
         <svg viewBox="0 0 24 24" class="i"><path d="M6 8h12M6 12h12M6 16h12"/></svg>
-        <span>{{ event.date }}</span>
+        <span>{{ event.starttime }}</span>
       </div>
       <div class="row">
         <svg viewBox="0 0 24 24" class="i"><path d="M12 21s-7-4.5-7-10a7 7 0 1 1 14 0c0 5.5-7 10-7 10z"/><circle cx="12" cy="11" r="3"/></svg>

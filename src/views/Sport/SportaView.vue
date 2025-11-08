@@ -24,7 +24,7 @@ const tabs = [
   { key: 'star',     label: 'Saved',    icon: 'star' },
 ]
 const current = ref('home')
-function setTab(k) { current.value = k }
+function setTab(k: string) { current.value = k }
 </script>
 
 <template>
