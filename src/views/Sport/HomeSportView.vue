@@ -8,7 +8,7 @@ const sportaStore = useSportaStore();
 onMounted(async () => {
   // Initialize with a default user ID or get from auth
   if (sportaStore.userEvent.length === 0) {
-    await sportaStore.fetchAllData('default_user');
+    await sportaStore.fetchAllData("7f3562f4-bb3f-4ec7-89b9-da3b4b5ff250");
   }
 });
 </script>

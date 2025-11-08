@@ -1,8 +1,7 @@
-
 import { defineStore } from 'pinia';
 
 export class userInfo {
-  id: string;
+  userID: string;
   exp: number;
   subevents: string[];
   subCategories: string[];
@@ -32,7 +31,9 @@ export class categoryInfo {
 }
 export const useSportaStore = defineStore('sporta', {
   state: () => ({
-    user: {} as userInfo,
+    user: {
+      userID:"7f3562f4-bb3f-4ec7-89b9-da3b4b5ff250"
+    } as userInfo,
     events: [] as eventInfo[],
     locations: [] as locationInfo[],
     categories: [] as categoryInfo[],
@@ -48,15 +49,16 @@ export const useSportaStore = defineStore('sporta', {
         this.user = await response.json();
       } catch (error) {
         try {
-          const response = await fetch(`http://localhost:8000/api/user/${id}`, {
+          const response = await fetch(`http://localhost:8000/api/user/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              id
+              "user_id": id
             })
           });
+          this.user = await response.json();
         } catch (error) {
           console.log(error);
         }
@@ -130,12 +132,13 @@ export const useSportaStore = defineStore('sporta', {
       await this.fetchEvents();
       await this.fetchLocations();
       await this.fetchCategories();
+      console.log(this.user);
       this.userEvent = await this.fetchEventByGuy();
     },
     //=============================================================//
     async fetchEventByGuy(): Promise<eventInfo[]> {
       try {
-        const response = await fetch(`http://localhost:8000/api/events/query?participant=${this.user.id}&limit=10`, {
+        const response = await fetch(`http://localhost:8000/api/events/query?participant=${this.user.userID}&limit=10`, {
           method: 'GET'
         });
         const rawEvents = await response.json();
@@ -177,15 +180,15 @@ export const useSportaStore = defineStore('sporta', {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            userID: this.user.id
+            "userID": this.user.userID
           })
         });
         
         if (response.ok) {
           // Update local state to reflect the subscription
           const eventIndex = this.events.findIndex(event => event.id === eid);
-          if (eventIndex !== -1 && !this.events[eventIndex].participants.includes(this.user.id)) {
-            this.events[eventIndex].participants.push(this.user.id);
+          if (eventIndex !== -1 && !this.events[eventIndex].participants.includes(this.user.userID)) {
+            this.events[eventIndex].participants.push(this.user.userID);
           }
         }
       } catch (error) {

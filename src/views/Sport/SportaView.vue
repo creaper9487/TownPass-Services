@@ -16,10 +16,10 @@ useConnectionMessage('userinfo', null);
 
 useHandleConnectionData((event: { data: string }) => {
     const result = JSON.parse(event.data);
-    sportaStore.user.id = result.data.id
+    sportaStore.user.userID = result.data.id
 });
 
-sportaStore.fetchAllData(sportaStore.user.id);
+sportaStore.fetchAllData(sportaStore.user.userID);
 const tabs = [
   { key: 'home',     label: 'Home',     icon: 'home' },
   { key: 'search',   label: 'Search',   icon: 'search' },
