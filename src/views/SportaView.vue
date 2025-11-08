@@ -1,14 +1,38 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useSportaStore } from '@/stores/sporta';
 import Personal from '@/components/sporta/Personal.vue';
 import Activity from '@/components/sporta/Activity.vue';
 import Addtivity from '@/components/sporta/Addtivity.vue';
 import { useConnectionMessage } from '@/composables/useConnectionMessage';
-const testvar = useConnectionMessage("userinfo",null);
-console.log("testvar:",testvar);
+import { useHandleConnectionData } from '@/composables/useHandleConnectionData';
+
 const sportaStore = useSportaStore();
 const page = ref(0);
+const userInfo = ref(null);
+
+// Handle data received from the app
+const handleUserInfoResponse = (event: { data: string }) => {
+  try {
+    console.log('Received user info response:', event.data);
+    const result = JSON.parse(event.data);
+    if (result.name === 'userinfo') {
+      userInfo.value = result.data;
+      console.log('User info received:', result.data);
+    }
+  } catch (error) {
+    console.error('Error parsing user info:', error);
+  }
+};
+
+// Set up the message handler
+useHandleConnectionData(handleUserInfoResponse);
+
+// Request user info when component mounts
+onMounted(() => {
+  useConnectionMessage('userinfo', null);
+  console.log('Requested user info from app');
+});
 </script>
 
 <template>
