@@ -1,13 +1,31 @@
-<script setup>
+<script setup lang="ts">
 import { reactive, ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { createEvent } from '@/utils/eventsmock'
 import { useSportaStore } from '@/stores/sporta'
+import mapboxgl from 'mapbox-gl'
+import MapboxDraw from '@mapbox/mapbox-gl-draw'
+
+// Import Mapbox CSS
+import 'mapbox-gl/dist/mapbox-gl.css'
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 
 const sportaStore = useSportaStore()
 
+// Mapbox Access Token
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || 'YOUR_MAPBOX_ACCESS_TOKEN'
+
+// Mapbox related variables
+let map: mapboxgl.Map | null = null
+let draw: MapboxDraw | null = null
+const pathCoordinates = ref<[number, number][]>([])
+const locationMode = ref<'text' | 'map'>('text') // Toggle between text input and map drawing
+const submittingLocation = ref(false)
+const locationSubmitError = ref('')
+const locationSubmitSuccess = ref(false)
+
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
-  categories: { type: Array, default: () => ['Running','Cycling','Yoga','Basketball','Hiking'] }
+  categories: { type: Array as () => string[], default: () => ['Running','Cycling','Yoga','Basketball','Hiking'] }
 })
 const emit = defineEmits(['update:modelValue', 'created'])
 
@@ -15,15 +33,27 @@ const open = ref(props.modelValue)
 watch(() => props.modelValue, v => (open.value = v))
 watch(open, v => emit('update:modelValue', v))
 
+// Initialize/destroy map based on locationMode
+watch([open, locationMode], ([isOpen, mode]) => {
+  if (isOpen && mode === 'map') {
+    nextTick(() => initializeMap())
+  } else if (map) {
+    destroyMap()
+  }
+})
+
 // lock background scroll
-function lockBody(v) {
+function lockBody(v: boolean) {
   const cls = 'no-scroll'
   if (v) document.body.classList.add(cls)
   else document.body.classList.remove(cls)
 }
 watch(open, lockBody)
 onMounted(() => lockBody(open.value))
-onBeforeUnmount(() => lockBody(false))
+onBeforeUnmount(() => {
+  lockBody(false)
+  destroyMap()
+})
 
 // random light gradient for page background
 const gradient = ref('')
@@ -47,17 +77,87 @@ const form = reactive({
   location: '',
   description: '',
   category: '',
-  coverFile: null,
+  coverFile: null as File | null,
   coverUrl: ''
 })
 const loading = ref(false)
 const err = ref('')
-const canSubmit = computed(() =>
-  form.title.trim() && form.start && form.end && form.location.trim()
-)
+const canSubmit = computed(() => {
+  const hasBasicInfo = form.title.trim() && form.start && form.end
+  const hasLocation = locationMode.value === 'text' 
+    ? form.location.trim() 
+    : pathCoordinates.value.length >= 2
+  return hasBasicInfo && hasLocation
+})
 
-function onPickCover(e) {
-  const f = e.target.files?.[0]
+// Mapbox initialization
+function initializeMap() {
+  if (map) return // Already initialized
+  
+  const container = document.getElementById('map-container')
+  if (!container) return
+
+  map = new mapboxgl.Map({
+    container: 'map-container',
+    style: 'mapbox://styles/mapbox/streets-v12',
+    center: [121.5654, 25.0330], // Taipei coordinates
+    zoom: 12
+  })
+
+  draw = new MapboxDraw({
+    displayControlsDefault: false,
+    controls: {
+      line_string: true, // Allow drawing lines
+      trash: true        // Allow deletion
+    }
+  })
+
+  map.addControl(draw, 'top-left')
+  map.on('draw.create', handleDrawCreate)
+  map.on('draw.update', handleDrawCreate)
+}
+
+function handleDrawCreate(e: any) {
+  const feature = e.features[0]
+  if (feature && feature.geometry.type === 'LineString') {
+    pathCoordinates.value = feature.geometry.coordinates
+    console.log('繪製完成，座標點：', pathCoordinates.value)
+    locationSubmitSuccess.value = false // Reset success state on new draw
+  }
+}
+
+async function submitLocationApplication() {
+  if (submittingLocation.value || pathCoordinates.value.length < 2) return
+  
+  locationSubmitError.value = ''
+  locationSubmitSuccess.value = false
+  submittingLocation.value = true
+  
+  try {
+    await sportaStore.submitLocation(pathCoordinates.value)
+    locationSubmitSuccess.value = true
+    console.log('位置申請提交成功')
+  } catch (error) {
+    console.error('位置申請失敗:', error)
+    locationSubmitError.value = '提交失敗，請稍後再試'
+  } finally {
+    submittingLocation.value = false
+  }
+}
+
+function destroyMap() {
+  if (map) {
+    map.off('draw.create', handleDrawCreate)
+    map.off('draw.update', handleDrawCreate)
+    map.remove()
+    map = null
+    draw = null
+  }
+}
+
+function onPickCover(e: Event) {
+  const target = e.target as HTMLInputElement
+  const f = target.files?.[0]
   if (!f) return
   form.coverFile = f
   form.coverUrl = URL.createObjectURL(f)
@@ -68,17 +168,25 @@ async function submit() {
   err.value = ''
   loading.value = true
   try {
-    const payload = {
+    const payload: any = {
       id: `event-${Date.now()}`,
       title: form.title.trim(),
-      organizer: sportaStore.user.id,
+      organizer: sportaStore.user.userID,
       participants: [],
       category: form.category,
-      location: form.location.trim(),
-      description: form.description.trim(),
+      description: [form.description.trim()], // Backend expects array
       image: form.coverUrl || 'https://picsum.photos/seed/new/800/480',
-      starttime: form.start,
-      endtime: form.end
+      start_time: form.start, // Use snake_case
+      end_time: form.end      // Use snake_case
+    }
+
+    // location field (required - must be string):
+    // - Map mode: JSON stringified array of coordinates
+    // - Text mode: plain text string
+    if (locationMode.value === 'map') {
+      payload.location = JSON.stringify(pathCoordinates.value)
+    } else {
+      payload.location = form.location.trim()
     }
     console.log('Form submitted:', payload)
     await sportaStore.SubmitEvent(payload)
@@ -88,7 +196,9 @@ async function submit() {
       start: form.start,
       end: form.end,
       cover: payload.image,
-      host: payload.organizer
+      host: payload.organizer,
+      starttime: form.start, // Keep for compatibility
+      endtime: form.end      // Keep for compatibility
     })
     emit('created', created)
     reset()
@@ -110,10 +220,16 @@ function reset() {
   form.category = ''
   form.coverFile = null
   form.coverUrl = ''
+  pathCoordinates.value = []
+  locationSubmitError.value = ''
+  locationSubmitSuccess.value = false
+  if (draw) {
+    draw.deleteAll()
+  }
 }
 
 // focus first input when open
-const firstInput = ref(null)
+const firstInput = ref<HTMLInputElement | null>(null)
 watch(open, async v => {
   if (v) {
     await nextTick()
@@ -189,9 +305,67 @@ watch(open, async v => {
           </div>
 
           <div class="mb-4">
-            <label class="block text-sm font-bold text-grey-800 mb-2">地點</label>
-            <input v-model="form.location" type="text" placeholder="場地 / 城市" 
-              class="w-full border border-grey-200 rounded-xl px-3 py-3 text-grey-800 bg-white outline-none text-base transition-all duration-200 shadow-sm focus:border-primary-500 focus:ring-4 focus:ring-primary-100" />
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-bold text-grey-800">地點</label>
+              <div class="flex gap-2 text-xs">
+                <button
+                  type="button"
+                  @click="locationMode = 'text'"
+                  :class="locationMode === 'text' 
+                    ? 'bg-primary-500 text-white' 
+                    : 'bg-grey-100 text-grey-600 hover:bg-grey-200'"
+                  class="px-3 py-1 rounded-full font-semibold transition-colors"
+                >
+                  文字輸入
+                </button>
+                <button
+                  type="button"
+                  @click="locationMode = 'map'"
+                  :class="locationMode === 'map' 
+                    ? 'bg-primary-500 text-white' 
+                    : 'bg-grey-100 text-grey-600 hover:bg-grey-200'"
+                  class="px-3 py-1 rounded-full font-semibold transition-colors"
+                >
+                  繪製路線
+                </button>
+              </div>
+            </div>
+            
+            <!-- Text input mode -->
+            <input 
+              v-if="locationMode === 'text'"
+              v-model="form.location" 
+              type="text" 
+              placeholder="場地 / 城市" 
+              class="w-full border border-grey-200 rounded-xl px-3 py-3 text-grey-800 bg-white outline-none text-base transition-all duration-200 shadow-sm focus:border-primary-500 focus:ring-4 focus:ring-primary-100" 
+            />
+            
+            <!-- Map drawing mode -->
+            <div v-else>
+              <div 
+                id="map-container" 
+                class="w-full h-80 rounded-xl border border-grey-200 shadow-sm overflow-hidden"
+              ></div>
+              <div class="mt-3 space-y-2">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="text-xs text-grey-600 flex-1">
+                    <span v-if="pathCoordinates.length === 0">點擊左上角的線條工具開始繪製路線</span>
+                    <span v-else class="text-primary-600 font-semibold">✓ 已繪製 {{ pathCoordinates.length }} 個座標點</span>
+                  </p>
+                  <button
+                    v-if="pathCoordinates.length >= 2"
+                    type="button"
+                    @click="submitLocationApplication"
+                    :disabled="submittingLocation || locationSubmitSuccess"
+                    class="bg-primary-500 text-white font-semibold rounded-lg px-4 py-2 text-sm transition-all duration-200 hover:bg-primary-600 active:scale-95 shadow-md disabled:bg-grey-300 disabled:cursor-not-allowed"
+                  >
+                    {{ submittingLocation ? '提交中...' : locationSubmitSuccess ? '已提交' : '提出位置申請' }}
+                  </button>
+                </div>
+                <p v-if="locationSubmitError" class="text-xs text-warn-200 font-semibold">{{ locationSubmitError }}</p>
+                <p v-if="locationSubmitSuccess" class="text-xs text-green-600 font-semibold">✓ 位置申請已成功提交</p>
+              </div>
+            </div>
           </div>
 
           <div class="mb-4">

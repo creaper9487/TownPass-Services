@@ -1,3 +1,4 @@
+import { useConnectionMessage } from '@/composables/useConnectionMessage';
 import { defineStore } from 'pinia';
 
 export class userInfo {
@@ -195,7 +196,20 @@ export const useSportaStore = defineStore('sporta', {
         console.error('Error subscribing to event:', error);
         throw error;
       }
+    },
+    async submitLocation(payload: [number[]]) {
+      try {
+        const response = await fetch("http://localhost:8000/api/locations/create/",{
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        console.error('Error submitting location:', error);
+        throw error;
+      }
     }
-
   }
 });

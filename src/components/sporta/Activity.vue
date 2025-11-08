@@ -224,6 +224,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSportaStore, type categoryStruct } from '@/stores/sporta'
+import { useConnectionMessage } from '@/composables/useConnectionMessage'
 
 const router = useRouter()
 const sportaStore = useSportaStore()
@@ -368,7 +369,8 @@ const registerForEvent = (event: any) => {
     }
     
     // 調用store的訂閱功能
-    sportaStore.subEvent(event.id, user)
+    sportaStore.subEvent(event.id)
+    useConnectionMessage('sporta_notify',`eventName:${event.title}, eventTime:${Math.floor(Date.now() / 1000)}`)
     
     // 提供用戶反饋
     alert(`已成功報名活動：${event.title}`)
