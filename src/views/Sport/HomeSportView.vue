@@ -1,24 +1,16 @@
-<script setup>
-import { onMounted, ref } from 'vue'
+<script setup lang="ts">
+import { onMounted } from 'vue';
 import EventCard from '@/components/sporta/card.vue'
-import {fetchEvents} from "@/utils/eventsmock"
-const events = ref([])
-const loading = ref(true)
-const error = ref('')
+import { useSportaStore } from '@/stores/sporta';
 
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    events.value = await fetchEvents()
-  } catch (e) {
-    error.value = 'Failed to load events.'
-  } finally {
-    loading.value = false
+const sportaStore = useSportaStore();
+
+onMounted(async () => {
+  // Initialize with a default user ID or get from auth
+  if (sportaStore.userEvent.length === 0) {
+    await sportaStore.fetchAllData('default_user');
   }
-}
-
-onMounted(load)
+});
 </script>
 
 <template>
@@ -28,11 +20,8 @@ onMounted(load)
       <p class="sub">最新的城市運動清單</p>
     </header>
 
-    <div v-if="loading" class="state">Loading…</div>
-    <div v-else-if="error" class="state error">{{ error }}</div>
-
-    <div v-else class="list">
-      <EventCard v-for="e in events" :key="e.id" :event="e" />
+    <div class="list">
+      <EventCard v-for="e in sportaStore.userEvent" :key="e.id" :event="e" />
     </div>
 
     <div class="spacer"></div>

@@ -25,3 +25,26 @@ export async function searchEvents({ q = "", category = "", location = "" } = {}
     return okQ && okC && okL;
   });
 }
+export async function realSearchEvents({ q = "", category = "", location = "" } = {}) {
+  // Import actual event data from eventsmock
+  const { fetchEvents } = await import('./eventsmock.js');
+  const events = await fetchEvents();
+  
+  // Map the data structure from sporta.ts to match the expected format
+  const base = events.map(e => ({
+    id: e.id,
+    title: e.title,
+    date: e.starttime, // Using starttime from sporta.ts eventInfo
+    location: e.location,
+    host: e.organizer, // Using organizer from sporta.ts eventInfo
+    cover: e.cover,
+    category: e.category
+  }));
+  
+  return base.filter(e => {
+    const okQ = q ? (e.title.toLowerCase().includes(q.toLowerCase())) : true;
+    const okC = category ? (e.category === category) : true;
+    const okL = location ? (e.location.toLowerCase().includes(location.toLowerCase())) : true;
+    return okQ && okC && okL;
+  });
+}

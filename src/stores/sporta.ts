@@ -42,13 +42,13 @@ export const useSportaStore = defineStore('sporta', {
   actions: {
     async fetchUser(id: string) {
       try {
-        const response = await fetch(`localhost:8000/api/user/${id}`, {
+        const response = await fetch(`http://localhost:8000/api/user/${id}`, {
           method: 'GET'
         });
         this.user = await response.json();
       } catch (error) {
         try {
-          const response = await fetch(`localhost:8000/api/user/${id}`, {
+          const response = await fetch(`http://localhost:8000/api/user/${id}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -63,28 +63,29 @@ export const useSportaStore = defineStore('sporta', {
       }
     },
     async fetchEvents() {
-      const response = await fetch('localhost:8000/api/events', {
+      const response = await fetch('http://localhost:8000/api/events', {
         method: 'GET'
       });
       this.events = await response.json();
     },
     async fetchLocations() {
-      const response = await fetch('localhost:8000/api/locations', {
+      const response = await fetch('http://localhost:8000/api/locations', {
         method: 'GET'
       });
       this.locations = await response.json();
     },
     async fetchCategories() {
-      const response = await fetch('localhost:8000/api/categories', {
+      const response = await fetch('http://localhost:8000/api/categories', {
         method: 'GET'
       });
       this.categories = await response.json();
     },
     async fetchAllData(id: string) {
-      await this.fetchUser(id);
-      await this.fetchEvents();
-      await this.fetchLocations();
-      await this.fetchCategories();
+      // Skip API calls for now and use mock data directly
+      // await this.fetchUser(id);
+      // await this.fetchEvents();
+      // await this.fetchLocations();
+      // await this.fetchCategories();
       this.userEvent = await this.fetchEventByGuy();
     },
     //=============================================================//
