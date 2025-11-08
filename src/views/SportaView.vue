@@ -4,24 +4,26 @@ import { useSportaStore } from '@/stores/sporta';
 import Personal from '@/components/sporta/Personal.vue';
 import Activity from '@/components/sporta/Activity.vue';
 import Addtivity from '@/components/sporta/Addtivity.vue';
-
+import { useConnectionMessage } from '@/composables/useConnectionMessage';
+const testvar = useConnectionMessage("userinfo",null);
+console.log("testvar:",testvar);
 const sportaStore = useSportaStore();
 const page = ref(0);
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 ">
     
-    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
+    <nav class="bg-white shadow-sm border-b font-bold sticky top-0 z-40">
       <div class="max-w-6xl mx-auto">
         <div class="flex justify-center">
           <div class="flex space-x-8">
             <button 
               @click="page = 0"
               :class="[
-                'px-4 py-4 text-sm font-medium border-b-2 transition-colors duration-200',
+                'px-4 py-4 text-sm  border-b-4 transition-colors duration-200',
                 page === 0 
-                  ? 'text-blue-600 border-blue-600' 
+                  ? 'text-main-600 border-main-600' 
                   : 'text-gray-600 border-transparent hover:text-gray-800 hover:border-gray-300'
               ]"
             >
@@ -30,9 +32,9 @@ const page = ref(0);
             <button 
               @click="page = 1"
               :class="[
-                'px-4 py-4 text-sm font-medium border-b-2 transition-colors duration-200',
+                'px-4 py-4 text-sm  border-b-4 transition-colors duration-200',
                 page === 1 
-                  ? 'text-blue-600 border-blue-600' 
+                  ? 'text-main-600 border-main-600' 
                   : 'text-gray-600 border-transparent hover:text-gray-800 hover:border-gray-300'
               ]"
             >
@@ -41,9 +43,9 @@ const page = ref(0);
             <button 
               @click="page = 2"
               :class="[
-                'px-4 py-4 text-sm font-medium border-b-2 transition-colors duration-200',
+                'px-4 py-4 text-sm  border-b-4 transition-colors duration-200',
                 page === 2 
-                  ? 'text-blue-600 border-blue-600' 
+                  ? 'text-main-600 border-main-600' 
                   : 'text-gray-600 border-transparent hover:text-gray-800 hover:border-gray-300'
               ]"
             >

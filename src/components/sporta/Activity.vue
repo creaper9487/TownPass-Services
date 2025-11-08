@@ -26,21 +26,6 @@
           </div>
         </div>
 
-        <!-- All Categories Button -->
-        <div class="mb-4">
-          <button
-            @click="toggleAllCategories"
-            :class="[
-              'px-4 py-2 rounded-full font-medium transition-colors duration-200',
-              selectedCategories.length === 0 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-            ]"
-          >
-            全部活動
-          </button>
-        </div>
-
         <!-- Categories with Images (Personal.vue style) -->
         <div class="mb-6">
           <div class="flex flex-row overflow-x-auto gap-4 pb-4">
@@ -74,9 +59,7 @@
 
         <!-- Selected Categories Summary -->
         <div v-if="selectedCategoryObjects.length > 0" class="mb-4">
-          <p class="text-sm text-gray-600 mb-2">
-            已選擇 {{ selectedCategoryObjects.length }} 個分類：
-          </p>
+
           <div class="flex flex-wrap gap-1">
             <span
               v-for="category in selectedCategoryObjects"
@@ -223,9 +206,7 @@
       <!-- Empty State -->
       <div v-if="filteredEvents.length === 0" class="text-center py-12">
         <div class="max-w-md mx-auto">
-          <svg class="mx-auto h-24 w-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 4v10h6V11m-6 0V9a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-          </svg>
+
           <h3 class="text-xl font-medium text-gray-900 mb-2">沒有找到符合條件的活動</h3>
           <p class="text-gray-500">請嘗試選擇不同的分類或稍後再查看新活動。</p>
         </div>

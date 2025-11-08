@@ -6,7 +6,12 @@ import { useSportaStore, eventStruct, participantsStruct } from '@/stores/sporta
 const route = useRoute();
 const router = useRouter();
 const sportaStore = useSportaStore();
-
+const user: participantsStruct = {
+  id: 1,
+  exp: 1000,
+  subevents: [],
+  subCat: []
+};
 const eventId = computed(() => Number(route.params.id));
 const event = ref<eventStruct | null>(null);
 const isSubscribed = ref(false);
@@ -32,29 +37,21 @@ const goBack = () => {
 
 // 訂閱/取消訂閱活動
 const toggleSubscription = async () => {
-  if (!event.value) return;
-  
-  isLoading.value = true;
-  try {
-    // 模擬用戶資料 (實際應用中應從用戶商店獲取)
-    const user: participantsStruct = {
-      id: 1,
-      exp: 100,
-      subevents: [],
-      subCat: []
-    };
+  if(!isSubscribed.value){
+    sportaStore.subEvent(eventId.value,user);
+  }else{
+    sportaStore.unSubEvent(eventId.value,user);
+  }
+};
 
-    if (isSubscribed.value) {
-      await sportaStore.unSubEvent(event.value.id, user);
-      isSubscribed.value = false;
-    } else {
-      await sportaStore.subEvent(event.value.id, user);
-      isSubscribed.value = true;
-    }
-  } catch (error) {
-    console.error('訂閱操作失敗:', error);
-  } finally {
-    isLoading.value = false;
+// 處理圖片載入錯誤
+const handleImageError = (e: Event) => {
+  const target = e.target as HTMLImageElement;
+  if (target && !target.dataset.fallbackUsed) {
+    // 標記已使用fallback，避免無限循環
+    target.dataset.fallbackUsed = 'true';
+    // 使用現有的運動圖片作為fallback
+    target.src = '/images/sporta/jog.png';
   }
 };
 
@@ -98,10 +95,10 @@ onMounted(() => {
       <!-- 活動主圖 -->
       <div class="relative mb-6">
         <img 
-          :src="event.image" 
+          :src="event.image || '/images/sporta/jog.png'" 
           :alt="event.title"
           class="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
-          @error="(e: Event) => { const target = e.target as HTMLImageElement; if (target) target.src = '/images/sporta/default.jpg'; }"
+          @error="handleImageError"
         />
         <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg"></div>
         <div class="absolute bottom-4 left-4 text-white">
@@ -183,7 +180,7 @@ onMounted(() => {
         <div class="flex gap-3">
           <button 
             @click="goBack"
-            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
+            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 round-lg transition-colors"
           >
             返回列表
           </button>
@@ -193,8 +190,8 @@ onMounted(() => {
             :class="[
               'flex-1 font-medium py-3 px-4 rounded-lg transition-colors',
               isSubscribed 
-                ? 'bg-red-500 hover:bg-red-600 text-white' 
-                : 'bg-blue-500 hover:bg-blue-600 text-white',
+                ? 'bg-secondary-500 hover:bg-secondary-600 text-white' 
+                : 'bg-main-500 hover:bg-main-600 text-white',
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             ]"
           >
@@ -217,5 +214,22 @@ onMounted(() => {
 /* 確保圖片錯誤時的回退樣式 */
 img[src=""] {
   display: none;
+}
+
+/* 為預設圖片提供更好的視覺效果 */
+img[src="/images/sporta/jog.png"] {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  object-fit: cover;
+}
+
+/* 防止圖片載入時的閃爍 */
+img {
+  background-color: #f3f4f6;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* 添加載入狀態 */
+img[data-fallback-used="true"] {
+  opacity: 0.8;
 }
 </style>
