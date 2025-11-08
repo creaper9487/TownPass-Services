@@ -6,6 +6,7 @@ import { computed } from 'vue';
 import { useSportaStore, type userInfo } from '@/stores/sporta';
 import { useConnectionMessage } from '@/composables/useConnectionMessage';
 import { useHandleConnectionData } from '@/composables/useHandleConnectionData';
+import AddEventSheet from '@/components/sporta/AddEventSheet.vue'
 const sportaStore = useSportaStore();
 
 useConnectionMessage('userinfo', null);
@@ -24,7 +25,15 @@ const tabs = [
   { key: 'star',     label: 'Saved',    icon: 'star' },
 ]
 const current = ref('home')
-function setTab(k) { current.value = k }
+const showAdd = ref(false)
+
+function setTab(k) {
+  if (k === 'add') {
+    showAdd.value = true // 直接開啟底部表單
+  } else {
+    current.value = k
+  }
+}
 </script>
 
 <template>
@@ -60,6 +69,7 @@ function setTab(k) { current.value = k }
         </button>
       </div>
     </nav>
+        <AddEventSheet v-model="showAdd" @created="onCreated" />
   </div>
 </template>
 
