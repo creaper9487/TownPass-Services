@@ -2,7 +2,8 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import FilterChip from '@/components/sporta/filterChip.vue'
 import EventCard from '@/components/sporta/card.vue'
-import { fetchCategories, fetchLocations, realSearchEvents } from '@/utils/filtermock.js'
+import EventPair from '@/components/sporta/EventPair.vue'
+import { fetchCategories, fetchLocations, searchEvents } from '@/utils/filtermock.js'
 import { useSportaStore } from '@/stores/sporta'
 const sportaStore = useSportaStore()
 const q = ref('')
@@ -12,6 +13,9 @@ const activeCategory = ref('')
 const activeLocation = ref('')
 const results = ref([])
 const loading = ref(true)
+const pairOpen = ref(false)
+
+
 
 async function loadMeta() {
   const [cs, ls] = await Promise.all([fetchCategories(), fetchLocations()])
@@ -53,10 +57,9 @@ const hasFilter = computed(() => !!(activeCategory.value || activeLocation.value
   <section class="search-page">
     <!-- 搜尋欄 -->
     <div class="search-bar glass">
-      <button class="left-ico" aria-label="Saved">
-        <!-- star icon -->
-        <svg viewBox="0 0 24 24" class="ico"><path d="m12 17.3-5.6 3 1.1-6.3L3 9.7l6.3-.9L12 3l2.7 5.8 6.3.9-4.5 4.3 1.1 6.3z"/></svg>
-      </button>
+    <button class="star-btn" @click="pairOpen = true" aria-label="Open Event Pair">
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.1 6.3 6.9 1-5 4.8 1.2 6.9L12 17.8 5.8 21l1.2-6.9-5-4.8 6.9-1z"/></svg>
+    </button>
       <input
         class="input"
         v-model="q"
@@ -117,9 +120,16 @@ const hasFilter = computed(() => !!(activeCategory.value || activeLocation.value
 
     <div class="spacer"></div>
   </section>
+    <EventPair v-model="pairOpen" :fetcher="null" @decide="onDecide" />
 </template>
 
 <style scoped>
+.star-btn{
+  width:40px;height:40px;border-radius:12px;border:1px solid #e6e8f0;background:#fff;
+  display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+.star-btn svg{ width:18px;height:18px; fill:#f59e0b }
+
 .search-page { padding: 0 4px; }
 
 /* 玻璃輸入條 */
