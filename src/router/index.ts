@@ -45,7 +45,7 @@ import FeePaymentHistoryDetailView from '@/views/FeePaymentHistoryDetailView.vue
 import FeePaymentScanView from '@/views/FeePaymentScanView.vue';
 import FeePaymentStepView from '@/views/FeePaymentStepView.vue';
 import FeePaymentFinishedView from '@/views/FeePaymentFinishedView.vue';
-import SportaView from '@/views/SportaView.vue';
+import SportaView from '@/views/Sport/SportaView.vue';
 import SportaEventDetail from '@/views/SportaEventDetail.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
