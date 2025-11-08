@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import HomeView from '@/views/Sport/HomeSportView.vue'
 import SearchView from './SearchView.vue'
+import NotificationView from './NotificationView.vue';
 import LeaderboardView from './LeaderboardView.vue';
 import { computed } from 'vue';
 import { useSportaStore, type userInfo } from '@/stores/sporta';
@@ -49,6 +50,7 @@ function setTab(k) {
       <HomeView v-if="current==='home'" />
       <SearchView v-else-if="current==='search'" />
       <LeaderboardView v-else-if="current==='star'" />
+      <NotificationView v-else-if="current==='notify'" />
       <!-- 其他分頁留白，未來補： -->
       <section v-else class="content-card"><p>Coming soon…</p></section>
     </main>
