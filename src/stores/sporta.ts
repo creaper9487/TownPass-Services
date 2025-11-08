@@ -90,7 +90,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async subEvent(eventId: number, user: participantsStruct) {
       try {
-        const response = await fetch(`/api/events/${eventId}/sub`, {
+        const response = await fetch(`http://localhost:8000/api/events/${eventId}/sub`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(user.id)
@@ -112,7 +112,7 @@ export const useSportaStore = defineStore('sporta', {
     },
         async subCat(eventId: number, user: participantsStruct) {
       try {
-        const response = await fetch(`/api/events/${eventId}/sub`, {
+        const response = await fetch(`localhost:8000/api/events/${eventId}/sub`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(user.id)
@@ -123,7 +123,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async unSubCat(eventId: number, user: participantsStruct) {
       try {
-        const response = await fetch(`/api/events/${eventId}/unsub`, {
+        const response = await fetch(`localhost:8000/api/events/${eventId}/unsub`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(user.id)
