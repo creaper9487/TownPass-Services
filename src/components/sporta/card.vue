@@ -96,6 +96,8 @@ async function runOpenAnimation() {
 }
 
 async function subEvent(e: eventInfo) {
+  useConnectionMessage('sporta_notify',`eventName:${e.title}, eventTime:${e.starttime}`)
+
   console.log('Subscribing to event:', e)
   if (!e || !e.id) {
     console.error('Event or event ID is undefined:', e)
