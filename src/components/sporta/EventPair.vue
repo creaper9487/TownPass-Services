@@ -1,11 +1,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { useSportaStore } from '@/stores/sporta'
 
 /**
  * Props
  * - modelValue: 控制開關（由放大鏡頁面星星觸發）
- * - fetcher: 取得下一組 pair 的函式，回傳 Promise<{ items: EventCard[] }>
- * - options: 可調參數（滑動閾值、載入最短時間、主題色等）
+ * - fetcher: 取得下一批卡片的函式，回傳 Promise<{ items: CardItem[] }>
+ * - options: 可調參數（滑動閾值、載入最短時間、主題色、批量大小等）
  */
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -16,6 +17,7 @@ const props = defineProps({
       threshold: 96,            // 滑動決策閾值(px)
       minLoadMs: 500,           // 載入動畫最短時間
       brand: '#0ea5e9',         // 主色
+      batchSize: 6,             // 一次抓取的卡片數量
     })
   }
 })
@@ -25,32 +27,47 @@ const open = ref(props.modelValue)
 watch(() => props.modelValue, v => (open.value = v))
 watch(open, v => emit('update:modelValue', v))
 
-/* ========= mock fetcher（可換成真 API） ========= */
-async function mockFetcher() {
-  // 模擬延遲
-  await new Promise(r => setTimeout(r, 420))
-  // 回傳兩張卡片（可擴成多張）
-  const seed = Math.floor(Math.random()*9999)
-  const mk = (i, t, loc) => ({
-    id: `${seed}-${i}`,
-    title: t,
-    cover: `https://picsum.photos/seed/${seed + i}/900/1200`,
-    location: loc,
-    time: new Date(Date.now() + (i+1)*86400000).toLocaleString(),
-    host: ['CityRun','FitX','MoveUp','PlayMore'][i%4],
-    tags: ['Running','Yoga','Hiking','Basketball','Cycling'].slice(0, 2 + (i%3)),
-    exp: 1000 + (seed%3000) + i*137
-  })
-  return { items: [mk(1,'Sunset 5K Run','Daan Park'), mk(2,'Riverside Yoga','Tamsui')] }
+/* ========= 真實資料來源（Pinia store） ========= */
+// 將後端 event 轉成卡片顯示需要的 shape
+function mapEventToCard(e) {
+  return {
+    id: e.id,
+    title: e.title,
+    cover: e.image,
+    location: e.location,
+    time: e.starttime || e.endtime || '',
+    host: e.organizer,
+    tags: [e.category, e.organizer].filter(Boolean)
+  }
 }
 
-const fetcher = computed(() => props.fetcher || mockFetcher)
+let cursor = 0 // 指向下一批開始位置
+async function defaultFetcher() {
+  // 若尚未有資料，先拉一次 events
+  if (!Array.isArray(sporta.events) || sporta.events.length === 0) {
+    try { await sporta.fetchEvents() } catch {}
+  }
+  const src = sporta.events || []
+  if (src.length === 0) return { items: [] }
+
+  const size = Number(props.options.batchSize) > 0 ? Number(props.options.batchSize) : 6
+  const batch = []
+  for (let i = 0; i < size && i < src.length; i++) {
+    const idx = (cursor + i) % src.length
+    batch.push(mapEventToCard(src[idx]))
+  }
+  cursor = (cursor + batch.length) % src.length
+  return { items: batch }
+}
+
+const fetcher = computed(() => props.fetcher || defaultFetcher)
 
 /* ========= 狀態 ========= */
 const loading = ref(false)
 const cards = ref([])     // 目前的卡堆（頂端 index 0）
 const active = computed(() => cards.value[0] || null)
 const gradient = ref('')  // 入場漸層背景
+const sporta = useSportaStore()
 
 function randomGradient() {
   const h1 = Math.floor(Math.random()*360)
@@ -126,6 +143,14 @@ async function commitDecision(type, viaSwipe=false) {
     await new Promise(r => setTimeout(r, 200))
   }
   emit('decide', { type, item: top })
+  // 右滑 / like -> 對活動進行訂閱
+  if (type === 'like') {
+    try {
+      await sporta.subEvent(top.id)
+    } catch (e) {
+      console.warn('Subscription failed:', e)
+    }
+  }
   // 移除頂卡
   cards.value.shift()
   drag.x = drag.y = drag.r = 0
@@ -205,7 +230,6 @@ function tagColor(i) {
             <div class="tags">
               <span v-for="(t,i) in active.tags" :key="t" class="tag" :style="{ background: tagColor(i) }">{{ t }}</span>
             </div>
-            <div class="exp">EXP <b>{{ active.exp.toLocaleString() }}</b></div>
           </div>
 
           <!-- Like/Nope badges -->

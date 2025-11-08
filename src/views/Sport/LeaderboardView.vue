@@ -37,14 +37,23 @@ async function fetchLeaderboard() {
   loading.value = true
   error.value = ''
   try {
-    // Replace with real API call
-    // const res = await fetch('/api/leaderboard?period=all')
-    // const data = await res.json()
-    // entries.value = data.items
-    await new Promise(r=>setTimeout(r, 320)) // tiny delay for animation
-    entries.value = loadMock()
+    const res = await fetch('http://localhost:8000/api/user/rankings/all')
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`)
+    }
+    const data = await res.json()
+    // Transform API data to match component format
+    entries.value = data.map(item => ({
+      id: item.user_id,
+      name: item.user_id,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.user_id}`,
+      exp: item.exp
+    }))
   } catch (e) {
+    console.error('Failed to load leaderboard:', e)
     error.value = 'Failed to load leaderboard.'
+    // Fallback to mock data if API fails
+    entries.value = loadMock()
   } finally {
     loading.value = false
   }
