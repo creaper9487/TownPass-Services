@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import HomeView from '@/views/Sport/HomeSportView.vue'
-
+import SearchView from './SearchView.vue'
 const tabs = [
   { key: 'home',     label: 'Home',     icon: 'home' },
   { key: 'search',   label: 'Search',   icon: 'search' },
@@ -22,6 +22,7 @@ function setTab(k) { current.value = k }
 
       <!-- 分頁內容 -->
       <HomeView v-if="current==='home'" />
+      <SearchView v-else-if="current==='search'" />
       <!-- 其他分頁留白，未來補： -->
       <section v-else class="content-card"><p>Coming soon…</p></section>
     </main>
