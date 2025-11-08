@@ -14,8 +14,8 @@ const loading = ref(true)
 const pairOpen = ref(false)
 
 // Make categories and locations reactive to store changes
-const categories = computed(() => sportaStore.categories.map(c => c.name))
-const locations = computed(() => sportaStore.locations.map(l => l.name))
+const categories = computed(() => sportaStore.categories)
+const locations = computed(() => sportaStore.locations)
 
 
 
@@ -48,6 +48,50 @@ watch([q, activeCategory, activeLocation], () => {
 })
 
 const hasFilter = computed(() => !!(activeCategory.value || activeLocation.value || q.value.trim()))
+
+function onDecide(selectedEvent) {
+  console.log('User decided on event:', selectedEvent)
+  // Handle the decision logic here
+}
+
+// Create lookup functions for proper name resolution
+const getCategoryName = (categoryId) => {
+  const category = sportaStore.categories.find(c => c.id === categoryId)
+  return category ? category.name : categoryId
+}
+
+const getLocationName = (locationId) => {
+  const location = sportaStore.locations.find(l => l.id === locationId)
+  return location ? location.name : locationId
+}
+
+// Process results to ensure proper display names
+const processedResults = computed(() => {
+  return results.value.map(event => ({
+    ...event,
+    categoryName: getCategoryName(event.category),
+    locationName: getLocationName(event.location)
+  }))
+})
+async function eventPairFetcher() {
+  await sportaStore.fetchEvents()
+  const events = sportaStore.events
+  
+  // Get random pair of events
+  const shuffled = [...events].sort(() => 0.5 - Math.random())
+  const items = shuffled.slice(0, 2).map(event => ({
+    id: event.id,
+    title: event.title,
+    cover: event.image, // Use image from sporta store
+    location: event.location,
+    time: event.starttime,
+    host: event.organizer,
+    tags: [event.category], // Convert single category to array
+    exp: 1000 + Math.floor(Math.random() * 2000) // Mock exp for now
+  }))
+  
+  return { items }
+}
 </script>
 
 <template>
@@ -80,10 +124,10 @@ const hasFilter = computed(() => !!(activeCategory.value || activeLocation.value
       />
       <FilterChip
         v-for="c in categories"
-        :key="c"
-        :label="c"
-        :active="activeCategory===c"
-        @click="activeCategory = (activeCategory===c ? '' : c)"
+        :key="c.id"
+        :label="c.name"
+        :active="activeCategory===c.id"
+        @click="activeCategory = (activeCategory===c.id ? '' : c.id)"
       />
     </div>
 
@@ -96,10 +140,10 @@ const hasFilter = computed(() => !!(activeCategory.value || activeLocation.value
       />
       <FilterChip
         v-for="l in locations"
-        :key="l"
-        :label="l"
-        :active="activeLocation===l"
-        @click="activeLocation = (activeLocation===l ? '' : l)"
+        :key="l.id"
+        :label="l.name"
+        :active="activeLocation===l.id"
+        @click="activeLocation = (activeLocation===l.id ? '' : l.id)"
       />
     </div>
 
@@ -111,13 +155,13 @@ const hasFilter = computed(() => !!(activeCategory.value || activeLocation.value
 
     <div v-if="loading" class="state">Loading…</div>
     <div v-else class="list">
-      <EventCard v-for="e in results" :key="e.id" :event="e" />
-      <p v-if="!results.length" class="state">No result</p>
+      <EventCard v-for="e in processedResults" :key="e.id" :event="e" />
+      <p v-if="!processedResults.length" class="state">No result</p>
     </div>
 
     <div class="spacer"></div>
   </section>
-    <EventPair v-model="pairOpen" :fetcher="null" @decide="onDecide" />
+    <EventPair v-model="pairOpen" :fetcher="eventPairFetcher" @decide="onDecide" />
 </template>
 
 <style scoped>

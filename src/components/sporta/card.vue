@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { eventInfo } from '@/stores/sporta'
-
+import { eventInfo, useSportaStore } from '@/stores/sporta'
+const sportaStore = useSportaStore()
 const props = defineProps({
   event: { type: eventInfo, required: true },
   // external control if needed
@@ -26,12 +26,16 @@ const isOpen = computed({
 function openPortal() {
   if (isOpen.value) return
   isOpen.value = true
+  // Prevent body scrolling when portal is open
+  document.body.style.overflow = 'hidden'
   nextTick(runOpenAnimation)
 }
 function closePortal() {
   if (!isOpen.value) return
   runCloseAnimation().finally(() => {
     isOpen.value = false
+    // Restore body scrolling when portal is closed
+    document.body.style.overflow = ''
   })
 }
 
@@ -91,6 +95,20 @@ async function runOpenAnimation() {
   clearTransforms()
 }
 
+async function subEvent(e: eventInfo) {
+  console.log('Subscribing to event:', e)
+  if (!e || !e.id) {
+    console.error('Event or event ID is undefined:', e)
+    return
+  }
+  try {
+    await sportaStore.subEvent(e.id)
+    console.log('Successfully subscribed to event:', e.id)
+  } catch (error) {
+    console.error('Failed to subscribe to event:', error)
+  }
+}
+
 function runCloseAnimation() {
   return new Promise((resolve) => {
     const el = portalCardRef.value
@@ -134,6 +152,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onEsc)
   clearTimeout(revertTimer)
+  // Restore body scrolling if component is unmounted while portal is open
+  if (isOpen.value) {
+    document.body.style.overflow = ''
+  }
 })
 </script>
 
@@ -150,7 +172,7 @@ onBeforeUnmount(() => {
     @keydown="onCardKeydown"
   >
     <div class="cover-wrap">
-      <img class="cover" :src="event.cover" :alt="event.title" loading="lazy" />
+      <img class="cover" :src="event.image" :alt="event.title" loading="lazy" />
       <div class="cover-gradient"></div>
       <div class="chip" v-if="event.category">{{ event.category }}</div>
     </div>
@@ -188,7 +210,7 @@ onBeforeUnmount(() => {
         </button>
 
         <div class="portal-cover">
-          <img :src="event.cover" :alt="event.title" />
+          <img :src="event.image" :alt="event.title" />
           <div class="portal-cover-grad"></div>
           <div class="portal-chip" v-if="event.category">{{ event.category }}</div>
         </div>
@@ -225,8 +247,7 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="actions">
-          <button class="btn primary" @click="$emit('register', event)">報名</button>
-          <button class="btn ghost" @click="$emit('cancel', event)">取消</button>
+          <button @click="subEvent(event)" class="btn primary w-2/3">報名</button>
         </div>
       </div>
     </div>
@@ -328,7 +349,8 @@ onBeforeUnmount(() => {
 
 .actions {
   position: sticky; bottom: 0; left: 0; right: 0;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  justify-content: center;
+  display: flex;
   padding: 10px 14px 14px;
   background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 40%, rgba(0,0,0,.35) 100%);
   backdrop-filter: blur(8px);

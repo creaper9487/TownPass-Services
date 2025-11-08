@@ -67,7 +67,21 @@ export const useSportaStore = defineStore('sporta', {
         const response = await fetch('http://localhost:8000/api/events/', {
           method: 'GET'
         });
-        this.events = await response.json();
+        const rawEvents = await response.json();
+        
+        // Transform the data to match frontend design
+        this.events = rawEvents.map((event: any) => ({
+          id: event._id,
+          title: event.title,
+          organizer: event.organizer,
+          participants: event.participants,
+          category: event.category,
+          location: event.location,
+          description: Array.isArray(event.description) ? event.description.join('\n') : event.description,
+          image: event.image,
+          starttime: event.start_time,
+          endtime: event.end_time
+        }));
       } catch (error) {
         // Fallback to mock data if API is not available
         console.log('API not available, using mock data');
@@ -111,33 +125,73 @@ export const useSportaStore = defineStore('sporta', {
       }
     },
     async fetchAllData(id: string) {
-      // Skip API calls for now and use mock data directly
-      // await this.fetchUser(id);
-      // await this.fetchEvents();
-      // await this.fetchLocations();
-      // await this.fetchCategories();
+      // Fetch all data including events
+      await this.fetchUser(id);
+      await this.fetchEvents();
+      await this.fetchLocations();
+      await this.fetchCategories();
       this.userEvent = await this.fetchEventByGuy();
     },
     //=============================================================//
     async fetchEventByGuy(): Promise<eventInfo[]> {
-      const response = await fetch(`http://localhost:8000/api/events/query?participant=${this.user.id}&limit=10`, {
-        method: 'GET'
-      });
-      return await response.json();
-      
-      // Using mock data for now
-      // const { fetchEvents } = await import('@/utils/eventsmock.js');
-      // const mockEvents = await fetchEvents();
-      // return mockEvents;
+      try {
+        const response = await fetch(`http://localhost:8000/api/events/query?participant=${this.user.id}&limit=10`, {
+          method: 'GET'
+        });
+        const rawEvents = await response.json();
+        
+        // Transform the data to match frontend design
+        return rawEvents.map((event: any) => ({
+          id: event._id,
+          title: event.title,
+          organizer: event.organizer,
+          participants: event.participants,
+          category: event.category,
+          location: event.location,
+          description: Array.isArray(event.description) ? event.description.join('\n') : event.description,
+          image: event.image,
+          starttime: event.start_time,
+          endtime: event.end_time
+        }));
+      } catch (error) {
+        // Using mock data for now
+        const { fetchEvents } = await import('@/utils/eventsmock.js');
+        const mockEvents = await fetchEvents();
+        return mockEvents;
+      }
     },
     async SubmitEvent(payload: eventInfo) {
-      await fetch('http://localhost:8000/api/events/create', {
+      await fetch('http://localhost:8000/api/events/create/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
+    },
+    async subEvent(eid: string) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/events/${eid}/sub`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userID: this.user.id
+          })
+        });
+        
+        if (response.ok) {
+          // Update local state to reflect the subscription
+          const eventIndex = this.events.findIndex(event => event.id === eid);
+          if (eventIndex !== -1 && !this.events[eventIndex].participants.includes(this.user.id)) {
+            this.events[eventIndex].participants.push(this.user.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error subscribing to event:', error);
+        throw error;
+      }
     }
 
   }

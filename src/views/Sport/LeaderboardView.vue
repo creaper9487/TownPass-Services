@@ -55,10 +55,6 @@ onMounted(fetchLeaderboard)
 // --------- derived ---------
 const top3 = computed(() => entries.value.slice(0,3))
 const rest = computed(() => entries.value.slice(3))
-
-// Progress helper for visual EXP bar (relative to #1)
-const maxExp = computed(() => entries.value.length ? entries.value[0].exp : 1)
-function pct(exp) { return Math.max(4, Math.round((exp / maxExp.value) * 100)) } // min width for visibility
 </script>
 
 <template>
@@ -129,9 +125,6 @@ function pct(exp) { return Math.max(4, Math.round((exp / maxExp.value) * 100)) }
           <img class="row-avatar" :src="e.avatar" :alt="e.name" />
           <div class="row-main">
             <div class="row-name">{{ e.name }}</div>
-            <div class="row-bar">
-              <div class="bar" :style="{ width: pct(e.exp) + '%' }"></div>
-            </div>
           </div>
           <div class="row-exp">{{ e.exp.toLocaleString() }}<span> EXP</span></div>
         </article>
@@ -239,6 +232,13 @@ function pct(exp) { return Math.max(4, Math.round((exp / maxExp.value) * 100)) }
   mask: radial-gradient(circle at 50% -20%, transparent 38%, #000 40%);
   background:var(--c); opacity:.12; filter:blur(6px); border-radius:18px;
   animation: confetti-spin 6s linear infinite;
+}
+
+/* List */
+.list-wrap{ padding: 6px clamp(6px,3vw,12px) 16px; }
+.lb-list{ display:flex; flex-direction:column; gap: clamp(8px,2.2vw,10px); }
+.row{
+  display:grid;
 }
 
 /* List */

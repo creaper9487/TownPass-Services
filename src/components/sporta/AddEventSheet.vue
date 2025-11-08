@@ -171,7 +171,6 @@ watch(open, async v => {
                 placeholder="Start"
               />
               <span class="range-chip" aria-hidden="true">to</span>
-              <div class="divider" aria-hidden="true"></div>
               <input
                 class="field bottom"
                 v-model="form.end"
