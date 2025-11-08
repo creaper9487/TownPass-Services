@@ -14,28 +14,18 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="home-wrap">
-    <header class="intro">
-      <h1 class="h1">運動活動</h1>
-      <p class="sub">最新的城市運動清單</p>
+  <section class="px-4 py-6">
+    <header class="mb-6">
+      <h1 class="text-2xl font-bold text-grey-800 mb-2">運動活動</h1>
+      <p class="text-grey-400 text-sm">最新的城市運動清單</p>
     </header>
 
-    <div class="list">
+    <div class="space-y-3">
       <EventCard v-for="e in sportaStore.userEvent" :key="e.id" :event="e" />
     </div>
 
-    <div class="spacer"></div>
+    <div class="h-24"></div>
   </section>
 </template>
 
-<style scoped>
-.home-wrap { padding: 0 4px; }
-.intro { padding: 6px 8px 10px; }
-.h1 { margin: 0; font-size: 20px; }
-.sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-
-.list { display: grid; gap: 12px; }
-.state { color: var(--muted); padding: 20px 8px; }
-.state.error { color: #ff8585; }
-.spacer { height: 96px; }
-</style>
+<style scoped></style>

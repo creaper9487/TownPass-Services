@@ -163,7 +163,7 @@ onBeforeUnmount(() => {
   <!-- List card (click to open) -->
   <article
     ref="cardRef"
-    class="event-card"
+    class="bg-white rounded-2xl shadow-card border border-grey-100 overflow-hidden transition-all duration-200 cursor-pointer outline-none hover:-translate-y-1 hover:shadow-lg focus:ring-2 focus:ring-primary-300"
     role="button"
     tabindex="0"
     aria-haspopup="dialog"
@@ -171,24 +171,33 @@ onBeforeUnmount(() => {
     @click="openPortal"
     @keydown="onCardKeydown"
   >
-    <div class="cover-wrap">
-      <img class="cover" :src="event.image" :alt="event.title" loading="lazy" />
-      <div class="cover-gradient"></div>
-      <div class="chip" v-if="event.category">{{ event.category }}</div>
+    <div class="relative aspect-video bg-grey-200">
+      <img class="w-full h-full object-cover" :src="event.image" :alt="event.title" loading="lazy" />
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
+      <div class="absolute top-2 right-2 px-2.5 py-1 text-xs text-white bg-primary-500/90 border border-white/25 rounded-full backdrop-blur-sm" v-if="event.category">
+        {{ event.category }}
+      </div>
     </div>
 
-    <div class="meta">
-      <h3 class="title">{{ event.title }}</h3>
-      <div class="row">
-        <svg viewBox="0 0 24 24" class="i"><path d="M6 2h12a2 2 0 0 1 2 2v16l-8-4-8 4V4a2 2 0 0 1 2-2z"/></svg>
+    <div class="p-3.5 text-grey-800">
+      <h3 class="m-0 mb-2 text-base font-bold leading-tight">{{ event.title }}</h3>
+      <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+          <path d="M6 2h12a2 2 0 0 1 2 2v16l-8-4-8 4V4a2 2 0 0 1 2-2z"/>
+        </svg>
         <span>{{ event.organizer }}</span>
       </div>
-      <div class="row">
-        <svg viewBox="0 0 24 24" class="i"><path d="M6 8h12M6 12h12M6 16h12"/></svg>
+      <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+          <path d="M6 8h12M6 12h12M6 16h12"/>
+        </svg>
         <span>{{ event.starttime }}</span>
       </div>
-      <div class="row">
-        <svg viewBox="0 0 24 24" class="i"><path d="M12 21s-7-4.5-7-10a7 7 0 1 1 14 0c0 5.5-7 10-7 10z"/><circle cx="12" cy="11" r="3"/></svg>
+      <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+          <path d="M12 21s-7-4.5-7-10a7 7 0 1 1 14 0c0 5.5-7 10-7 10z"/>
+          <circle cx="12" cy="11" r="3"/>
+        </svg>
         <span>{{ event.location }}</span>
       </div>
     </div>
@@ -199,55 +208,64 @@ onBeforeUnmount(() => {
     <div
       v-if="isOpen"
       ref="portalWrapRef"
-      class="portal-wrap"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all duration-300"
+      :class="{ 'backdrop-in': isOpen }"
       role="dialog"
       aria-modal="true"
       @click.self="closePortal"
     >
-      <div ref="portalCardRef" class="portal-card" @click.stop>
-        <button class="close" aria-label="close" @click="closePortal">
-          <svg viewBox="0 0 24 24" class="i"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      <div ref="portalCardRef" class="portal-card bg-white rounded-2xl shadow-2xl border border-grey-200 w-full max-w-lg max-h-[86vh] overflow-hidden relative" @click.stop>
+        <button class="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/90 border border-grey-200 text-grey-700 flex items-center justify-center z-10 hover:bg-grey-50 transition-colors shadow-md" aria-label="close" @click="closePortal">
+          <svg viewBox="0 0 24 24" class="w-5 h-5 stroke-current" fill="none" stroke-width="2">
+            <path d="M6 6l12 12M18 6L6 18"/>
+          </svg>
         </button>
 
-        <div class="portal-cover">
-          <img :src="event.image" :alt="event.title" />
-          <div class="portal-cover-grad"></div>
-          <div class="portal-chip" v-if="event.category">{{ event.category }}</div>
+        <div class="relative aspect-video bg-grey-200">
+          <img :src="event.image" :alt="event.title" class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
+          <div class="absolute top-3 left-3 px-3 py-1.5 text-sm font-medium text-white bg-primary-500/90 border border-white/25 rounded-full backdrop-blur-sm" v-if="event.category">
+            {{ event.category }}
+          </div>
         </div>
 
-        <div class="portal-body">
-          <h2 class="portal-title">{{ event.title }}</h2>
+        <div class="p-4 text-grey-800 max-h-[50vh] overflow-y-auto">
+          <h2 class="m-0 mb-3 text-xl font-bold leading-tight">{{ event.title }}</h2>
 
-          <div class="kv">
-            <div class="item">
-              <label>主辦</label>
-              <p>{{ event.organizer }}</p>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="block text-xs text-grey-500 font-medium mb-1">主辦</label>
+              <p class="m-0 text-sm text-grey-800">{{ event.organizer }}</p>
             </div>
-            <div class="item">
-              <label>時間</label>
-              <p>{{ event.starttime }}<span v-if="event.endtime"> — {{ event.endtime }}</span></p>
+            <div>
+              <label class="block text-xs text-grey-500 font-medium mb-1">時間</label>
+              <p class="m-0 text-sm text-grey-800">{{ event.starttime }}<span v-if="event.endtime"> — {{ event.endtime }}</span></p>
             </div>
-            <div class="item">
-              <label>地點</label>
-              <p>{{ event.location }}</p>
+            <div>
+              <label class="block text-xs text-grey-500 font-medium mb-1">地點</label>
+              <p class="m-0 text-sm text-grey-800">{{ event.location }}</p>
             </div>
-            <div class="item" v-if="event.capacity">
-              <label>名額</label>
-              <p>{{ event.capacity }}</p>
+            <div v-if="event.capacity">
+              <label class="block text-xs text-grey-500 font-medium mb-1">名額</label>
+              <p class="m-0 text-sm text-grey-800">{{ event.capacity }}</p>
             </div>
-            <div class="item" v-if="event.price !== undefined">
-              <label>費用</label>
-              <p>{{ event.price === 0 ? '免費' : `NT$ ${event.price}` }}</p>
+            <div v-if="event.price !== undefined">
+              <label class="block text-xs text-grey-500 font-medium mb-1">費用</label>
+              <p class="m-0 text-sm text-grey-800">{{ event.price === 0 ? '免費' : `NT$ ${event.price}` }}</p>
             </div>
           </div>
 
-          <p v-if="event.description" class="desc">{{ event.description }}</p>
+          <p v-if="event.description" class="mt-3 p-3 bg-grey-50 border border-grey-200 rounded-xl leading-relaxed text-sm text-grey-700">
+            {{ event.description }}
+          </p>
 
           <slot name="details"></slot>
         </div>
 
-        <div class="actions">
-          <button @click="subEvent(event)" class="btn primary w-2/3">報名</button>
+        <div class="sticky bottom-0 left-0 right-0 flex justify-center p-4 bg-gradient-to-t from-white via-white to-transparent">
+          <button @click="subEvent(event)" class="px-6 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 w-2/3">
+            報名
+          </button>
         </div>
       </div>
     </div>
@@ -255,57 +273,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* base list card */
-.event-card {
-  border-radius: 18px;
-  overflow: hidden;
-  background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.12));
-  border: 1px solid var(--glass-border, rgba(255,255,255,.25));
-  backdrop-filter: blur(var(--blur, 10px));
-  -webkit-backdrop-filter: blur(var(--blur, 10px));
-  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.25);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
-  cursor: pointer; outline: none;
-}
-.event-card:focus { box-shadow: 0 10px 36px rgba(0,0,0,.4), 0 0 0 2px rgba(56,132,255,.55) inset; }
-.event-card:hover { transform: translateY(-2px); }
-.cover-wrap { position: relative; aspect-ratio: 16/9; background: rgba(0,0,0,.3); }
-.cover { width: 100%; height: 100%; object-fit: cover; display: block; }
-.cover-gradient { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,.25) 100%); pointer-events: none; }
-.chip { position: absolute; top: 10px; right: 10px; padding: 6px 10px; font-size: 12px; color: #fff; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.25); border-radius: 999px; backdrop-filter: blur(6px); }
-
-.meta { padding: 12px 14px 14px; color: var(--fg, #fff); }
-.title { margin: 0 0 8px; font-size: 16px; line-height: 1.3; letter-spacing: .2px; }
-.row { display: flex; align-items: center; gap: 8px; color: var(--muted, rgba(255,255,255,.8)); font-size: 13px; margin-top: 6px; min-height: 20px; }
-.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; }
-
-/* portal overlay */
-.portal-wrap {
-  position: fixed; inset: 0; display: grid; place-items: center;
-  padding: 16px; z-index: 60;
-  background: rgba(6,10,18,0); /* start transparent */
-  -webkit-backdrop-filter: blur(0px);
-  backdrop-filter: blur(0px);
-  transition: background 220ms ease, backdrop-filter 220ms ease;
-}
-.portal-wrap.backdrop-in {
-  background: rgba(6,10,18,.35);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-}
-
-/* popup card target geometry */
+/* FLIP animation states */
 .portal-card {
-  width: clamp(320px, 92vw, 560px);
-  max-height: 86vh;
-  overflow: hidden;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.14));
-  border: 1px solid rgba(255,255,255,.35);
-  box-shadow: 0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.3);
   transform-origin: top left;
-  position: relative;
-  /* FLIP states */
   transform: translate3d(0,0,0) scale(1,1);
   opacity: 1;
   transition: transform 260ms cubic-bezier(.2,.7,.2,1), opacity 180ms ease;
@@ -319,49 +289,8 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-/* close button */
-.close {
-  position: absolute; top: 10px; right: 10px;
-  width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,.35);
-  background: rgba(0,0,0,.25); color: #fff; display: grid; place-items: center;
-  cursor: pointer; z-index: 2;
-  backdrop-filter: blur(6px);
+.backdrop-in {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
-.close .i { width: 18px; height: 18px; }
-
-/* portal content */
-.portal-cover { position: relative; aspect-ratio: 16/9; background: rgba(0,0,0,.3); }
-.portal-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.portal-cover-grad { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,.25) 100%); }
-.portal-chip { position: absolute; top: 12px; right: 12px; padding: 6px 10px; font-size: 12px; color: #fff; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.25); border-radius: 999px; backdrop-filter: blur(6px); }
-
-.portal-body { padding: 14px; color: #fff; }
-.portal-title { margin: 0 0 10px; font-size: 20px; line-height: 1.3; letter-spacing: .2px; }
-.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
-@media (min-width: 520px) { .kv { grid-template-columns: repeat(4, 1fr); } }
-.kv .item label { display: block; font-size: 11px; opacity: .85; letter-spacing: .3px; margin-bottom: 4px; }
-.kv .item p { margin: 0; font-size: 13px; }
-.desc {
-  margin-top: 10px; padding: 10px 12px;
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.18);
-  border-radius: 12px; line-height: 1.5; font-size: 13px;
-}
-
-.actions {
-  position: sticky; bottom: 0; left: 0; right: 0;
-  justify-content: center;
-  display: flex;
-  padding: 10px 14px 14px;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.25) 40%, rgba(0,0,0,.35) 100%);
-  backdrop-filter: blur(8px);
-}
-.btn {
-  appearance: none; border: 0; border-radius: 12px;
-  padding: 12px 14px; font-size: 14px; font-weight: 600; letter-spacing: .2px;
-  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, opacity 120ms ease;
-  cursor: pointer;
-}
-.btn:active { transform: translateY(1px); }
-.btn.primary { color: #0b1221; background: linear-gradient(180deg, #8fd3ff, #5ab6ff); box-shadow: 0 6px 20px rgba(90,182,255,.45), inset 0 1px 0 rgba(255,255,255,.6); }
-.btn.ghost { color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.3); box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
 </style>

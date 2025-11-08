@@ -61,24 +61,23 @@ onMounted(fetchNotifications)
 </script>
 
 <template>
-  <div class="min-h-full bg-gray-50 grid grid-rows-[auto_1fr]">
-
-    <header class="flex justify-between items-center px-4 py-3.5">
-      <h1 class="m-0 text-lg font-extrabold text-gray-900">通知中心</h1>
+  <div class="min-h-full bg-grey-50">
+    <header class="flex justify-between items-center px-4 py-4">
+      <h1 class="m-0 text-xl font-bold text-grey-800">通知中心</h1>
       <button 
-        class="appearance-none border-0 bg-transparent text-sky-500 font-bold text-sm"
+        class="appearance-none border-0 bg-transparent text-primary-500 font-bold text-sm"
         @click="notifications.forEach(n => n.unread=false)"
       >
         全部標為已讀
       </button>
     </header>
 
-    <div class="px-3 pt-2 pb-4 flex flex-col gap-3.5">
+    <div class="px-4 pt-2 pb-4 flex flex-col gap-3">
       <div v-if="loading" class="flex flex-col gap-3">
         <div 
           v-for="i in 5" 
           :key="i"
-          class="h-16 rounded-2xl border border-gray-200 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:400%_100%] animate-shimmer"
+          class="h-20 rounded-2xl bg-grey-100 animate-pulse"
         ></div>
       </div>
 
@@ -86,39 +85,28 @@ onMounted(fetchNotifications)
         <article
           v-for="n in notifications"
           :key="n.id"
-          class="bg-white border border-gray-200 rounded-2xl px-4 py-3.5 pl-3 flex gap-3 shadow-sm cursor-pointer transition-all duration-100 ease-in-out active:scale-[0.98] hover:shadow-md"
+          class="bg-white border border-grey-200 rounded-2xl px-4 py-4 pl-3 flex gap-3 shadow-card cursor-pointer transition-all duration-100 ease-in-out active:scale-[0.98] hover:shadow-lg"
           @click="markRead(n)"
         >
           <div 
             class="w-2 rounded-md transition-colors duration-300"
-            :class="n.unread ? 'bg-sky-500' : 'bg-transparent'"
+            :class="n.unread ? 'bg-primary-500' : 'bg-transparent'"
           ></div>
 
           <div class="flex flex-col gap-1">
-            <div class="font-extrabold text-gray-900">{{ n.title }}</div>
-            <div class="text-sm text-slate-600">{{ n.message }}</div>
-            <div class="text-xs text-gray-400 mt-0.5">{{ n.time }}</div>
+            <div class="font-bold text-grey-800">{{ n.title }}</div>
+            <div class="text-sm text-grey-600">{{ n.message }}</div>
+            <div class="text-xs text-grey-400 mt-1">{{ n.time }}</div>
           </div>
         </article>
       </transition-group>
     </div>
 
-    <div class="h-[calc(env(safe-area-inset-bottom,0px)+12px)]"></div>
-
+    <div class="h-24"></div>
   </div>
 </template>
 
-<style>
-/* Custom animations that can't be replicated with Tailwind */
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-.animate-shimmer {
-  animation: shimmer 1.3s infinite;
-}
-
+<style scoped>
 .fade-slide-enter-active, 
 .fade-slide-leave-active {
   transition: all 0.28s cubic-bezier(0.2, 0.7, 0.2, 1);

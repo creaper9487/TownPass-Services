@@ -1,15 +1,15 @@
 <template>
-  <div class="min-h-screen bg-gray-50 py-8">
+  <div class="min-h-screen bg-grey-50 py-8">
     <div class="container mx-auto px-4">
       <!-- Header -->
       <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-800 mb-4">運動活動與賽事</h1>
-        <p class="text-lg text-gray-600">探索社區中精彩的運動賽事和活動</p>
+        <h1 class="text-4xl font-bold text-grey-800 mb-4">運動活動與賽事</h1>
+        <p class="text-lg text-grey-600">探索社區中精彩的運動賽事和活動</p>
       </div>
 
       <!-- Category Filter -->
       <div class="mb-8">
-        <h2 class="text-xl font-semibold text-gray-700 mb-4">篩選分類</h2>
+        <h2 class="text-xl font-semibold text-grey-700 mb-4">篩選分類</h2>
         
         <!-- Search Input -->
         <div class="mb-4">
@@ -18,9 +18,9 @@
               v-model="searchQuery"
               type="text"
               placeholder="搜尋分類..."
-              class="w-full px-4 py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-4 py-2 pl-10 pr-4 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
-            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-grey-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
           </div>
@@ -35,8 +35,8 @@
               class="flex-shrink-0 w-64 p-3 border rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
               :class="[
                 selectedCategoryObjects.some(sel => sel.id === category.id)
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-grey-300 hover:border-grey-400'
               ]"
               @click="toggleCategoryObject(category)"
             >
@@ -46,13 +46,13 @@
                 <!-- Selection indicator -->
                 <div 
                   v-if="selectedCategoryObjects.some(sel => sel.id === category.id)"
-                  class="absolute top-2 right-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+                  class="absolute top-2 right-2 bg-primary-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
                 >
                   ✓
                 </div>
               </div>
               <p class="font-medium text-center">{{ category.name }}</p>
-              <p class="text-sm text-gray-600 text-center line-clamp-2">{{ category.description }}</p>
+              <p class="text-sm text-grey-600 text-center line-clamp-2">{{ category.description }}</p>
             </div>
           </div>
         </div>
@@ -64,12 +64,12 @@
             <span
               v-for="category in selectedCategoryObjects"
               :key="category.id"
-              class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+              class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-blue-800"
             >
               {{ category.name }}
               <button
                 @click="removeCategoryObject(category)"
-                class="ml-1 hover:text-blue-600"
+                class="ml-1 hover:text-primary-600"
               >
                 ×
               </button>
@@ -87,7 +87,7 @@
           @click="viewEventDetails(event)"
         >
           <!-- Event Image -->
-          <div class="relative h-48 bg-gradient-to-r from-blue-400 to-purple-500 overflow-hidden">
+          <div class="relative h-48 bg-gradient-to-r from-primary-400 to-purple-500 overflow-hidden">
             <img
               :src="getEventImage(event)"
               :alt="event.title"
@@ -97,13 +97,13 @@
             <!-- Gradient overlay for better text readability -->
             <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
             <div class="absolute top-4 right-4">
-              <span class="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-gray-800 shadow-lg">
+              <span class="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-grey-800 shadow-lg">
                 {{ formatDate(event.date) }}
               </span>
             </div>
             <!-- Category badge -->
             <div class="absolute top-4 left-4">
-              <span class="bg-blue-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+              <span class="bg-primary-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                 {{ event.category[0] }}
               </span>
             </div>
@@ -112,10 +112,10 @@
           <!-- Event Content -->
           <div class="p-6">
             <!-- Event Title -->
-            <h3 class="text-xl font-bold text-gray-800 mb-2 line-clamp-2">{{ event.title }}</h3>
+            <h3 class="text-xl font-bold text-grey-800 mb-2 line-clamp-2">{{ event.title }}</h3>
             
             <!-- Event Organizer -->
-            <p class="text-sm text-gray-600 mb-3 flex items-center">
+            <p class="text-sm text-grey-600 mb-3 flex items-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
               </svg>
@@ -123,7 +123,7 @@
             </p>
 
             <!-- Event Location -->
-            <p class="text-sm text-gray-600 mb-3 flex items-center">
+            <p class="text-sm text-grey-600 mb-3 flex items-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -132,7 +132,7 @@
             </p>
 
             <!-- Event Description -->
-            <p class="text-gray-700 mb-4 line-clamp-3">{{ event.description[0] }}</p>
+            <p class="text-grey-700 mb-4 line-clamp-3">{{ event.description[0] }}</p>
 
             <!-- Categories -->
             <div class="mb-4">
@@ -140,13 +140,13 @@
                 <span
                   v-for="category in event.category.slice(0, 3)"
                   :key="category"
-                  class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                  class="inline-block bg-primary-100 text-blue-800 text-xs px-2 py-1 rounded-full"
                 >
                   {{ category }}
                 </span>
                 <span
                   v-if="event.category.length > 3"
-                  class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full"
+                  class="inline-block bg-grey-100 text-grey-600 text-xs px-2 py-1 rounded-full"
                 >
                   +{{ event.category.length - 3 }} more
                 </span>
@@ -155,7 +155,7 @@
 
             <!-- Participants -->
             <div class="mb-4">
-              <p class="text-sm text-gray-600 mb-2 flex items-center">
+              <p class="text-sm text-grey-600 mb-2 flex items-center">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m3 5.197H9m3 0a4 4 0 11-8 0m8 0v3H9v-3m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v12.5"></path>
                 </svg>
@@ -178,7 +178,7 @@
             <!-- Action Buttons -->
             <div class="flex gap-3">
               <button
-                class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                class="flex-1 bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
                 @click.stop="viewEventDetails(event)"
               >
                 查看詳情
@@ -207,14 +207,14 @@
       <div v-if="filteredEvents.length === 0" class="text-center py-12">
         <div class="max-w-md mx-auto">
 
-          <h3 class="text-xl font-medium text-gray-900 mb-2">沒有找到符合條件的活動</h3>
-          <p class="text-gray-500">請嘗試選擇不同的分類或稍後再查看新活動。</p>
+          <h3 class="text-xl font-medium text-grey-900 mb-2">沒有找到符合條件的活動</h3>
+          <p class="text-grey-500">請嘗試選擇不同的分類或稍後再查看新活動。</p>
         </div>
       </div>
 
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
       </div>
     </div>
   </div>
@@ -304,7 +304,7 @@ const getEventStatus = (timestamp: number) => {
   if (timeDiff < 0) {
     return {
       text: '活動已結束',
-      class: 'bg-gray-200 text-gray-700',
+      class: 'bg-grey-200 text-grey-700',
       isPast: true,
       canRegister: false
     }
@@ -465,3 +465,4 @@ onMounted(async () => {
   background: #94a3b8;
 }
 </style>
+
