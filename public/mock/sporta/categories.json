@@ -1,0 +1,65 @@
+[
+    {
+        "id": 1,
+        "name": "棒球",
+        "description": "棒球比賽和錦標賽",
+        "img": "/images/sporta/baseball.jpg",
+        "isActive": true
+    },
+    {
+        "id": 2,
+        "name": "慢跑",
+        "description": "慢跑活動和競賽",
+        "img": "/images/sporta/jog.png",
+        "isActive": true
+    },
+    {
+        "id": 3,
+        "name": "網球",
+        "description": "網球比賽和訓練課程",
+        "img": "/images/sporta/tennis.jpg",
+        "isActive": true
+    },
+    {
+        "id": 4,
+        "name": "籃球",
+        "description": "籃球比賽和聯賽",
+        "img": "/images/sporta/baseball.jpg",
+        "isActive": true
+    },
+    {
+        "id": 5,
+        "name": "游泳",
+        "description": "游泳競賽和訓練",
+        "img": "/images/sporta/jog.png",
+        "isActive": true
+    },
+    {
+        "id": 6,
+        "name": "排球",
+        "description": "排球錦標賽和比賽",
+        "img": "/images/sporta/tennis.jpg",
+        "isActive": true
+    },
+    {
+        "id": 7,
+        "name": "足球",
+        "description": "足球比賽和錦標賽",
+        "img": "/images/sporta/baseball.jpg",
+        "isActive": true
+    },
+    {
+        "id": 8,
+        "name": "自行車",
+        "description": "自行車競賽和團體騎行",
+        "img": "/images/sporta/jog.png",
+        "isActive": true
+    },
+    {
+        "id": 9,
+        "name": "羽毛球",
+        "description": "羽毛球錦標賽和訓練",
+        "img": "/images/sporta/tennis.jpg",
+        "isActive": true
+    }
+]
