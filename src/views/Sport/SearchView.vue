@@ -3,7 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import FilterChip from '@/components/sporta/filterChip.vue'
 import EventCard from '@/components/sporta/card.vue'
 import EventPair from '@/components/sporta/EventPair.vue'
-import { fetchCategories, fetchLocations, searchEvents } from '@/utils/filtermock.js'
+import { fetchCategories, fetchLocations, realSearchEvents } from '@/utils/filtermock.js'
 import { useSportaStore } from '@/stores/sporta'
 const sportaStore = useSportaStore()
 const q = ref('')

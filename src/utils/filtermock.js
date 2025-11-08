@@ -1,3 +1,5 @@
+import {useSportaStore} from '@/stores/sporta'
+
 export async function fetchCategories() {
   await new Promise(r => setTimeout(r, 120));
   return ["Running", "Cycling", "Yoga", "Basketball", "Hiking", "Swimming", "Badminton", "Football"];
@@ -26,9 +28,13 @@ export async function searchEvents({ q = "", category = "", location = "" } = {}
   });
 }
 export async function realSearchEvents({ q = "", category = "", location = "" } = {}) {
-  // Import actual event data from eventsmock
-  const { fetchEvents } = await import('./eventsmock.js');
-  const events = await fetchEvents();
+  // Get the store instance inside the function
+  const sportaStore = useSportaStore();
+  
+  // Fetch actual event data from the API
+  await sportaStore.fetchEvents();
+  const events = sportaStore.events;
+  console.log(events);
   
   // Map the data structure from sporta.ts to match the expected format
   const base = events.map(e => ({
@@ -37,7 +43,7 @@ export async function realSearchEvents({ q = "", category = "", location = "" } 
     date: e.starttime, // Using starttime from sporta.ts eventInfo
     location: e.location,
     host: e.organizer, // Using organizer from sporta.ts eventInfo
-    cover: e.cover,
+    cover: e.image, // Using image from sporta.ts eventInfo (not cover)
     category: e.category
   }));
   
