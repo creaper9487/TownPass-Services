@@ -2,11 +2,13 @@
 import { ref } from 'vue'
 import HomeView from '@/views/Sport/HomeSportView.vue'
 import SearchView from './SearchView.vue'
+import LeaderboardView from './LeaderboardView.vue';
 import { computed } from 'vue';
 import { useSportaStore, type userInfo } from '@/stores/sporta';
 import { useConnectionMessage } from '@/composables/useConnectionMessage';
 import { useHandleConnectionData } from '@/composables/useHandleConnectionData';
 import AddEventSheet from '@/components/sporta/AddEventSheet.vue'
+
 const sportaStore = useSportaStore();
 
 useConnectionMessage('userinfo', null);
@@ -46,6 +48,7 @@ function setTab(k) {
       <!-- 分頁內容 -->
       <HomeView v-if="current==='home'" />
       <SearchView v-else-if="current==='search'" />
+      <LeaderboardView v-else-if="current==='star'" />
       <!-- 其他分頁留白，未來補： -->
       <section v-else class="content-card"><p>Coming soon…</p></section>
     </main>
