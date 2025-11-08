@@ -31,7 +31,8 @@ export const useSportaStore = defineStore('sporta', {
   state: () => ({
     events: [] as eventStruct[],
     categories: [] as categoryStruct[],
-    useMockData: true // Switch to control data source
+    useMockData: true, // Switch to control data source
+    userdata: {} as participantsStruct
   }),
 
   actions: {
@@ -132,6 +133,20 @@ export const useSportaStore = defineStore('sporta', {
         console.error('Unsubscription failed:', error);
       }
     },
+    async fetchUserInfo(userId: string) {
+      try {
+        const response = await fetch(`/api/user/${userId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        this.userdata.exp = data?.exp;
+        this.userdata.subevents = data?.subevents;
+        this.userdata.subCat = data?.subCat;
+      }catch (error) {
+        console.error('Failed to fetch user info:', error);
+      }
+    }
   },
 
   getters: {

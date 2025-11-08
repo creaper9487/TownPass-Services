@@ -6,6 +6,9 @@ const sportaStore = useSportaStore();
 // 使用 computed 讓資料響應式更新
 const myEvents = computed(() => sportaStore.getMyEvents);
 const mySubCats = computed(() => sportaStore.getMySubCats);
+const userExp = computed(() => sportaStore.userdata.exp || 0);
+const maxExp = 10000;
+const expPercentage = computed(() => Math.min((userExp.value / maxExp) * 100, 100));
 
 onMounted(async () => {
     console.log('Personal.vue: 開始載入資料');
@@ -21,7 +24,27 @@ onMounted(async () => {
 <template>
     <div class="p-4">
         <h2 class="text-2xl font-bold mb-4 w-full justify-center flex bg-main-300 py-6 text-black">我的 Sporta</h2>
+        
+        <!-- Experience Indicator -->
+        <div class="mb-6 p-4 border rounded-lg shadow-sm bg-gradient-to-r from-blue-50 to-purple-50">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-lg font-semibold text-gray-800">Experience Level</h3>
+                <span class="text-sm font-medium text-gray-600">{{ userExp }} / {{ maxExp }} EXP</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div 
+                    class="h-full bg-gradient-to-r from-main-300 to-main-600 rounded-full transition-all duration-500 ease-out"
+                    :style="{ width: expPercentage + '%' }"
+                ></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>Beginner</span>
+                <span>Expert</span>
+            </div>
+        </div>
+
         <div class="mb-6">
+            
             <h3 class="text-lg font-semibold mb-2" v-bind:key="myEvents.length">My Subscribed Categories</h3>
             <div class="flex flex-row relative">
                 <div v-for="category in mySubCats" :key="category.id" class="w-fit p-3 border rounded-lg shadow-sm">
