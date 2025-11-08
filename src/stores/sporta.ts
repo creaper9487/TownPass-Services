@@ -99,6 +99,16 @@ export const useSportaStore = defineStore('sporta', {
       const { fetchEvents } = await import('@/utils/eventsmock.js');
       const mockEvents = await fetchEvents();
       return mockEvents;
+    },
+    async SubmitEvent(payload: eventInfo) {
+      await fetch('http://localhost:8000/api/events/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
     }
+
   }
 });
