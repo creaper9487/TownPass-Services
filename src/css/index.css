@@ -16,3 +16,8 @@
     @apply -translate-x-1;
   }
 }
+
+.no-scroll {
+  overflow: hidden !important;
+  height: 100dvh;
+}

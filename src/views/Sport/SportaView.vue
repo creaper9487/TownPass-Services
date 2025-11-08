@@ -2,10 +2,13 @@
 import { ref } from 'vue'
 import HomeView from '@/views/Sport/HomeSportView.vue'
 import SearchView from './SearchView.vue'
+import LeaderboardView from './LeaderboardView.vue';
 import { computed } from 'vue';
 import { useSportaStore, type userInfo } from '@/stores/sporta';
 import { useConnectionMessage } from '@/composables/useConnectionMessage';
 import { useHandleConnectionData } from '@/composables/useHandleConnectionData';
+import AddEventSheet from '@/components/sporta/AddEventSheet.vue'
+
 const sportaStore = useSportaStore();
 
 useConnectionMessage('userinfo', null);
@@ -24,7 +27,15 @@ const tabs = [
   { key: 'star',     label: 'Saved',    icon: 'star' },
 ]
 const current = ref('home')
-function setTab(k: string) { current.value = k }
+const showAdd = ref(false)
+
+function setTab(k) {
+  if (k === 'add') {
+    showAdd.value = true // 直接開啟底部表單
+  } else {
+    current.value = k
+  }
+}
 </script>
 
 <template>
@@ -37,6 +48,7 @@ function setTab(k: string) { current.value = k }
       <!-- 分頁內容 -->
       <HomeView v-if="current==='home'" />
       <SearchView v-else-if="current==='search'" />
+      <LeaderboardView v-else-if="current==='star'" />
       <!-- 其他分頁留白，未來補： -->
       <section v-else class="content-card"><p>Coming soon…</p></section>
     </main>
@@ -60,6 +72,7 @@ function setTab(k: string) { current.value = k }
         </button>
       </div>
     </nav>
+        <AddEventSheet v-model="showAdd" @created="onCreated" />
   </div>
 </template>
 

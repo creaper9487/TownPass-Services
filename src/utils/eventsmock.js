@@ -41,3 +41,12 @@ export async function fetchEvents() {
     },
   ];
 }
+
+
+/** 可直接改成 fetch('/api/events', { method:'POST', body:FormData 或 JSON }) */
+export async function createEvent(payload) {
+  // 模擬網路
+  await new Promise(r => setTimeout(r, 350));
+  // 這裡回傳伺服器建立後的物件（mock）
+  return { id: 'evt_' + Math.random().toString(36).slice(2, 8), ...payload };
+}
