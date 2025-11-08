@@ -1,6 +1,9 @@
 <script setup>
 import { reactive, ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { createEvent } from '@/utils/eventsmock'
+import { useSportaStore } from '@/stores/sporta'
+
+const sportaStore = useSportaStore()
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -66,20 +69,32 @@ async function submit() {
   loading.value = true
   try {
     const payload = {
+      id: `event-${Date.now()}`,
       title: form.title.trim(),
-      date: `${form.start} ~ ${form.end}`,
-      start: form.start, end: form.end,
+      organizer: sportaStore.user.id,
+      participants: [],
+      category: form.category,
       location: form.location.trim(),
       description: form.description.trim(),
-      category: form.category,
-      cover: form.coverUrl || 'https://picsum.photos/seed/new/800/480',
-      host: 'You'
+      image: form.coverUrl || 'https://picsum.photos/seed/new/800/480',
+      starttime: form.start,
+      endtime: form.end
     }
-    const created = await createEvent(payload)
+    console.log('Form submitted:', payload)
+    await sportaStore.SubmitEvent(payload)
+    const created = await createEvent({
+      ...payload,
+      date: `${form.start} ~ ${form.end}`,
+      start: form.start,
+      end: form.end,
+      cover: payload.image,
+      host: payload.organizer
+    })
     emit('created', created)
     reset()
     open.value = false
   } catch (e) {
+    console.error('Submit error:', e)
     err.value = 'Create failed, please try again.'
   } finally {
     loading.value = false
