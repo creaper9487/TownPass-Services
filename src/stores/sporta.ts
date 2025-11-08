@@ -1,4 +1,4 @@
-import { tryOnScopeDispose } from '@vueuse/core';
+
 import { defineStore } from 'pinia';
 
 export class userInfo {
@@ -20,11 +20,13 @@ export class eventInfo {
   endtime: string;
 }
 export class locationInfo {
+  id:string;
   name: string;
   coordinates: number[];
   subscribers: string[];
 }
 export class categoryInfo {
+  id: string;
   name: string;
   subscribers: string[];
 }
@@ -84,32 +86,11 @@ export const useSportaStore = defineStore('sporta', {
       await this.fetchCategories();
     },
     //=============================================================//
-    async manEvent(action: string, eventId: string, userId: string) {
-      await fetch(`localhost:8000/api/event/${eventId}/${action}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId
-        })
+    async fetchEventByGuy(): Promise<eventInfo[]> {
+      const response = await fetch(`localhost:8000/api/events/query?participant=${this.user.id}&limit=10`, {
+        method: 'GET'
       });
-      this.fetchUser(userId);
-    },
-    async manCategory(action: string, categoryName: string, userId: string) {
-      await fetch(`localhost:8000/api/category/${categoryName}/${action}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId
-        })
-      });
-      this.fetchUser(userId);
-    },
-    async manLocation(user:userInfo, location:locationInfo, action:string) {
-
+      return await response.json();
     }
   }
 });
