@@ -64,7 +64,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async fetchEvents() {
       try {
-        const response = await fetch('http://localhost:8000/api/events', {
+        const response = await fetch('http://localhost:8000/api/events/', {
           method: 'GET'
         });
         this.events = await response.json();
@@ -78,7 +78,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async fetchLocations() {
       try {
-        const response = await fetch('http://localhost:8000/api/locations', {
+        const response = await fetch('http://localhost:8000/api/locations/', {
           method: 'GET'
         });
         this.locations = await response.json();
@@ -94,7 +94,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async fetchCategories() {
       try {
-        const response = await fetch('http://localhost:8000/api/categories', {
+        const response = await fetch('http://localhost:8000/api/categories/', {
           method: 'GET'
         });
         this.categories = await response.json();

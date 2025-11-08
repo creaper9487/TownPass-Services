@@ -61,113 +61,71 @@ onMounted(fetchNotifications)
 </script>
 
 <template>
-  <div class="ntf-page">
+  <div class="min-h-full bg-gray-50 grid grid-rows-[auto_1fr]">
 
-    <header class="top">
-      <h1>通知中心</h1>
-      <button class="mark-all" @click="notifications.forEach(n => n.unread=false)">
+    <header class="flex justify-between items-center px-4 py-3.5">
+      <h1 class="m-0 text-lg font-extrabold text-gray-900">通知中心</h1>
+      <button 
+        class="appearance-none border-0 bg-transparent text-sky-500 font-bold text-sm"
+        @click="notifications.forEach(n => n.unread=false)"
+      >
         全部標為已讀
       </button>
     </header>
 
-    <div class="list">
-      <div v-if="loading" class="sk-wrap">
-        <div class="sk" v-for="i in 5" :key="i"></div>
+    <div class="px-3 pt-2 pb-4 flex flex-col gap-3.5">
+      <div v-if="loading" class="flex flex-col gap-3">
+        <div 
+          v-for="i in 5" 
+          :key="i"
+          class="h-16 rounded-2xl border border-gray-200 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:400%_100%] animate-shimmer"
+        ></div>
       </div>
 
       <transition-group name="fade-slide" tag="div">
         <article
           v-for="n in notifications"
           :key="n.id"
-          class="item"
-          :class="{ unread: n.unread }"
+          class="bg-white border border-gray-200 rounded-2xl px-4 py-3.5 pl-3 flex gap-3 shadow-sm cursor-pointer transition-all duration-100 ease-in-out active:scale-[0.98] hover:shadow-md"
           @click="markRead(n)"
         >
-          <div class="indicator"></div>
+          <div 
+            class="w-2 rounded-md transition-colors duration-300"
+            :class="n.unread ? 'bg-sky-500' : 'bg-transparent'"
+          ></div>
 
-          <div class="content">
-            <div class="title">{{ n.title }}</div>
-            <div class="msg">{{ n.message }}</div>
-            <div class="time">{{ n.time }}</div>
+          <div class="flex flex-col gap-1">
+            <div class="font-extrabold text-gray-900">{{ n.title }}</div>
+            <div class="text-sm text-slate-600">{{ n.message }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">{{ n.time }}</div>
           </div>
         </article>
       </transition-group>
     </div>
 
-    <div class="safe-bottom"></div>
+    <div class="h-[calc(env(safe-area-inset-bottom,0px)+12px)]"></div>
 
   </div>
 </template>
 
-<style scoped>
-.ntf-page {
-  --bg: #f7f8fc;
-  --card: #ffffff;
-  --border: #e6e8f0;
-  --text: #0f1115;
-  --muted: #64748b;
-  background: var(--bg);
-  min-height: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr;
+<style>
+/* Custom animations that can't be replicated with Tailwind */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* Top bar */
-.top {
-  display:flex; justify-content:space-between; align-items:center;
-  padding: 14px 16px;
-}
-.top h1 { margin:0; font-size:18px; font-weight:800; }
-.mark-all {
-  appearance:none; border:0; background:transparent;
-  color:#0ea5e9; font-weight:700; font-size:14px;
+.animate-shimmer {
+  animation: shimmer 1.3s infinite;
 }
 
-/* List */
-.list { padding: 8px 12px 16px; display:flex; flex-direction:column; gap:14px; }
-
-.item {
-  background: var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding: 14px 16px 14px 12px;
-  display:flex; gap:12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,.05);
-  cursor:pointer;
-  transition: transform .1s ease, box-shadow .2s ease;
+.fade-slide-enter-active, 
+.fade-slide-leave-active {
+  transition: all 0.28s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-.item:active { transform: scale(.98); }
 
-.indicator {
-  width:8px; border-radius:6px; background:transparent;
-  transition: background .3s ease;
-}
-.item.unread .indicator { background:#0ea5e9; }
-
-.content {
-  display:flex; flex-direction:column; gap:4px;
-}
-.title { font-weight:800; }
-.msg { font-size:14px; color:var(--muted); }
-.time { font-size:12px; color:#9ca3af; margin-top:2px; }
-
-/* Skeletons */
-.sk-wrap { display:flex; flex-direction:column; gap:12px; }
-.sk {
-  height:64px; border-radius:16px; border:1px solid var(--border);
-  background:linear-gradient(90deg,#eef2f7 25%,#f7f8fb 50%,#eef2f7 75%);
-  background-size:400% 100%; animation: shimmer 1.3s infinite;
-}
-@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-/* Animations */
-.fade-slide-enter-active, .fade-slide-leave-active {
-  transition: all .28s cubic-bezier(.2,.7,.2,1);
-}
 .fade-slide-enter-from {
-  opacity:0; transform: translateY(6px);
+  opacity: 0;
+  transform: translateY(6px);
 }
-
-/* Safe Bottom */
-.safe-bottom { height: calc(env(safe-area-inset-bottom, 0px) + 12px); }
 </style>

@@ -7,24 +7,21 @@ import { fetchCategories, fetchLocations, realSearchEvents } from '@/utils/filte
 import { useSportaStore } from '@/stores/sporta'
 const sportaStore = useSportaStore()
 const q = ref('')
-const categories = ref([])
-const locations = ref([])
 const activeCategory = ref('')
 const activeLocation = ref('')
 const results = ref([])
 const loading = ref(true)
 const pairOpen = ref(false)
 
+// Make categories and locations reactive to store changes
+const categories = computed(() => sportaStore.categories.map(c => c.name))
+const locations = computed(() => sportaStore.locations.map(l => l.name))
 
 
-async function loadMeta() {
-  const [cs, ls] = await Promise.all([fetchCategories(), fetchLocations()])
-  categories.value = cs
-  locations.value = ls
-}
+
 async function loadActualData() {
-  categories.value = sportaStore.categories
-  locations.value = sportaStore.locations
+  await sportaStore.fetchCategories()
+  await sportaStore.fetchLocations()
 }
 async function runSearch() {
   loading.value = true
