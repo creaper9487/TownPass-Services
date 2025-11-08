@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { eventInfo, useSportaStore } from '@/stores/sporta'
+import { useConnectionMessage } from '@/composables/useConnectionMessage'
 const sportaStore = useSportaStore()
 const props = defineProps({
   event: { type: eventInfo, required: true },

@@ -199,7 +199,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async submitLocation(payload: [number[]]) {
       try {
-        const response = await fetch("http://localhost:8000/api/locations/create/",{
+        const response = await fetch("http://localhost:8000/api/locations/",{
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
