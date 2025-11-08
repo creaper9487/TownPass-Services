@@ -2,6 +2,7 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { eventInfo, useSportaStore } from '@/stores/sporta'
 import { useConnectionMessage } from '@/composables/useConnectionMessage'
+import { get } from 'node_modules/axios/index.cjs'
 const sportaStore = useSportaStore()
 const props = defineProps({
   event: { type: eventInfo, required: true },
@@ -23,7 +24,6 @@ const isOpen = computed({
     v ? emit('open') : emit('close')
   },
 })
-
 function openPortal() {
   if (isOpen.value) return
   isOpen.value = true
@@ -97,7 +97,7 @@ async function runOpenAnimation() {
 }
 
 async function subEvent(e: eventInfo) {
-  useConnectionMessage('sporta_notify',`eventName:${e.title}, eventTime:${e.starttime}`)
+  useConnectionMessage('sporta_notify',{eventName:e.title, eventTime:e.starttime})
 
   console.log('Subscribing to event:', e)
   if (!e || !e.id) {
@@ -160,6 +160,35 @@ onBeforeUnmount(() => {
     document.body.style.overflow = ''
   }
 })
+async function getLocation(id){
+  return sportaStore.grabDecodelocation(id)
+}
+let location = ref('')
+let category = ref('')
+onMounted(async()=>{
+  location.value = await getLocation(props.event.location)
+  category.value = await sportaStore.grabDecodecategory(props.event.category)
+})
+
+// Format time to Taiwan display format
+function formatTaiwanTime(timeString: string): string {
+  if (!timeString) return ''
+  
+  try {
+    const date = new Date(timeString)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+    const weekday = weekdays[date.getDay()]
+    
+    return `${year}年${month}月${day}日 (週${weekday}) ${hours}:${minutes}`
+  } catch (error) {
+    return timeString
+  }
+}
 </script>
 
 <template>
@@ -178,7 +207,7 @@ onBeforeUnmount(() => {
       <img class="w-full h-full object-cover" :src="event.image" :alt="event.title" loading="lazy" />
       <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
       <div class="absolute top-2 right-2 px-2.5 py-1 text-xs text-white bg-primary-500/90 border border-white/25 rounded-full backdrop-blur-sm" v-if="event.category">
-        {{ event.category }}
+        {{ category }}
       </div>
     </div>
 
@@ -194,14 +223,14 @@ onBeforeUnmount(() => {
         <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
           <path d="M6 8h12M6 12h12M6 16h12"/>
         </svg>
-        <span>{{ event.starttime }}</span>
+        <span>{{ formatTaiwanTime(event.starttime) }}</span>
       </div>
       <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
         <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
           <path d="M12 21s-7-4.5-7-10a7 7 0 1 1 14 0c0 5.5-7 10-7 10z"/>
           <circle cx="12" cy="11" r="3"/>
         </svg>
-        <span>{{ event.location }}</span>
+        <span>{{ location }}</span>
       </div>
     </div>
   </article>
@@ -228,7 +257,7 @@ onBeforeUnmount(() => {
           <img :src="event.image" :alt="event.title" class="w-full h-full object-cover" />
           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
           <div class="absolute top-3 left-3 px-3 py-1.5 text-sm font-medium text-white bg-primary-500/90 border border-white/25 rounded-full backdrop-blur-sm" v-if="event.category">
-            {{ event.category }}
+            {{ category }}
           </div>
         </div>
 
@@ -242,11 +271,11 @@ onBeforeUnmount(() => {
             </div>
             <div>
               <label class="block text-xs text-grey-500 font-medium mb-1">時間</label>
-              <p class="m-0 text-sm text-grey-800">{{ event.starttime }}<span v-if="event.endtime"> — {{ event.endtime }}</span></p>
+              <p class="m-0 text-sm text-grey-800">{{ formatTaiwanTime(event.starttime) }}<span v-if="event.endtime"> — {{ formatTaiwanTime(event.endtime) }}</span></p>
             </div>
             <div>
               <label class="block text-xs text-grey-500 font-medium mb-1">地點</label>
-              <p class="m-0 text-sm text-grey-800">{{ event.location }}</p>
+              <p class="m-0 text-sm text-grey-800">{{ location }}</p>
             </div>
             <div v-if="event.capacity">
               <label class="block text-xs text-grey-500 font-medium mb-1">名額</label>

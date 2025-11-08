@@ -134,7 +134,21 @@ async function submitLocationApplication() {
   submittingLocation.value = true
   
   try {
-    await sportaStore.submitLocation(pathCoordinates.value)
+    // Generate a name based on the path or allow user to provide one
+    const locationName = `Route ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`
+    
+    // For now, submit the first coordinate as the location point
+    // If you want to submit the entire path, backend needs to be updated to accept paths
+    const firstCoordinate: [number, number] = [
+      pathCoordinates.value[0][0],
+      pathCoordinates.value[0][1]
+    ]
+    
+    await sportaStore.submitLocation({
+      name: locationName,
+      coordinates: firstCoordinate
+    })
+    
     locationSubmitSuccess.value = true
     console.log('位置申請提交成功')
   } catch (error) {
@@ -316,7 +330,7 @@ watch(open, async v => {
                     : 'bg-grey-100 text-grey-600 hover:bg-grey-200'"
                   class="px-3 py-1 rounded-full font-semibold transition-colors"
                 >
-                  文字輸入
+                  選擇地點
                 </button>
                 <button
                   type="button"
@@ -331,14 +345,15 @@ watch(open, async v => {
               </div>
             </div>
             
-            <!-- Text input mode -->
-            <input 
+            <!-- Location select mode -->
+            <select 
               v-if="locationMode === 'text'"
               v-model="form.location" 
-              type="text" 
-              placeholder="場地 / 城市" 
-              class="w-full border border-grey-200 rounded-xl px-3 py-3 text-grey-800 bg-white outline-none text-base transition-all duration-200 shadow-sm focus:border-primary-500 focus:ring-4 focus:ring-primary-100" 
-            />
+              class="w-full border border-grey-200 rounded-xl px-3 py-3 text-grey-800 bg-white outline-none text-base transition-all duration-200 shadow-sm focus:border-primary-500 focus:ring-4 focus:ring-primary-100"
+            >
+              <option value="" disabled>選擇地點</option>
+              <option v-for="loc in sportaStore.locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
+            </select>
             
             <!-- Map drawing mode -->
             <div v-else>

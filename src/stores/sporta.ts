@@ -197,18 +197,116 @@ export const useSportaStore = defineStore('sporta', {
         throw error;
       }
     },
-    async submitLocation(payload: [number[]]) {
+    async submitLocation(payload: { name: string; coordinates: [number, number] }) {
       try {
-        const response = await fetch("http://localhost:8000/api/locations/",{
+        const response = await fetch("http://localhost:8000/api/locations/", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(payload)
         });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to create location: ${response.statusText}`);
+        }
+        
+        const newLocation = await response.json();
+        
+        // Update local state with the new location
+        this.locations.push({
+          id: newLocation._id,
+          name: newLocation.name,
+          coordinates: newLocation.coordinates,
+          subscribers: newLocation.subscribers || []
+        });
+        
+        return newLocation;
       } catch (error) {
         console.error('Error submitting location:', error);
         throw error;
+      }
+    },
+    async subscribeLocation(locationId: string) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/locations/${locationId}/sub`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            "userID": this.user.userID
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to subscribe to location: ${response.statusText}`);
+        }
+        
+        const updatedLocation = await response.json();
+        
+        // Update local state
+        const locationIndex = this.locations.findIndex(loc => loc.id === locationId);
+        if (locationIndex !== -1) {
+          this.locations[locationIndex].subscribers = updatedLocation.subscribers || [];
+        }
+        
+        return updatedLocation;
+      } catch (error) {
+        console.error('Error subscribing to location:', error);
+        throw error;
+      }
+    },
+    async unsubscribeLocation(locationId: string) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/locations/${locationId}/unsub`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            "userID": this.user.userID
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to unsubscribe from location: ${response.statusText}`);
+        }
+        
+        const updatedLocation = await response.json();
+        
+        // Update local state
+        const locationIndex = this.locations.findIndex(loc => loc.id === locationId);
+        if (locationIndex !== -1) {
+          this.locations[locationIndex].subscribers = updatedLocation.subscribers || [];
+        }
+        
+        return updatedLocation;
+      } catch (error) {
+        console.error('Error unsubscribing from location:', error);
+        throw error;
+      }
+    },
+    async grabDecodelocation(id: string) {
+      try{
+        const response = await fetch(`http://localhost:8000/api/locations/${id}`, {});
+        const data = await response.json();
+        console.log(data, "AAAAAAAAAAAAAAAAA");
+        return data.name;
+      }catch(error){
+        console.error('Error fetching location:', error);
+        return id; // Fallback to ID if fetch fails
+      }
+    },
+    async grabDecodecategory(id: string) {
+      try{
+        const response = await fetch(`http://localhost:8000/api/categories/${id}`, {});
+        const data = await response.json();
+        console.log(data, "BBBBBBBBBBBBBBBBB");
+        return data.name;
+      }catch(error){
+        console.error('Error fetching category:', error);
+        return id; // Fallback to ID if fetch fails
       }
     }
   }
