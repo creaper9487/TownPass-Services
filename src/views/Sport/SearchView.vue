@@ -82,7 +82,7 @@ async function eventPairFetcher() {
   const items = shuffled.slice(0, 2).map(event => ({
     id: event.id,
     title: event.title,
-    cover: event.image, // Use image from sporta store
+    image: event.image, // Use image from sporta store
     location: event.location,
     time: event.starttime,
     host: event.organizer,
@@ -154,7 +154,7 @@ async function eventPairFetcher() {
 
     <div v-if="loading" class="text-grey-400 text-center py-8">載入中…</div>
     <div v-else class="space-y-3">
-      <EventCard v-for="e in processedResults" :key="e.id" :event="e" />
+      <EventCard v-for="e in sportaStore.events" :key="e.id" :event="e" />
       <p v-if="!processedResults.length" class="text-grey-400 text-center py-8">無搜尋結果</p>
     </div>
 
