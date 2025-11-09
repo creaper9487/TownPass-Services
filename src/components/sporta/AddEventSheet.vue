@@ -84,10 +84,12 @@ const loading = ref(false)
 const err = ref('')
 const canSubmit = computed(() => {
   const hasBasicInfo = form.title.trim() && form.start && form.end
+  // 檢查結束時間是否晚於開始時間
+  const isValidTime = form.start && form.end && form.end >= form.start
   const hasLocation = locationMode.value === 'text' 
     ? form.location.trim() 
     : pathCoordinates.value.length >= 2
-  return hasBasicInfo && hasLocation
+  return hasBasicInfo && hasLocation && isValidTime
 })
 
 // Mapbox initialization
@@ -178,8 +180,6 @@ function onPickCover(e: Event) {
 }
 
 async function submit() {
-  if (!canSubmit.value || loading.value) return
-  err.value = ''
   loading.value = true
   try {
     const payload: any = {
@@ -246,6 +246,10 @@ function reset() {
 const firstInput = ref<HTMLInputElement | null>(null)
 watch(open, async v => {
   if (v) {
+    // 確保 locations 已載入
+    if (sportaStore.locations.length === 0) {
+      await sportaStore.fetchLocations()
+    }
     await nextTick()
     firstInput.value?.focus()
   }
@@ -352,8 +356,12 @@ watch(open, async v => {
               class="w-full border border-grey-200 rounded-xl px-3 py-3 text-grey-800 bg-white outline-none text-base transition-all duration-200 shadow-sm focus:border-primary-500 focus:ring-4 focus:ring-primary-100"
             >
               <option value="" disabled>選擇地點</option>
+              <option v-if="sportaStore.locations.length === 0" value="" disabled>載入中...</option>
               <option v-for="loc in sportaStore.locations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
             </select>
+            <p v-if="locationMode === 'text' && sportaStore.locations.length === 0" class="mt-2 text-xs text-grey-600">
+              如果沒有合適的地點，可以切換到「繪製路線」模式
+            </p>
             
             <!-- Map drawing mode -->
             <div v-else>
@@ -399,6 +407,37 @@ watch(open, async v => {
           </div>
 
           <p v-if="err" class="text-warn-200 text-sm font-bold mb-4">{{ err }}</p>
+
+          <!-- Debug info for form validation -->
+          <div v-if="!canSubmit" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-xs text-yellow-800">
+            <p class="font-semibold mb-1">請完成以下項目：</p>
+            <ul class="space-y-1">
+              <li v-if="!form.title.trim()" class="flex items-center gap-2">
+                <span class="w-1 h-1 bg-yellow-600 rounded-full"></span>
+                活動名稱
+              </li>
+              <li v-if="!form.start" class="flex items-center gap-2">
+                <span class="w-1 h-1 bg-yellow-600 rounded-full"></span>
+                開始時間
+              </li>
+              <li v-if="!form.end" class="flex items-center gap-2">
+                <span class="w-1 h-1 bg-yellow-600 rounded-full"></span>
+                結束時間
+              </li>
+              <li v-if="form.start && form.end && form.end < form.start" class="flex items-center gap-2">
+                <span class="w-1 h-1 bg-yellow-600 rounded-full"></span>
+                結束時間必須晚於開始時間
+              </li>
+              <li v-if="locationMode === 'text' && !form.location.trim()" class="flex items-center gap-2">
+                <span class="w-1 h-1 bg-yellow-600 rounded-full"></span>
+                選擇地點
+              </li>
+              <li v-if="locationMode === 'map' && pathCoordinates.length < 2" class="flex items-center gap-2">
+                <span class="w-1 h-1 bg-yellow-600 rounded-full"></span>
+                繪製路線（至少2個座標點）
+              </li>
+            </ul>
+          </div>
 
           <div class="flex gap-3">
             <button type="button" class="flex-1 bg-white border border-grey-200 text-grey-700 font-semibold rounded-xl py-3 px-4 transition-colors duration-200 hover:bg-grey-50" @click="open=false">取消</button>

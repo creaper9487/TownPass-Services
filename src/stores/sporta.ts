@@ -345,6 +345,28 @@ export const useSportaStore = defineStore('sporta', {
         console.error('Error fetching organizer:', error);
         // return oid; // Fallback to ID if fetch fails
       }
+    },
+    async rateOrganizer(uid: string,oid:string, rating: number,eventid:string) {
+      try{
+        const response = await fetch(`http://localhost:8000/api/organizer-ratings/${oid}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            rater_id: uid,
+            rating: rating,
+            event_id: eventid,
+            organizer_id: oid
+
+          })
+        });
+        const data = await response.json();
+        return data.average_rating;
+      }catch(error){
+        console.error('Error fetching organizer:', error);
+        // return oid; // Fallback to ID if fetch fails
+      }
     }
   }
 });
