@@ -37,7 +37,7 @@ async function fetchLeaderboard() {
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch('http://192.168.22.42:8000/api/user/rankings/all')
+    const res = await fetch('http://localhost:8000/api/user/rankings/all')
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`)
     }

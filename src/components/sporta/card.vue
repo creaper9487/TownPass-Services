@@ -28,7 +28,13 @@ function openPortal() {
   isOpen.value = true
   // Prevent body scrolling when portal is open
   document.body.style.overflow = 'hidden'
-  nextTick(runOpenAnimation)
+  nextTick(() => {
+    runOpenAnimation()
+    // Fetch user rating when portal opens
+    if (isRegistered.value) {
+      fetchUserRating()
+    }
+  })
 }
 function closePortal() {
   if (!isOpen.value) return
@@ -185,11 +191,70 @@ async function getLocation(id){
 let location = ref('')
 let category = ref('')
 let rating = ref<number | null>(null)
+let userRating = ref<number>(0)
+let hoveredStar = ref<number>(0)
+let isSubmittingRating = ref(false)
+let hasUserRated = ref(false)
+
 onMounted(async()=>{
   location.value = await getLocation(props.event.location)
   category.value = await sportaStore.grabDecodecategory(props.event.category)
   rating.value = await sportaStore.fetchOrgar(props.event.organizer)
 })
+
+// Fetch user's existing rating when portal opens
+async function fetchUserRating() {
+  const existingRating = await sportaStore.getUserRatingForEvent(
+    props.event.id,
+    sportaStore.user.userID
+  )
+  
+  if (existingRating !== null) {
+    userRating.value = existingRating
+    hasUserRated.value = true
+  } else {
+    userRating.value = 0
+    hasUserRated.value = false
+  }
+}
+
+// Submit rating for the event organizer
+async function submitRating() {
+  if (userRating.value === 0 || isSubmittingRating.value || hasUserRated.value) return
+  
+  try {
+    isSubmittingRating.value = true
+    const newAverageRating = await sportaStore.rateOrganizer(
+      sportaStore.user.userID,
+      props.event.organizer,
+      userRating.value,
+      props.event.id
+    )
+    
+    // Update the displayed rating
+    if (newAverageRating !== undefined) {
+      rating.value = newAverageRating
+    }
+    
+    // Mark as rated
+    hasUserRated.value = true
+    
+    // Show success message
+    useConnectionMessage('sporta_rating', {
+      eventName: props.event.title,
+      rating: userRating.value,
+      action: 'submitted'
+    })
+    
+    console.log('Successfully submitted rating:', userRating.value)
+  } catch (error) {
+    console.error('Failed to submit rating:', error)
+    // Reset on error
+    hasUserRated.value = false
+  } finally {
+    isSubmittingRating.value = false
+  }
+}
 
 // Format time to Taiwan display format
 function formatTaiwanTime(timeString: string): string {
@@ -339,6 +404,58 @@ function getRatingDescription(rating: number): string {
           <p v-if="event.description" class="mt-3 p-3 bg-grey-50 border border-grey-200 rounded-xl leading-relaxed text-sm text-grey-700">
             {{ event.description }}
           </p>
+
+          <!-- Rating section - only show if user is registered -->
+          <div v-if="isRegistered" class="mt-4 p-4 bg-gradient-to-br from-primary-50 to-primary-100/50 border border-primary-200 rounded-xl">
+            <label class="block text-sm font-semibold text-grey-800 mb-3">
+              {{ hasUserRated ? '您的評分' : '為主辦方評分' }}
+            </label>
+            <div class="flex items-center gap-2 mb-3">
+              <div class="flex gap-1">
+                <button
+                  v-for="star in 5"
+                  :key="star"
+                  type="button"
+                  @click="!hasUserRated && (userRating = star, submitRating())"
+                  @mouseenter="!hasUserRated && (hoveredStar = star)"
+                  @mouseleave="hoveredStar = 0"
+                  :disabled="isSubmittingRating || hasUserRated"
+                  class="transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-400 rounded"
+                  :class="{
+                    'hover:scale-110 active:scale-95 cursor-pointer': !hasUserRated,
+                    'cursor-not-allowed opacity-75': hasUserRated,
+                    'opacity-50': isSubmittingRating
+                  }"
+                  :aria-label="`給 ${star} 顆星`"
+                >
+                  <svg 
+                    viewBox="0 0 24 24" 
+                    class="w-8 h-8 transition-colors duration-150"
+                    :class="{
+                      'fill-yellow-400 stroke-yellow-500': star <= (hasUserRated ? userRating : (hoveredStar || userRating)),
+                      'fill-none stroke-grey-300': star > (hasUserRated ? userRating : (hoveredStar || userRating))
+                    }"
+                    stroke-width="1.5"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                </button>
+              </div>
+              <span v-if="userRating > 0" class="text-sm font-medium text-grey-700">
+                {{ userRating }} / 5
+              </span>
+            </div>
+            <p class="text-xs text-grey-600 leading-relaxed">
+              <span v-if="hasUserRated" class="flex items-center gap-1">
+                <svg viewBox="0 0 24 24" class="w-4 h-4 fill-green-500" stroke="none">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                </svg>
+                您已評分完成
+              </span>
+              <span v-else-if="isSubmittingRating">提交中...</span>
+              <span v-else>點擊星星進行評分</span>
+            </p>
+          </div>
 
           <slot name="details"></slot>
         </div>
