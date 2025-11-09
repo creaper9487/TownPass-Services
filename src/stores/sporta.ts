@@ -197,6 +197,33 @@ export const useSportaStore = defineStore('sporta', {
         throw error;
       }
     },
+    async unsubEvent(eid: string) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/events/${eid}/unsub`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            "userID": this.user.userID
+          })
+        });
+        
+        if (response.ok) {
+          // Update local state to reflect the unsubscription
+          const eventIndex = this.events.findIndex(event => event.id === eid);
+          if (eventIndex !== -1) {
+            const participantIndex = this.events[eventIndex].participants.indexOf(this.user.userID);
+            if (participantIndex > -1) {
+              this.events[eventIndex].participants.splice(participantIndex, 1);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error unsubscribing from event:', error);
+        throw error;
+      }
+    },
     async submitLocation(payload: { name: string; coordinates: [number, number] }) {
       try {
         const response = await fetch("http://localhost:8000/api/locations/", {
@@ -307,6 +334,16 @@ export const useSportaStore = defineStore('sporta', {
       }catch(error){
         console.error('Error fetching category:', error);
         return id; // Fallback to ID if fetch fails
+      }
+    },
+    async fetchOrgar(oid: string) {
+      try{
+        const response = await fetch(`http://localhost:8000/api/organizer-ratings/${oid}`, {});
+        const data = await response.json();
+        return data.average_rating;
+      }catch(error){
+        console.error('Error fetching organizer:', error);
+        // return oid; // Fallback to ID if fetch fails
       }
     }
   }
