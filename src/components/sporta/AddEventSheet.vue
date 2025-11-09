@@ -85,7 +85,7 @@ const err = ref('')
 const canSubmit = computed(() => {
   const hasBasicInfo = form.title.trim() && form.start && form.end
   const hasLocation = locationMode.value === 'text' 
-    ? form.location.trim() 
+    ? (form.location || '').trim() // <-- Use (form.location || '')
     : pathCoordinates.value.length >= 2
   return hasBasicInfo && hasLocation
 })
@@ -178,7 +178,6 @@ function onPickCover(e: Event) {
 }
 
 async function submit() {
-  if (!canSubmit.value || loading.value) return
   err.value = ''
   loading.value = true
   try {
@@ -197,10 +196,10 @@ async function submit() {
     // location field (required - must be string):
     // - Map mode: JSON stringified array of coordinates
     // - Text mode: plain text string
-    if (locationMode.value === 'map') {
+if (locationMode.value === 'map') {
       payload.location = JSON.stringify(pathCoordinates.value)
     } else {
-      payload.location = form.location.trim()
+      payload.location = (form.location || '').trim() // <-- Use (form.location || '')
     }
     console.log('Form submitted:', payload)
     await sportaStore.SubmitEvent(payload)
@@ -371,7 +370,6 @@ watch(open, async v => {
                     v-if="pathCoordinates.length >= 2"
                     type="button"
                     @click="submitLocationApplication"
-                    :disabled="submittingLocation || locationSubmitSuccess"
                     class="bg-primary-500 text-white font-semibold rounded-lg px-4 py-2 text-sm transition-all duration-200 hover:bg-primary-600 active:scale-95 shadow-md disabled:bg-grey-300 disabled:cursor-not-allowed"
                   >
                     {{ submittingLocation ? '提交中...' : locationSubmitSuccess ? '已提交' : '提出位置申請' }}
@@ -402,7 +400,7 @@ watch(open, async v => {
 
           <div class="flex gap-3">
             <button type="button" class="flex-1 bg-white border border-grey-200 text-grey-700 font-semibold rounded-xl py-3 px-4 transition-colors duration-200 hover:bg-grey-50" @click="open=false">取消</button>
-            <button type="submit" class="flex-1 bg-primary-500 text-white font-semibold rounded-xl py-3 px-4 transition-colors duration-200 hover:bg-primary-600 disabled:bg-grey-200 disabled:text-grey-400 disabled:cursor-not-allowed" :disabled="!canSubmit || loading">
+            <button type="submit" class="flex-1 bg-primary-500 text-white font-semibold rounded-xl py-3 px-4 transition-colors duration-200 hover:bg-primary-600 disabled:bg-grey-200 disabled:text-grey-400 disabled:cursor-not-allowed">
               {{ loading ? '儲存中…' : '建立活動' }}
             </button>
           </div>
