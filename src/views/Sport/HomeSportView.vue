@@ -1,14 +1,35 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 import EventCard from '@/components/sporta/card.vue'
 import { useSportaStore } from '@/stores/sporta';
 
 const sportaStore = useSportaStore();
+const refreshInterval = ref<number | null>(null);
+
+const refreshCards = async () => {
+  try {
+    await sportaStore.fetchAllData("7f3562f4-bb3f-4ec7-89b9-da3b4b5ff250");
+    console.log('Cards refreshed successfully');
+  } catch (error) {
+    console.error('Error refreshing cards:', error);
+  }
+};
 
 onMounted(async () => {
   // Initialize with a default user ID or get from auth
   if (sportaStore.userEvent.length === 0) {
     await sportaStore.fetchAllData("7f3562f4-bb3f-4ec7-89b9-da3b4b5ff250");
+  }
+
+  // Set up auto-refresh every 15 seconds
+  refreshInterval.value = setInterval(refreshCards, 15000);
+});
+
+onBeforeUnmount(() => {
+  // Clean up the interval when component is unmounted
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value);
+    refreshInterval.value = null;
   }
 });
 </script>

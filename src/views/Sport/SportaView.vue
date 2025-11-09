@@ -21,11 +21,11 @@ useHandleConnectionData((event: { data: string }) => {
 
 sportaStore.fetchAllData(sportaStore.user.userID);
 const tabs = [
-  { key: 'home',     label: 'Home',     icon: 'home' },
-  { key: 'search',   label: 'Search',   icon: 'search' },
-  { key: 'add',      label: 'Add',      icon: 'plus' },
-  { key: 'notify',   label: 'Alerts',   icon: 'bell' },
-  { key: 'star',     label: 'Saved',    icon: 'star' },
+  { key: 'home',     label: '我的運動',     icon: 'home' },
+  { key: 'search',   label: '探索',   icon: 'search' },
+  { key: 'add',      label: '揪團',      icon: 'plus' },
+  { key: 'notify',   label: '通知',   icon: 'bell' },
+  { key: 'star',     label: '成就',    icon: 'star' },
 ]
 const current = ref('home')
 const showAdd = ref(false)

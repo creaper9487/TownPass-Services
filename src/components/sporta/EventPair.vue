@@ -23,21 +23,68 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue', 'decide', 'empty'])
 
+/* ========= 時間、地點、類別格式化函數 ========= */
+// Format time to Taiwan display format
+function formatTaiwanTime(timeString) {
+  if (!timeString) return ''
+  
+  try {
+    const date = new Date(timeString)
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+    const weekday = weekdays[date.getDay()]
+    
+    return `${year}年${month}月${day}日 (週${weekday}) ${hours}:${minutes}`
+  } catch (error) {
+    return timeString
+  }
+}
+
+// Convert numeric rating to descriptive text
+function getRatingDescription(rating) {
+  if (!rating || isNaN(rating)) return '尚無評價'
+  
+  if (rating >= 4.5) return '優秀 (★★★★★)'
+  if (rating >= 4.0) return '很好 (★★★★☆)'
+  if (rating >= 3.5) return '良好 (★★★☆☆)'
+  if (rating >= 3.0) return '普通 (★★★☆☆)'
+  if (rating >= 2.0) return '待改進 (★★☆☆☆)'
+  return '需要改進 (★☆☆☆☆)'
+}
+
 const open = ref(props.modelValue)
 watch(() => props.modelValue, v => (open.value = v))
 watch(open, v => emit('update:modelValue', v))
 
 /* ========= 真實資料來源（Pinia store） ========= */
 // 將後端 event 轉成卡片顯示需要的 shape
-function mapEventToCard(e) {
+async function mapEventToCard(e) {
+  // Get decoded location, category, and rating
+  const [location, category, rating] = await Promise.all([
+    sporta.grabDecodelocation(e.location),
+    sporta.grabDecodecategory(e.category), 
+    sporta.fetchOrgar(e.organizer)
+  ])
+  
   return {
     id: e.id,
     title: e.title,
     cover: e.image,
-    location: e.location,
+    location: location,
+    locationId: e.location,
     time: e.starttime || e.endtime || '',
+    starttime: e.starttime,
+    endtime: e.endtime,
     host: e.organizer,
-    tags: [e.category, e.organizer].filter(Boolean)
+    category: category,
+    categoryId: e.category,
+    rating: rating,
+    description: e.description,
+    tags: [category, e.organizer].filter(Boolean)
   }
 }
 
@@ -54,7 +101,7 @@ async function defaultFetcher() {
   const batch = []
   for (let i = 0; i < size && i < src.length; i++) {
     const idx = (cursor + i) % src.length
-    batch.push(mapEventToCard(src[idx]))
+    batch.push(await mapEventToCard(src[idx]))
   }
   cursor = (cursor + batch.length) % src.length
   return { items: batch }
@@ -208,10 +255,39 @@ function tagColor(i) {
       <div v-else class="relative px-4 py-3 flex items-center justify-center h-full pb-32">
         <!-- Back card（次序 2）-->
         <article v-if="cards[1]" class="card-base back-card">
-          <img class="w-full h-[65%] object-cover block" :src="cards[1].cover" :alt="cards[1].title" />
+          <div class="relative aspect-video bg-grey-200">
+            <img class="w-full h-full object-cover" :src="cards[1].cover" :alt="cards[1].title" loading="lazy" />
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
+            <div class="absolute top-2 right-2 px-2.5 py-1 text-xs text-white bg-primary-500/90 border border-white/25 rounded-full backdrop-blur-sm" v-if="cards[1].category">
+              {{ cards[1].category }}
+            </div>
+          </div>
           <div class="p-3">
-            <h3 class="m-0 mb-1 text-lg font-black text-grey-800">{{ cards[1].title }}</h3>
-            <p class="m-0 text-grey-500 text-sm">{{ cards[1].location }} · {{ cards[1].time }}</p>
+            <h3 class="m-0 mb-2 text-base font-bold leading-tight text-grey-800">{{ cards[1].title }}</h3>
+            <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+              <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+                <path d="M6 2h12a2 2 0 0 1 2 2v16l-8-4-8 4V4a2 2 0 0 1 2-2z"/>
+              </svg>
+              <span 
+                class="cursor-help relative group"
+                :title="getRatingDescription(cards[1].rating || 0)"
+              >
+                {{ cards[1].host }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+              <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+                <path d="M6 8h12M6 12h12M6 16h12"/>
+              </svg>
+              <span>{{ formatTaiwanTime(cards[1].starttime) }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+              <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+                <path d="M12 21s-7-4.5-7-10a7 7 0 1 1 14 0c0 5.5-7 10-7 10z"/>
+                <circle cx="12" cy="11" r="3"/>
+              </svg>
+              <span>{{ cards[1].location }}</span>
+            </div>
           </div>
         </article>
 
@@ -230,11 +306,57 @@ function tagColor(i) {
           @touchmove.passive="onPointerMove"
           @touchend.passive="onPointerUp"
         >
-          <img class="w-full h-[65%] object-cover block" :src="active.cover" :alt="active.title" />
-          <div class="p-3">
-            <h3 class="m-0 mb-1 text-lg font-black text-grey-800">{{ active.title }}</h3>
-            <p class="m-0 text-grey-500 text-sm mb-2">{{ active.location }} · {{ active.time }}</p>
-            <div class="flex gap-2 flex-wrap">
+          <div class="relative aspect-video bg-grey-200">
+            <img class="w-full h-full object-cover" :src="active.cover" :alt="active.title" loading="lazy" />
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
+            <div class="absolute top-2 right-2 px-2.5 py-1 text-xs text-white bg-primary-500/90 border border-white/25 rounded-full backdrop-blur-sm" v-if="active.category">
+              {{ active.category }}
+            </div>
+          </div>
+
+          <div class="p-3 text-grey-800">
+            <h3 class="m-0 mb-2 text-base font-bold leading-tight">{{ active.title }}</h3>
+            
+            <!-- Host with rating tooltip -->
+            <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+              <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+                <path d="M6 2h12a2 2 0 0 1 2 2v16l-8-4-8 4V4a2 2 0 0 1 2-2z"/>
+              </svg>
+              <span 
+                class="cursor-help relative group"
+                :title="getRatingDescription(active.rating || 0)"
+              >
+                {{ active.host }}
+                <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-grey-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+                  {{ getRatingDescription(active.rating || 0) }}
+                </div>
+              </span>
+            </div>
+
+            <!-- Time -->
+            <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+              <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+                <path d="M6 8h12M6 12h12M6 16h12"/>
+              </svg>
+              <span>{{ formatTaiwanTime(active.starttime) }}</span>
+            </div>
+
+            <!-- Location -->
+            <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
+              <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
+                <path d="M12 21s-7-4.5-7-10a7 7 0 1 1 14 0c0 5.5-7 10-7 10z"/>
+                <circle cx="12" cy="11" r="3"/>
+              </svg>
+              <span>{{ active.location }}</span>
+            </div>
+
+            <!-- Description if available -->
+            <p v-if="active.description" class="mt-3 p-3 bg-grey-50 border border-grey-200 rounded-xl leading-relaxed text-sm text-grey-700 line-clamp-3">
+              {{ active.description }}
+            </p>
+
+            <!-- Tags -->
+            <div class="flex gap-2 flex-wrap mt-2">
               <span v-for="(t,i) in active.tags" :key="t" class="px-2.5 py-1.5 rounded-full font-extrabold text-xs border border-grey-200 bg-white" :style="{ background: tagColor(i) }">{{ t }}</span>
             </div>
           </div>
@@ -290,6 +412,23 @@ function tagColor(i) {
   border: 1px solid #eef1f7;
   position: absolute;
   user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure proper image aspect ratio */
+.card-base .aspect-video {
+  aspect-ratio: 16/9;
+  flex-shrink: 0;
+}
+
+/* Line clamp utility */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Front card animation */

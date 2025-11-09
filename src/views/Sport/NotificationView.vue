@@ -29,14 +29,14 @@ function loadMock() {
     },
     {
       id: 3,
-      title: '每日簽到獎勵到帳',
+      title: '每日探索獎勵!',
       message: '你獲得了 +35 EXP',
       time: '2 天前',
       unread: false,
     },
     {
       id: 4,
-      title: '你有一個新事件搭配推薦',
+      title: '新的揪團推薦',
       message: '根據你的興趣，我們推薦你查看「山林慢跑圈」。',
       time: '3 天前',
       unread: false,

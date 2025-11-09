@@ -2,7 +2,6 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { eventInfo, useSportaStore } from '@/stores/sporta'
 import { useConnectionMessage } from '@/composables/useConnectionMessage'
-import { get } from 'node_modules/axios/index.cjs'
 const sportaStore = useSportaStore()
 const props = defineProps({
   event: { type: eventInfo, required: true },
@@ -96,19 +95,39 @@ async function runOpenAnimation() {
   clearTransforms()
 }
 
-async function subEvent(e: eventInfo) {
-  useConnectionMessage('sporta_notify',{eventName:e.title, eventTime:e.starttime})
+// Check if user is registered for the event
+const isRegistered = computed(() => {
+  return props.event.participants?.includes(sportaStore.user.userID) || false
+})
 
-  console.log('Subscribing to event:', e)
+async function toggleEventRegistration(e: eventInfo) {
   if (!e || !e.id) {
     console.error('Event or event ID is undefined:', e)
     return
   }
+
   try {
-    await sportaStore.subEvent(e.id)
-    console.log('Successfully subscribed to event:', e.id)
+    if (isRegistered.value) {
+      // Cancel registration
+      await sportaStore.unsubEvent(e.id)
+      useConnectionMessage('sporta_notify', {
+        eventName: e.title, 
+        eventTime: e.starttime,
+        action: 'cancelled'
+      })
+      console.log('Successfully cancelled registration for event:', e.id)
+    } else {
+      // Register for event
+      await sportaStore.subEvent(e.id)
+      useConnectionMessage('sporta_notify', {
+        eventName: e.title, 
+        eventTime: e.starttime,
+        action: 'registered'
+      })
+      console.log('Successfully registered for event:', e.id)
+    }
   } catch (error) {
-    console.error('Failed to subscribe to event:', error)
+    console.error('Failed to toggle event registration:', error)
   }
 }
 
@@ -165,9 +184,11 @@ async function getLocation(id){
 }
 let location = ref('')
 let category = ref('')
+let rating = ref<number | null>(null)
 onMounted(async()=>{
   location.value = await getLocation(props.event.location)
   category.value = await sportaStore.grabDecodecategory(props.event.category)
+  rating.value = await sportaStore.fetchOrgar(props.event.organizer)
 })
 
 // Format time to Taiwan display format
@@ -188,6 +209,18 @@ function formatTaiwanTime(timeString: string): string {
   } catch (error) {
     return timeString
   }
+}
+
+// Convert numeric rating to descriptive text
+function getRatingDescription(rating: number): string {
+  if (!rating || isNaN(rating)) return '尚無評價'
+  
+  if (rating >= 4.5) return '優秀 (★★★★★)'
+  if (rating >= 4.0) return '很好 (★★★★☆)'
+  if (rating >= 3.5) return '良好 (★★★☆☆)'
+  if (rating >= 3.0) return '普通 (★★★☆☆)'
+  if (rating >= 2.0) return '待改進 (★★☆☆☆)'
+  return '需要改進 (★☆☆☆☆)'
 }
 </script>
 
@@ -217,7 +250,15 @@ function formatTaiwanTime(timeString: string): string {
         <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
           <path d="M6 2h12a2 2 0 0 1 2 2v16l-8-4-8 4V4a2 2 0 0 1 2-2z"/>
         </svg>
-        <span>{{ event.organizer }}</span>
+        <span 
+          class="cursor-help relative group"
+          :title="getRatingDescription(rating || 0)"
+        >
+          {{ event.organizer }}
+          <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-grey-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+            {{ getRatingDescription(rating || 0) }}
+          </div>
+        </span>
       </div>
       <div class="flex items-center gap-2 text-grey-600 text-sm mt-1.5">
         <svg viewBox="0 0 24 24" class="w-4 h-4 stroke-current" fill="none" stroke-width="2">
@@ -267,7 +308,15 @@ function formatTaiwanTime(timeString: string): string {
           <div class="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label class="block text-xs text-grey-500 font-medium mb-1">主辦</label>
-              <p class="m-0 text-sm text-grey-800">{{ event.organizer }}</p>
+              <p 
+                class="m-0 text-sm text-grey-800 cursor-help relative group inline-block" 
+                :title="getRatingDescription(rating || 0)"
+              >
+                {{ event.organizer }}
+                <div class="absolute bottom-full left-0 mb-2 px-2 py-1 bg-grey-800 text-white text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+                  {{ getRatingDescription(rating || 0) }}
+                </div>
+              </p>
             </div>
             <div>
               <label class="block text-xs text-grey-500 font-medium mb-1">時間</label>
@@ -295,8 +344,16 @@ function formatTaiwanTime(timeString: string): string {
         </div>
 
         <div class="sticky bottom-0 left-0 right-0 flex justify-center p-4 bg-gradient-to-t from-white via-white to-transparent">
-          <button @click="subEvent(event)" class="px-6 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 w-2/3">
-            報名
+          <button 
+            @click="toggleEventRegistration(event)" 
+            :class="[
+              'px-6 py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 w-2/3',
+              isRegistered 
+                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                : 'bg-primary-500 hover:bg-primary-600 text-white'
+            ]"
+          >
+            {{ isRegistered ? '取消報名' : '報名' }}
           </button>
         </div>
       </div>
