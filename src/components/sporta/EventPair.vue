@@ -307,7 +307,7 @@ function tagColor(i) {
           @touchend.passive="onPointerUp"
         >
           <div class="relative aspect-video bg-grey-200">
-            <img class="w-full h-full object-cover" :src="active.cover" :alt="active.title" loading="lazy" />
+            <img class="w-full h-full object-cover" :src="active.image" :alt="active.title" loading="lazy" />
             <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20"></div>
             <div class="absolute top-2 right-2 px-2.5 py-1 text-xs text-white bg-primary-500/90 border border-white/25 rounded-full backdrop-blur-sm" v-if="active.category">
               {{ active.category }}
