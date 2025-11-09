@@ -44,13 +44,13 @@ export const useSportaStore = defineStore('sporta', {
   actions: {
     async fetchUser(id: string) {
       try {
-        const response = await fetch(`http://localhost:8000/api/user/${id}`, {
+        const response = await fetch(`http://192.168.22.42:8000/api/user/${id}`, {
           method: 'GET'
         });
         this.user = await response.json();
       } catch (error) {
         try {
-          const response = await fetch(`http://localhost:8000/api/user/`, {
+          const response = await fetch(`http://192.168.22.42:8000/api/user/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -67,7 +67,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async fetchEvents() {
       try {
-        const response = await fetch('http://localhost:8000/api/events/', {
+        const response = await fetch('http://192.168.22.42:8000/api/events/', {
           method: 'GET'
         });
         const rawEvents = await response.json();
@@ -95,7 +95,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async fetchLocations() {
       try {
-        const response = await fetch('http://localhost:8000/api/locations/', {
+        const response = await fetch('http://192.168.22.42:8000/api/locations/', {
           method: 'GET'
         });
         this.locations = await response.json();
@@ -111,7 +111,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async fetchCategories() {
       try {
-        const response = await fetch('http://localhost:8000/api/categories/', {
+        const response = await fetch('http://192.168.22.42:8000/api/categories/', {
           method: 'GET'
         });
         this.categories = await response.json();
@@ -139,7 +139,7 @@ export const useSportaStore = defineStore('sporta', {
     //=============================================================//
     async fetchEventByGuy(): Promise<eventInfo[]> {
       try {
-        const response = await fetch(`http://localhost:8000/api/events/query?participant=${this.user.userID}&limit=10`, {
+        const response = await fetch(`http://192.168.22.42:8000/api/events/query?participant=${this.user.userID}&limit=10`, {
           method: 'GET'
         });
         const rawEvents = await response.json();
@@ -165,7 +165,7 @@ export const useSportaStore = defineStore('sporta', {
       }
     },
     async SubmitEvent(payload: eventInfo) {
-      await fetch('http://localhost:8000/api/events/create/', {
+      await fetch('http://192.168.22.42:8000/api/events/create/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -175,7 +175,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async subEvent(eid: string) {
       try {
-        const response = await fetch(`http://localhost:8000/api/events/${eid}/sub`, {
+        const response = await fetch(`http://192.168.22.42:8000/api/events/${eid}/sub`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -226,7 +226,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async submitLocation(payload: { name: string; coordinates: [number, number] }) {
       try {
-        const response = await fetch("http://localhost:8000/api/locations/", {
+        const response = await fetch("http://192.168.22.42:8000/api/locations/", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -256,7 +256,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async subscribeLocation(locationId: string) {
       try {
-        const response = await fetch(`http://localhost:8000/api/locations/${locationId}/sub`, {
+        const response = await fetch(`http://192.168.22.42:8000/api/locations/${locationId}/sub`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -286,7 +286,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async unsubscribeLocation(locationId: string) {
       try {
-        const response = await fetch(`http://localhost:8000/api/locations/${locationId}/unsub`, {
+        const response = await fetch(`http://192.168.22.42:8000/api/locations/${locationId}/unsub`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -316,7 +316,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async grabDecodelocation(id: string) {
       try{
-        const response = await fetch(`http://localhost:8000/api/locations/${id}`, {});
+        const response = await fetch(`http://192.168.22.42:8000/api/locations/${id}`, {});
         const data = await response.json();
         console.log(data, "AAAAAAAAAAAAAAAAA");
         return data.name;
@@ -327,7 +327,7 @@ export const useSportaStore = defineStore('sporta', {
     },
     async grabDecodecategory(id: string) {
       try{
-        const response = await fetch(`http://localhost:8000/api/categories/${id}`, {});
+        const response = await fetch(`http://192.168.22.42:8000/api/categories/${id}`, {});
         const data = await response.json();
         console.log(data, "BBBBBBBBBBBBBBBBB");
         return data.name;
