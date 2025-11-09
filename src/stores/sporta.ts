@@ -40,6 +40,8 @@ export const useSportaStore = defineStore('sporta', {
     categories: [] as categoryInfo[],
     activeCategories: [] as string[],
     userEvent: [] as eventInfo[],
+    curLocation: null as any,
+    nearestEventCoordinates: [] as eventInfo[]
   }),
   actions: {
     async fetchUser(id: string) {
@@ -366,6 +368,27 @@ export const useSportaStore = defineStore('sporta', {
       }catch(error){
         console.error('Error fetching organizer:', error);
         // return oid; // Fallback to ID if fetch fails
+      }
+    },
+    async changeToNearest() {
+      try{
+        if(this.curLocation!==null){
+          const response = await fetch(`http://localhost:8000/api/events/nearest`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              latitude: this.curLocation.latitude,
+              longitude: this.curLocation.longitude
+            })
+          })
+          const nearestEvents = await response.json() as eventInfo[];
+          this.nearestEventCoordinates = nearestEvents;
+        }
+        
+      }catch(error){
+        console.error('Error fetching nearest events:', error);
       }
     }
   }
