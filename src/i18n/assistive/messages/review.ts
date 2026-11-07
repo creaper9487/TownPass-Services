@@ -41,10 +41,9 @@ export const zh: Record<string, string> = {
   'done.id.bold': '身分證正本',
   'done.id.after': '，現場填寫借用申請單。',
   'done.loan': '借期 3 個月，依單據上的日期歸還。',
-  'done.call.before': '中心會在開館時間打給你（{mobile}），',
-  'done.call.bold': '確認後才算申請完成',
-  'done.call.after': '，請留意來電。',
-  'done.urgent': '有急迫需求，可以直接打電話給中心。',
+  'done.call.bold': '需待中心回電確認預約才算申請完畢',
+  'done.call.after': '。中心將於開館時間致電 {mobile}，請留意來電。',
+  'done.urgent': '如有急迫需求請於開館時間直接聯繫居住地相應的中心。',
   'done.pickupPlace': '取貨地點',
   'done.center': '辦理中心',
   'done.back': '回輔具預約'
@@ -94,10 +93,11 @@ export const en: Record<string, string> = {
   'done.id.bold': 'original ID card',
   'done.id.after': ' of the device user or the borrower, and fill in the loan form on site.',
   'done.loan': 'The loan period is 3 months. Return the device by the date on your form.',
-  'done.call.before': 'The center will call you ({mobile}) during opening hours. ',
-  'done.call.bold': 'Your application is complete only once they confirm.',
-  'done.call.after': ' Please watch for the call.',
-  'done.urgent': 'If it is urgent, you can call the center directly.',
+  'done.call.bold': 'The application is complete only after the center confirms it by phone',
+  'done.call.after':
+    '. The center will call {mobile} during opening hours; please watch for the call.',
+  'done.urgent':
+    'If your need is urgent, contact the center for your area directly during opening hours.',
   'done.pickupPlace': 'Pickup location',
   'done.center': 'Center',
   'done.back': 'Back to Assistive Devices'

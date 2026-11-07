@@ -66,9 +66,8 @@ const pickupSentence = computed(() =>
         </template>
         <template v-else>
           <AInfoRow icon="phone">
-            <span>{{ t('done.call.before', { mobile: r.mobile }) }}</span>
             <strong>{{ t('done.call.bold') }}</strong>
-            <span>{{ t('done.call.after') }}</span>
+            <span>{{ t('done.call.after', { mobile: r.mobile }) }}</span>
           </AInfoRow>
           <AInfoRow icon="alert">{{ t('done.urgent') }}</AInfoRow>
         </template>

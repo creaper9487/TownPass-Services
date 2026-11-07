@@ -6,6 +6,8 @@ import ASection from '@/components/assistive/ASection.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
 import AIcon from '@/components/assistive/AIcon.vue';
+import AItemCard from '@/components/assistive/AItemCard.vue';
+import { variantInfo } from '@/utils/assistive/catalog';
 import BaseDialog from '@/components/atoms/BaseDialog.vue';
 import {
   effectiveStatus,
@@ -47,6 +49,7 @@ const doRemove = async () => {
     removeFailed.value = true;
   }
 };
+const firstItem = (r: Reservation) => (r.itemIds?.[0] ? variantInfo(r.itemIds[0]) : undefined);
 const centerLine = (r: Reservation) => {
   const c = centerById(r.centerId);
   return t('reservations.centerLine', { center: c ? centerShort(c) : '', id: r.id });
@@ -86,7 +89,13 @@ onMounted(async () => {
           >
             <span class="flex-1">
               <span class="block tp-h3-semibold">{{ serviceTitle(r.service) }}</span>
-              <span class="mt-1 block text-sm text-grey-700">
+              <span v-if="firstItem(r)" class="mt-2 block">
+                <AItemCard :item="firstItem(r)!" compact />
+                <span v-if="(r.itemIds?.length ?? 0) > 1" class="mt-1 block text-sm text-grey-700">
+                  {{ t('reservations.moreItems', { n: (r.itemIds?.length ?? 1) - 1 }) }}
+                </span>
+              </span>
+              <span v-else class="mt-1 block text-sm text-grey-700">
                 {{ r.summary.map(trSummary).join(t('reservations.listSep')) || '—' }}
               </span>
               <span class="mt-1 block text-sm text-grey-700">
@@ -119,9 +128,10 @@ onMounted(async () => {
           :key="a.variantId"
           class="a-rise tp-card flex items-center gap-3 p-4"
         >
-          <span class="flex-1">
-            <span class="block tp-h3-semibold break-words">{{ a.label }}</span>
-            <span class="mt-1 block text-sm text-grey-700">
+          <span class="min-w-0 flex-1">
+            <AItemCard v-if="variantInfo(a.variantId)" :item="variantInfo(a.variantId)!" compact />
+            <span v-else class="block tp-h3-semibold break-words">{{ a.label }}</span>
+            <span class="mt-2 block text-sm text-grey-700">
               {{ t('reservations.registrationNo', { id: a.id }) }}
             </span>
             <span
@@ -165,10 +175,19 @@ onMounted(async () => {
     <BaseDialog
       v-model="confirming"
       :title="t('reservations.removeDialog.title')"
-      :content="removing?.label ?? ''"
+      content=""
+      is-slot
       :negative-text="t('reservations.removeDialog.keep')"
       :positive-text="t('reservations.removeDialog.confirm')"
       @on-positive-click="doRemove"
-    />
+    >
+      <template #content>
+        <AItemCard
+          v-if="removing && variantInfo(removing.variantId)"
+          :item="variantInfo(removing.variantId)!"
+        />
+        <p v-else class="text-center font-bold">{{ removing?.label }}</p>
+      </template>
+    </BaseDialog>
   </AStepPage>
 </template>

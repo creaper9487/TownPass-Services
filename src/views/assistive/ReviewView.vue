@@ -4,6 +4,8 @@ import { RouterLink, useRouter } from 'vue-router';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
+import AItemCard from '@/components/assistive/AItemCard.vue';
+import { selectedInfo, type VariantInfo } from '@/utils/assistive/catalog';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
@@ -39,18 +41,20 @@ const genderText = (g: string) => (g === 'M' ? tx('男') : g === 'F' ? tx('女')
 // 值可以是一段文字，或逐行的文字（address 這類官方中文要標 lang）。
 type Line = { text: string; zh?: boolean };
 type Row = [string, string | Line[]];
-const sections = computed<{ title: string; step: string; rows: Row[] }[]>(() => {
-  const list: { title: string; step: string; rows: Row[] }[] = [];
+type Section = { title: string; step: string; rows: Row[]; items?: VariantInfo[] };
+const sections = computed<Section[]>(() => {
+  const list: Section[] = [];
   const first = isBorrow.value ? 'cart' : 'need';
   list.push({
     title: isBorrow.value ? t('review.section.borrow') : t('review.section.service'),
     step: first,
+    // 借用的輔具改用照片＋品名＋規格的卡片，不再把幾項資料串成一行
+    items: isBorrow.value ? store.variants.map(selectedInfo) : undefined,
     rows: [
       [t('review.row.service'), serviceTitle(flow.service.value)],
-      [
-        isBorrow.value ? t('review.row.device') : t('review.row.item'),
-        store.summary.map(trSummary).join('\n')
-      ],
+      ...(isBorrow.value
+        ? ([] as Row[])
+        : ([[t('review.row.item'), store.summary.map(trSummary).join('\n')]] as Row[])),
       [
         t('review.row.center'),
         [
@@ -148,6 +152,12 @@ const submit = async () => {
           <span aria-hidden="true">{{ t('review.edit') }}</span>
           <span class="sr-only">{{ t('review.editSection', { title: s.title }) }}</span>
         </RouterLink>
+      </div>
+      <div v-if="s.items?.length" class="mt-3 border-b border-grey-100 pb-3">
+        <p class="text-base text-grey-700">{{ t('review.row.device') }}</p>
+        <ul class="mt-2 flex flex-col gap-3">
+          <li v-for="item in s.items" :key="item.id"><AItemCard :item="item" /></li>
+        </ul>
       </div>
       <dl class="mt-2 divide-y divide-grey-100">
         <div

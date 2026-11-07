@@ -4,7 +4,8 @@ import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
-import AImage from '@/components/assistive/AImage.vue';
+import AItemCard from '@/components/assistive/AItemCard.vue';
+import { selectedInfo } from '@/utils/assistive/catalog';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 
 // 官方「本次預約項目」：可以一次借好幾件，再一起選中心。
@@ -28,8 +29,7 @@ const label = (v: { categoryName: string; name: string; spec: string }) =>
           :key="v.id"
           class="a-rise tp-card flex items-center gap-3 p-3"
         >
-          <AImage v-if="v.image" :src="v.image" hide-on-error class="h-16 w-16 shrink-0" />
-          <p class="min-w-0 flex-1 break-words text-base font-semibold">{{ label(v) }}</p>
+          <AItemCard :item="selectedInfo(v)" class="min-w-0 flex-1" />
           <BaseButton outline class="shrink-0" @click="store.removeVariant(v.id)">
             {{ t('borrow.cart.remove')
             }}<span class="sr-only">{{ t('borrow.srItem', { text: label(v) }) }}</span>

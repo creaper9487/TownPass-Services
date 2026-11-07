@@ -93,6 +93,8 @@ export interface Reservation {
   centerId: Center['id'];
   /** 輔具／服務項目摘要 */
   summary: string[];
+  /** 借用：款式代碼（顯示照片與規格用；舊紀錄沒有，就用 summary 的文字） */
+  itemIds?: string[];
   contactName: string;
   mobile: string;
   /** 借用：取貨期限 (ISO date) */

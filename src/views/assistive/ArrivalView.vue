@@ -4,8 +4,9 @@ import { useRoute, useRouter } from 'vue-router';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
+import AItemCard from '@/components/assistive/AItemCard.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
-import { catalog } from '@/utils/assistive/catalog';
+import { catalog, variantInfo } from '@/utils/assistive/catalog';
 import { t, trSummary } from '@/i18n/assistive';
 import { ArrivalError, subscribeArrival, type ArrivalNotice } from '@/utils/assistive/api';
 import { ensurePush } from '@/utils/assistive/push';
@@ -30,6 +31,7 @@ const failed = ref(false);
 // 同一類已經有登記、品項不開放，和連不上要分開說明
 const failureKey = ref('arrival.failed');
 const done = ref<ArrivalNotice | null>(null);
+const info = computed(() => (found.value ? variantInfo(found.value.variant.id) : undefined));
 
 const submit = async () => {
   if (!found.value || sending.value) return;
@@ -68,12 +70,9 @@ const submit = async () => {
         <div class="flex items-center justify-between">
           <h2 class="tp-h3-semibold text-primary-700">{{ t('arrival.registerHeading') }}</h2>
         </div>
-        <dl class="mt-2 divide-y divide-grey-100">
-          <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base first:pt-1">
-            <dt class="text-grey-700">{{ t('arrival.device') }}</dt>
-            <dd class="break-words">{{ trSummary(found.label) }}</dd>
-          </div>
-        </dl>
+        <p class="mt-3 text-base text-grey-700">{{ t('arrival.device') }}</p>
+        <AItemCard v-if="info" :item="info" class="mt-2" />
+        <p v-else class="mt-2 break-words text-base font-semibold">{{ trSummary(found.label) }}</p>
         <AErrorText v-if="failed" class="mt-3">{{ t(failureKey) }}</AErrorText>
       </ASection>
     </template>
@@ -91,12 +90,9 @@ const submit = async () => {
             <p class="tp-h2 break-all">{{ done.id }}</p>
           </div>
         </div>
-        <dl class="mt-3 divide-y divide-grey-100">
-          <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base">
-            <dt class="text-grey-700">{{ t('arrival.device') }}</dt>
-            <dd class="break-words">{{ trSummary(done.label) }}</dd>
-          </div>
-        </dl>
+        <p class="mt-4 text-base text-grey-700">{{ t('arrival.device') }}</p>
+        <AItemCard v-if="info" :item="info" class="mt-2" />
+        <p v-else class="mt-2 break-words text-base font-semibold">{{ trSummary(done.label) }}</p>
       </ASection>
     </template>
 

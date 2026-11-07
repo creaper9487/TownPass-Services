@@ -248,6 +248,7 @@ const submitToBackend = async (payload: SubmitPayload): Promise<Reservation[]> =
       accessKey: res.access_key,
       centerId: payload.centerId,
       summary: r.summary,
+      itemIds: r.backendService === 'borrow' ? r.items : undefined,
       contactName: c.name,
       mobile: c.mobile
     };
@@ -283,6 +284,7 @@ const submitLocally = async (payload: SubmitPayload): Promise<Reservation[]> => 
       status: payload.service === 'borrow' ? 'booked' : 'submitted',
       centerId: payload.centerId,
       summary: r.summary,
+      itemIds: r.backendService === 'borrow' ? r.items : undefined,
       contactName: payload.contact.name,
       mobile: payload.contact.mobile
     };

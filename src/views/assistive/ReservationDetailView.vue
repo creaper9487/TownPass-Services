@@ -5,6 +5,8 @@ import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import CenterCard from '@/components/assistive/CenterCard.vue';
 import AStatusSteps from '@/components/assistive/AStatusSteps.vue';
+import AItemCard from '@/components/assistive/AItemCard.vue';
+import { variantInfo, type VariantInfo } from '@/utils/assistive/catalog';
 import APickupCountdown from '@/components/assistive/APickupCountdown.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
@@ -41,6 +43,10 @@ const cancelFailed = ref(false);
 
 const center = computed(() =>
   reservation.value ? centerById(reservation.value.centerId) : undefined
+);
+// 借用的項目用照片＋品名＋規格顯示；舊紀錄沒有款式代碼、或目錄裡找不到時退回文字
+const itemInfos = computed<VariantInfo[]>(() =>
+  (reservation.value?.itemIds ?? []).flatMap((id) => variantInfo(id) ?? [])
 );
 const canCancel = computed(
   () =>
@@ -113,7 +119,12 @@ const doCancel = async () => {
           </div>
           <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base">
             <dt class="text-grey-700">{{ t('reservations.row.item') }}</dt>
-            <dd class="whitespace-pre-line">{{ reservation.summary.map(trSummary).join('\n') }}</dd>
+            <dd v-if="itemInfos.length" class="flex flex-col gap-3">
+              <AItemCard v-for="item in itemInfos" :key="item.id" :item="item" compact />
+            </dd>
+            <dd v-else class="whitespace-pre-line">
+              {{ reservation.summary.map(trSummary).join('\n') }}
+            </dd>
           </div>
           <div
             v-if="
