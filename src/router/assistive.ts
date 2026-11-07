@@ -4,6 +4,7 @@ import { flows } from '@/utils/assistive/services';
 import type { ServiceId } from '@/utils/assistive/types';
 import { useAssistiveWelfareStore } from '@/stores/assistiveWelfare';
 import { FIRST_QUESTION } from '@/utils/assistive/welfare';
+import { loadCatalog, variantInfo } from '@/utils/assistive/catalog';
 import { t } from '@/i18n/assistive';
 
 /** 原生 App 的標題列顯示 document.title，要跟著語言走（每次換頁時才讀） */
@@ -31,7 +32,6 @@ const isComplete = (step: string, s: Store) => {
     case 'rules':
       return s.consents.every(Boolean);
     case 'items':
-    case 'cart':
       return s.variants.length > 0;
     case 'center':
       return !!s.centerId;
@@ -164,7 +164,41 @@ export const assistiveRoutes: RouteRecordRaw[] = [
           return isComplete('rules', store) ? true : { name: 'assistive-rules', params: to.params };
         }
       },
-      step('cart', 'cart', () => import('@/views/assistive/CartView.vue'), 'borrow'),
+      {
+        // 到貨通知（點推播，或預約查詢裡的「預約借用」）：這件輔具直接放進本次預約項目，從選中心開始。
+        // 須知在登記到貨通知之前就同意過（登記入口在須知之後），不再重問。目錄裡找不到這件就照一般流程從頭選。
+        path: ':service(borrow)/quick/:variantId',
+        name: 'assistive-borrow-quick',
+        component: () => import('@/views/assistive/CenterView.vue'),
+        beforeEnter: async (to) => {
+          await loadCatalog().catch(() => undefined);
+          const info = variantInfo(String(to.params.variantId));
+          const store = useAssistiveStore();
+          store.begin('borrow');
+          if (!info) return { name: 'assistive-rules', params: { service: 'borrow' } };
+          store.consents = [true, true, true];
+          store.addVariant({
+            id: info.id,
+            categoryName: info.category,
+            name: info.name,
+            spec: info.specs.join('、'),
+            image: info.image ?? undefined
+          });
+          return { name: 'assistive-center', params: { service: 'borrow' } };
+        }
+      },
+      {
+        // 本次預約項目清單（看、刪除）：不在步驟裡，從底部的件數或確認資料的「修改」進來
+        path: ':service(borrow)/cart',
+        name: 'assistive-cart',
+        component: () => import('@/views/assistive/CartView.vue'),
+        meta: titleMeta({ step: 'items' }),
+        beforeEnter: (to) => {
+          const store = useAssistiveStore();
+          if (store.service !== 'borrow') store.begin('borrow');
+          return isComplete('rules', store) ? true : { name: 'assistive-rules', params: to.params };
+        }
+      },
       step('center', 'center', () => import('@/views/assistive/CenterView.vue'), 'borrow'),
       step('need', 'need', () => import('@/views/assistive/NeedView.vue'), 'assess'),
       step('contact', 'contact', () => import('@/views/assistive/ContactView.vue')),

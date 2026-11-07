@@ -39,7 +39,7 @@ export const zh: Record<string, string> = {
   'borrow.variants.fitMatchUnknown': '符合 {yes} 款，{unknown} 款未標示',
   'borrow.variants.clearFit': '清除篩選',
   'borrow.variants.fitUnknown': '未標示適用身高體重',
-  'borrow.variants.added': '已加入，前往本次預約項目',
+  'borrow.variants.added': '已加入本次預約項目',
 
   // 本次預約項目
   'borrow.cart.title': '本次預約項目',
@@ -61,14 +61,14 @@ export const zh: Record<string, string> = {
   'center.sepSemi': '；',
   'center.sepList': '、',
   'center.pickup': '取貨期限 {deadline}，可前往：{dates}',
-  'center.pickupNone': '取貨期限 {deadline} 前未開館，無法於期限內取貨',
+  'center.pickupNone': '取貨期限 {deadline}前未開館，無法於期限內取貨',
   'center.stockLeft': '此款尚餘 {n} 件',
   'center.stockNone': '此中心目前無此款',
   'center.allClosed': '取貨期限內三處中心均未開館，請於開館日再行預約。',
   'center.allClosedWarn':
-    '現在三家中心在取貨期限（2 天內，含當日）內都沒有開館，預約後可能來不及取貨，逾期預約會自動取消。下一個開館日是 {date}。',
+    '取貨期限（2 天內，含當日）內三處中心均未開館，預約後恐無法如期取貨，逾期預約將自動取消。下一個開館日為 {date}。',
   'center.allClosedNext':
-    '現在三家中心在取貨期限（2 天內，含當日）內都沒有開館，暫時無法預約借用。下一個開館日是 {date}，請屆時再預約。',
+    '取貨期限（2 天內，含當日）內三處中心均未開館，暫時無法預約借用。下一個開館日為 {date}，請屆時再行預約。',
   'center.pickRequired': '請選擇一家取貨的輔具中心',
   'center.open': '開館中',
   'center.closedNow': '目前休館',
@@ -77,6 +77,7 @@ export const zh: Record<string, string> = {
   'arrival.registerHeading': '登記項目',
   'arrival.device': '輔具',
   'arrival.explain': '輔具到貨時將以台北通推播通知您；到貨通知不保留輔具，收到通知後請再行預約。',
+  'arrival.undo': '取消登記',
   'arrival.notFound': '查無此輔具',
   'arrival.home': '回輔具預約',
   'arrival.failed': '送出失敗，請檢查網路後再試一次。',
@@ -136,7 +137,7 @@ export const en: Record<string, string> = {
   'borrow.variants.fitMatchUnknown': 'Matching: {yes}, not specified: {unknown}',
   'borrow.variants.clearFit': 'Clear filter',
   'borrow.variants.fitUnknown': 'Height and weight range not specified',
-  'borrow.variants.added': "Added, go to this reservation's items",
+  'borrow.variants.added': 'Added to this reservation',
 
   // 本次預約項目
   'borrow.cart.title': 'Items in this reservation',
@@ -177,6 +178,7 @@ export const en: Record<string, string> = {
   'arrival.device': 'Device',
   'arrival.explain':
     'You will get a TownPass notification when the device arrives. The notice does not hold the device; please book it after you are notified.',
+  'arrival.undo': 'Cancel registration',
   'arrival.notFound': 'Device not found',
   'arrival.home': 'Back to Assistive Devices',
   'arrival.failed': 'Could not submit. Check your connection and try again.',

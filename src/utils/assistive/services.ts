@@ -91,7 +91,8 @@ export const serviceOrder: ServiceId[] = ['borrow', 'assess'];
 
 /** 各服務的頁面順序，用來顯示「第 n 步，共 m 步」與決定上一步／下一步 */
 export const flows: Record<ServiceId, string[]> = {
-  borrow: ['rules', 'items', 'cart', 'center', 'contact', 'review', 'done'],
+  // 「本次預約項目」不是一步：選輔具頁底部固定顯示件數與「下一步」，清單頁只在要看或刪除時才開
+  borrow: ['rules', 'items', 'center', 'contact', 'review', 'done'],
   assess: ['need', 'contact', 'user', 'review', 'done']
 };
 

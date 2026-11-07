@@ -7,7 +7,8 @@ import AIcon from '@/components/assistive/AIcon.vue';
 import AImage from '@/components/assistive/AImage.vue';
 import StockError from '@/components/assistive/StockError.vue';
 import { t, tx } from '@/i18n/assistive';
-import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
+import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
+import ACartBar from '@/components/assistive/ACartBar.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveStockPolling } from '@/composables/useAssistiveStockPolling';
 import { fetchStock } from '@/utils/assistive/api';
@@ -55,14 +56,6 @@ const totals = computed(() =>
       <StockError @retry="load" />
     </ASection>
     <ASection v-else grey>
-      <RouterLink
-        v-if="store.variants.length"
-        :to="stepRoute('borrow', 'cart')"
-        class="a11y-focus mb-3 flex min-h-12 items-center justify-between rounded-lg border border-primary-700 bg-white px-4 text-base font-semibold text-primary-700"
-      >
-        <span>{{ t('borrow.items.backToCart') }}</span>
-        <span>{{ t('borrow.items.cartCount', { n: store.variants.length }) }}</span>
-      </RouterLink>
       <!-- 文字放大後兩欄太窄，改成一欄（見 index.css 的 a-grid-fit） -->
       <div class="a-grid-fit">
         <ul class="grid grid-cols-2 gap-3">
@@ -110,5 +103,8 @@ const totals = computed(() =>
         </ul>
       </div>
     </ASection>
+    <template v-if="store.variants.length" #footer>
+      <ACartBar />
+    </template>
   </AStepPage>
 </template>

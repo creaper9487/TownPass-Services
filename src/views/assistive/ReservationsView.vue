@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
@@ -56,6 +56,11 @@ const centerLine = (r: Reservation) => {
   return t('reservations.centerLine', { center: c ? centerShort(c) : '' });
 };
 const loaded = ref(false);
+const sortedArrivals = computed(() =>
+  [...arrivals.value].sort(
+    (a, b) => Number(b.status === 'arrived') - Number(a.status === 'arrived')
+  )
+);
 onMounted(async () => {
   // 預約與到貨通知各自向後端更新；到貨通知先顯示這台裝置記得的，後端回應後換成最新（含已到貨）
   const [reservations] = await Promise.all([
@@ -69,7 +74,59 @@ onMounted(async () => {
 
 <template>
   <AStepPage :title="t('home.reservations')">
-    <ASection grey>
+    <!-- 到貨通知是使用者在等的事，放在預約紀錄上面；已到貨的排最前面 -->
+    <ASection v-if="loaded && arrivals.length" :title="t('reservations.arrivals')">
+      <AErrorText v-if="removeFailed" class="mb-3">
+        {{ t('reservations.cancelFailed') }}
+      </AErrorText>
+      <ul class="flex flex-col gap-3">
+        <li
+          v-for="a in sortedArrivals"
+          :key="a.variantId"
+          class="a-rise tp-card flex items-center gap-3 p-4"
+        >
+          <span class="min-w-0 flex-1">
+            <AItemCard v-if="variantInfo(a.variantId)" :item="variantInfo(a.variantId)!" compact />
+            <span v-else class="block tp-h3-semibold break-words">{{ a.label }}</span>
+            <span class="mt-2 block text-sm text-grey-700">
+              {{ t('reservations.registrationNo', { id: a.id }) }}
+            </span>
+            <span
+              class="tp-tag mt-2 inline-flex items-center gap-1"
+              :class="{ '!border-grey-300 !text-grey-700': a.status !== 'arrived' }"
+            >
+              <AIcon
+                :name="a.status === 'arrived' ? 'check' : 'hourglass'"
+                class="h-[14px] w-[14px] shrink-0"
+              />
+              {{
+                a.status === 'arrived'
+                  ? t('reservations.arrivalArrived')
+                  : t('reservations.arrivalWaiting')
+              }}
+            </span>
+          </span>
+          <div class="flex flex-col gap-2">
+            <!-- 直接帶著這件輔具到選中心，不用再從分類找一次 -->
+            <BaseButton
+              v-if="a.status === 'arrived'"
+              link
+              :route-info="{
+                name: 'assistive-borrow-quick',
+                params: { service: 'borrow', variantId: a.variantId }
+              }"
+            >
+              {{ t('reservations.arrivalReserve') }}
+            </BaseButton>
+            <BaseButton outline @click="askRemove(a)">{{ t('common.cancel') }}</BaseButton>
+          </div>
+        </li>
+      </ul>
+    </ASection>
+    <ASection
+      grey
+      :title="loaded && arrivals.length && list.length ? t('reservations.listTitle') : undefined"
+    >
       <p v-if="!loaded" class="text-sm text-grey-700">{{ t('common.loading') }}</p>
       <div
         v-else-if="!list.length && !arrivals.length"
@@ -116,54 +173,6 @@ onMounted(async () => {
             </span>
             <img src="@/assets/images/down-icon.svg" alt="" class="h-6 w-6 -rotate-90" />
           </RouterLink>
-        </li>
-      </ul>
-    </ASection>
-
-    <ASection v-if="loaded && arrivals.length" :title="t('reservations.arrivals')">
-      <AErrorText v-if="removeFailed" class="mb-3">
-        {{ t('reservations.cancelFailed') }}
-      </AErrorText>
-      <ul class="flex flex-col gap-3">
-        <li
-          v-for="a in arrivals"
-          :key="a.variantId"
-          class="a-rise tp-card flex items-center gap-3 p-4"
-        >
-          <span class="min-w-0 flex-1">
-            <AItemCard v-if="variantInfo(a.variantId)" :item="variantInfo(a.variantId)!" compact />
-            <span v-else class="block tp-h3-semibold break-words">{{ a.label }}</span>
-            <span class="mt-2 block text-sm text-grey-700">
-              {{ t('reservations.registrationNo', { id: a.id }) }}
-            </span>
-            <span
-              class="tp-tag mt-2 inline-flex items-center gap-1"
-              :class="{ '!border-grey-300 !text-grey-700': a.status !== 'arrived' }"
-            >
-              <AIcon
-                :name="a.status === 'arrived' ? 'check' : 'hourglass'"
-                class="h-[14px] w-[14px] shrink-0"
-              />
-              {{
-                a.status === 'arrived'
-                  ? t('reservations.arrivalArrived')
-                  : t('reservations.arrivalWaiting')
-              }}
-            </span>
-          </span>
-          <div class="flex flex-col gap-2">
-            <BaseButton
-              v-if="a.status === 'arrived' && a.categoryId"
-              link
-              :route-info="{
-                name: 'assistive-variants',
-                params: { service: 'borrow', categoryId: a.categoryId }
-              }"
-            >
-              {{ t('reservations.arrivalReserve') }}
-            </BaseButton>
-            <BaseButton outline @click="askRemove(a)">{{ t('common.cancel') }}</BaseButton>
-          </div>
         </li>
       </ul>
     </ASection>

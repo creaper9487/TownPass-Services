@@ -8,12 +8,24 @@ import StockError from '@/components/assistive/StockError.vue';
 import AInput from '@/components/assistive/AInput.vue';
 import AIcon from '@/components/assistive/AIcon.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
+import ACartBar from '@/components/assistive/ACartBar.vue';
+import ADialog from '@/components/assistive/ADialog.vue';
+import AItemCard from '@/components/assistive/AItemCard.vue';
+import AErrorText from '@/components/assistive/AErrorText.vue';
+import { ensurePush } from '@/utils/assistive/push';
 import { t, tx, zhAttr } from '@/i18n/assistive';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveStockPolling } from '@/composables/useAssistiveStockPolling';
-import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
-import { fetchStock, fetchVariantFits, listArrivals } from '@/utils/assistive/api';
-import { catalog } from '@/utils/assistive/catalog';
+import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
+import {
+  ArrivalError,
+  fetchStock,
+  fetchVariantFits,
+  listArrivals,
+  subscribeArrival,
+  unsubscribeArrival
+} from '@/utils/assistive/api';
+import { catalog, variantInfo } from '@/utils/assistive/catalog';
 import {
   HEIGHT_RANGE,
   WEIGHT_RANGE,
@@ -32,7 +44,7 @@ const flow = useAssistiveFlow();
 const category = computed(() => catalog.value.find((c) => c.id === route.params.categoryId));
 const stock = ref<Record<string, Stock>>({});
 const loaded = ref(false);
-const subscribed = listArrivals().map((a) => a.variantId);
+const subscribed = ref(listArrivals().map((a) => a.variantId));
 
 const failed = ref(false);
 const remoteFits = ref<Record<string, VariantFit> | null>(null);
@@ -106,8 +118,12 @@ const clearFit = () => {
 
 const inCart = (v: Variant) => store.variants.some((x) => x.id === v.id);
 
-// 加入本次預約項目後到清單頁，可以繼續選別的輔具，或往下選中心。
+// 「預約」加入本次預約項目後留在這頁（底部顯示件數與「下一步」）；再按一次是取消加入。
 const choose = (v: Variant) => {
+  if (inCart(v)) {
+    store.removeVariant(v.id);
+    return;
+  }
   store.addVariant({
     id: v.id,
     categoryName: category.value!.name,
@@ -115,7 +131,52 @@ const choose = (v: Variant) => {
     spec: specOf(v).join('、'),
     image: v.image
   });
-  router.push(stepRoute('borrow', 'cart'));
+};
+
+// 到貨通知：在這裡按一下就登記，結果用彈窗告知（可以立刻取消登記），不另外開一頁確認。
+const registering = ref<string | null>(null);
+const arrivalError = ref<{ id: string; key: string } | null>(null);
+const registered = ref<Variant | null>(null);
+const registeredDialog = ref(false);
+const registerArrival = async (v: Variant) => {
+  if (subscribed.value.includes(v.id)) {
+    router.push({ name: 'assistive-reservations' });
+    return;
+  }
+  if (registering.value) return;
+  registering.value = v.id;
+  arrivalError.value = null;
+  try {
+    // 到貨是後端在補貨當下推播：先登記這支手機，到貨通知才收得到。
+    await ensurePush();
+    await subscribeArrival(v.id, v.name);
+    subscribed.value = [...subscribed.value, v.id];
+    registered.value = v;
+    registeredDialog.value = true;
+  } catch (e) {
+    const code = e instanceof ArrivalError ? e.code : '';
+    arrivalError.value = {
+      id: v.id,
+      key:
+        code === 'DUPLICATE_WAITLIST'
+          ? 'arrival.duplicate'
+          : code === 'INVALID_FIELD'
+            ? 'arrival.unavailable'
+            : 'arrival.failed'
+    };
+  } finally {
+    registering.value = null;
+  }
+};
+const undoArrival = async () => {
+  const v = registered.value;
+  if (!v) return;
+  try {
+    await unsubscribeArrival(v.id);
+    subscribed.value = subscribed.value.filter((id) => id !== v.id);
+  } catch {
+    arrivalError.value = { id: v.id, key: 'reservations.cancelFailed' };
+  }
 };
 </script>
 
@@ -229,9 +290,18 @@ const choose = (v: Variant) => {
               <AIcon name="people" class="h-[20px] w-[20px] shrink-0 text-grey-700" />
               {{ t('borrow.waiting', { n: waiting(v) }) }}
             </p>
-            <BaseButton v-if="loaded && left(v) > 0" class="mt-3 w-full" @click="choose(v)">
-              {{ inCart(v) ? t('borrow.variants.added') : t('borrow.reserve')
-              }}<span class="sr-only">
+            <BaseButton
+              v-if="loaded && left(v) > 0"
+              class="mt-3 w-full"
+              :outline="inCart(v)"
+              :aria-pressed="inCart(v)"
+              @click="choose(v)"
+            >
+              <span class="inline-flex items-center gap-1.5">
+                <AIcon v-if="inCart(v)" name="check" class="h-[20px] w-[20px] shrink-0" />
+                {{ inCart(v) ? t('borrow.variants.added') : t('borrow.reserve') }}
+              </span>
+              <span class="sr-only">
                 {{ t('borrow.srVariant', { category: tx(category.name), name: v.name }) }}
               </span>
             </BaseButton>
@@ -239,13 +309,8 @@ const choose = (v: Variant) => {
               v-else-if="loaded"
               outline
               class="mt-3 w-full"
-              @click="
-                router.push(
-                  subscribed.includes(v.id)
-                    ? { name: 'assistive-reservations' }
-                    : { name: 'assistive-arrival', params: { variantId: v.id } }
-                )
-              "
+              :aria-busy="registering === v.id"
+              @click="registerArrival(v)"
             >
               {{
                 subscribed.includes(v.id)
@@ -255,9 +320,29 @@ const choose = (v: Variant) => {
                 {{ t('borrow.srVariant', { category: tx(category.name), name: v.name }) }}
               </span>
             </BaseButton>
+            <AErrorText v-if="arrivalError?.id === v.id">{{ t(arrivalError.key) }}</AErrorText>
           </div>
         </li>
       </ul>
     </ASection>
+    <template v-if="store.variants.length" #footer>
+      <ACartBar />
+    </template>
+
+    <ADialog
+      v-model="registeredDialog"
+      is-check
+      :title="t('borrow.arrivalRegistered')"
+      :negative-text="t('arrival.undo')"
+      @on-negative-click="undoArrival"
+    >
+      <template #content>
+        <AItemCard
+          v-if="registered && variantInfo(registered.id)"
+          :item="variantInfo(registered.id)!"
+        />
+        <p class="mt-3 text-base">{{ t('arrival.explain') }}</p>
+      </template>
+    </ADialog>
   </AStepPage>
 </template>
