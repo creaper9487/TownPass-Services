@@ -29,8 +29,6 @@ const needDone = (s: Store) => {
 /** 每一步需要先完成什麼；直接開網址或重新整理時，會被帶回第一個沒完成的步驟 */
 const isComplete = (step: string, s: Store) => {
   switch (step) {
-    case 'rules':
-      return s.consents.every(Boolean);
     case 'items':
       return s.variants.length > 0;
     case 'center':
@@ -99,6 +97,13 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         meta: titleMeta()
       },
       {
+        path: 'rules',
+        name: 'assistive-rules',
+        component: () => import('@/views/assistive/RulesView.vue'),
+        props: { readOnly: true },
+        meta: titleMeta()
+      },
+      {
         path: 'education/:id',
         name: 'assistive-education-article',
         component: () => import('@/views/assistive/EducationArticleView.vue'),
@@ -150,7 +155,6 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/assistive/ReservationDetailView.vue'),
         meta: titleMeta()
       },
-      step('rules', 'rules', () => import('@/views/assistive/RulesView.vue'), 'borrow'),
       step('items', 'items', () => import('@/views/assistive/ItemsView.vue'), 'borrow'),
       {
         path: ':service(borrow)/items/:categoryId',
@@ -158,15 +162,14 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/assistive/VariantsView.vue'),
         meta: titleMeta({ step: 'items' }),
         beforeEnter: (to) => {
-          // 看種類之前同樣要先同意須知，但還沒選到輔具
           const store = useAssistiveStore();
           if (store.service !== 'borrow') store.begin('borrow');
-          return isComplete('rules', store) ? true : { name: 'assistive-rules', params: to.params };
+          return true;
         }
       },
       {
         // 到貨通知（點推播，或預約查詢裡的「預約借用」）：這件輔具直接放進本次預約項目，從選中心開始。
-        // 須知在登記到貨通知之前就同意過（登記入口在須知之後），不再重問。目錄裡找不到這件就照一般流程從頭選。
+        // 須知由服務入口按帳號確認；目錄裡找不到這件就照一般流程從頭選。
         path: ':service(borrow)/quick/:variantId',
         name: 'assistive-borrow-quick',
         component: () => import('@/views/assistive/CenterView.vue'),
@@ -175,8 +178,7 @@ export const assistiveRoutes: RouteRecordRaw[] = [
           const info = variantInfo(String(to.params.variantId));
           const store = useAssistiveStore();
           store.begin('borrow');
-          if (!info) return { name: 'assistive-rules', params: { service: 'borrow' } };
-          store.consents = [true, true, true];
+          if (!info) return { name: 'assistive-items', params: { service: 'borrow' } };
           store.addVariant({
             id: info.id,
             categoryName: info.category,
@@ -196,7 +198,7 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         beforeEnter: (to) => {
           const store = useAssistiveStore();
           if (store.service !== 'borrow') store.begin('borrow');
-          return isComplete('rules', store) ? true : { name: 'assistive-rules', params: to.params };
+          return true;
         }
       },
       step('center', 'center', () => import('@/views/assistive/CenterView.vue'), 'borrow'),

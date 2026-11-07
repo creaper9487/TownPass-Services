@@ -18,7 +18,10 @@ const blocks = computed(() => (article.value ? parseBody(article.value.lines) : 
 const related = computed(() => (article.value ? relatedOf(article.value) : null));
 
 // 從衛教走到借用或評估，就是一次新的申辦：和首頁進入服務時一樣先重設進度
-const start = () => store.begin(related.value?.key === 'assess' ? 'assess' : 'borrow');
+const start = () => {
+  if (related.value?.key !== 'rules')
+    store.begin(related.value?.key === 'assess' ? 'assess' : 'borrow');
+};
 </script>
 
 <template>
