@@ -57,6 +57,11 @@
   .assistive-scope .base-button--outline {
     @apply border-primary-700 text-primary-700;
   }
+  /* 連結形式的按鈕是 <a>（預設 inline）：不是 flex／grid 的子元素時，w-full、mt-* 都不會生效，
+     內距還會蓋到上一行文字。改成 block，放哪裡都和 <button> 一樣。 */
+  .assistive-scope a.base-button {
+    display: block;
+  }
   /* Android 沒有 PingFang，系統字型沒有 600 這一級，半粗會退回一般字重；Android 上改用 700 保留層次。 */
   .assistive-android .font-semibold,
   .assistive-android .tp-h2,
