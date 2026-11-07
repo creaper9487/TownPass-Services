@@ -3,12 +3,17 @@ import { computed } from 'vue';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import CenterCard from '@/components/assistive/CenterCard.vue';
+import AInfoRow from '@/components/assistive/AInfoRow.vue';
+import APickupDays from '@/components/assistive/APickupDays.vue';
+import APickupCountdown from '@/components/assistive/APickupCountdown.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { deadlineText, pickupDatesText } from '@/utils/assistive/api';
 import { centerById, mapUrl } from '@/utils/assistive/centers';
 import { serviceTitle } from '@/utils/assistive/services';
+import { pickupDays, pickupRemaining } from '@/utils/assistive/pickup';
+import { useTaipeiNow } from '@/utils/assistive/time';
 import { t } from '@/i18n/assistive';
 
 const store = useAssistiveStore();
@@ -16,6 +21,9 @@ const native = useAssistiveNative();
 const r = store.submitted!;
 const center = computed(() => centerById(r.centerId)!);
 const isBorrow = r.service === 'borrow';
+const now = useTaipeiNow();
+const days = computed(() => pickupDays(r, now.value));
+const remaining = computed(() => pickupRemaining(r, now.value));
 const pickupSentence = computed(() =>
   t('done.pickup', { dates: pickupDatesText(r), deadline: deadlineText(r) })
 );
@@ -37,25 +45,29 @@ const pickupSentence = computed(() =>
     </ASection>
 
     <ASection :title="t('done.next')">
-      <ol class="list-decimal space-y-3 pl-5 text-base">
+      <ol role="list" class="flex flex-col gap-5">
         <template v-if="isBorrow">
-          <li>
-            {{ pickupSentence }}
-          </li>
-          <li>
+          <AInfoRow icon="calendar">
+            <p>{{ pickupSentence }}</p>
+            <div v-if="days.length || remaining" class="mt-3 flex flex-col items-start gap-3">
+              <APickupCountdown v-if="remaining" :remaining="remaining" />
+              <APickupDays v-if="days.length" :days="days" class="w-full" />
+            </div>
+          </AInfoRow>
+          <AInfoRow icon="idcard">
             <span>{{ t('done.id.before') }}</span>
             <strong>{{ t('done.id.bold') }}</strong>
             <span>{{ t('done.id.after') }}</span>
-          </li>
-          <li>{{ t('done.loan') }}</li>
+          </AInfoRow>
+          <AInfoRow icon="refresh">{{ t('done.loan') }}</AInfoRow>
         </template>
         <template v-else>
-          <li>
+          <AInfoRow icon="phone">
             <span>{{ t('done.call.before', { mobile: r.mobile }) }}</span>
             <strong>{{ t('done.call.bold') }}</strong>
             <span>{{ t('done.call.after') }}</span>
-          </li>
-          <li>{{ t('done.urgent') }}</li>
+          </AInfoRow>
+          <AInfoRow icon="alert">{{ t('done.urgent') }}</AInfoRow>
         </template>
       </ol>
     </ASection>

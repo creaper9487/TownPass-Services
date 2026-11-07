@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
+import AIcon from '@/components/assistive/AIcon.vue';
 import AImage from '@/components/assistive/AImage.vue';
 import StockError from '@/components/assistive/StockError.vue';
 import { t, tx } from '@/i18n/assistive';
@@ -69,9 +70,19 @@ const totals = computed(() =>
           <AImage :src="c.image" hide-on-error class="h-32 p-2" />
           <div class="flex flex-1 flex-col p-3">
             <h2 class="text-base font-semibold">{{ tx(c.name) }}</h2>
-            <p class="mt-1 text-base" :class="loaded && totals[c.id] === 0 ? 'text-grey-700' : ''">
+            <p
+              class="mt-1 flex items-center gap-1.5 text-base"
+              :class="loaded && totals[c.id] === 0 ? 'text-grey-700' : ''"
+            >
               <template v-if="!loaded">&nbsp;</template>
-              <template v-else>{{ t('borrow.stockLeft', { n: totals[c.id] }) }}</template>
+              <template v-else>
+                <AIcon
+                  :name="totals[c.id] ? 'check' : 'hourglass'"
+                  class="h-[20px] w-[20px] shrink-0"
+                  :class="totals[c.id] ? 'text-primary-700' : ''"
+                />
+                {{ t('borrow.stockLeft', { n: totals[c.id] }) }}
+              </template>
             </p>
             <RouterLink
               v-if="loaded"

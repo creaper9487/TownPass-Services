@@ -12,6 +12,16 @@ export type IconName =
   | 'chat'
   | 'monitor'
   | 'stairs'
+  | 'calendar'
+  | 'idcard'
+  | 'refresh'
+  | 'phone'
+  | 'alert'
+  | 'clock'
+  | 'check'
+  | 'closed'
+  | 'hourglass'
+  | 'people'
   | 'more';
 
 defineProps<{ name: IconName }>();
@@ -70,6 +80,52 @@ defineProps<{ name: IconName }>();
     </template>
     <template v-else-if="name === 'stairs'">
       <path d="M3 20h4.5v-4.5H12V11h4.5V6.5H21" />
+    </template>
+    <template v-else-if="name === 'calendar'">
+      <rect x="4" y="5" width="16" height="15.5" rx="2" />
+      <path d="M4 10h16M8.5 3v4M15.5 3v4" />
+    </template>
+    <template v-else-if="name === 'idcard'">
+      <rect x="3" y="5.5" width="18" height="13" rx="2" />
+      <circle cx="8.5" cy="11" r="1.7" />
+      <path d="M5.8 16c.5-1.6 1.6-2.4 2.7-2.4s2.2.8 2.7 2.4M14 10h4M14 13.5h4" />
+    </template>
+    <template v-else-if="name === 'refresh'">
+      <path d="M20 11.5A8 8 0 0 0 5.6 7.4L4 9.5M4 4.5v5h5" />
+      <path d="M4 12.5a8 8 0 0 0 14.4 4.1L20 14.5M20 19.5v-5h-5" />
+    </template>
+    <template v-else-if="name === 'phone'">
+      <path
+        d="M5.2 3.5h3.2l1.8 4.5-2.2 1.4a11 11 0 0 0 5.6 5.6l1.4-2.2 4.5 1.8v3.2a2 2 0 0 1-2 2A15.5 15.5 0 0 1 3.2 5.5a2 2 0 0 1 2-2z"
+      />
+    </template>
+    <template v-else-if="name === 'alert'">
+      <path d="M12 3.5l9.5 16.5h-19z" />
+      <path d="M12 10v4.5M12 17.2v.01" />
+    </template>
+    <template v-else-if="name === 'clock'">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5.2l3.2 2" />
+    </template>
+    <template v-else-if="name === 'check'">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12.4l3 3 5-6" />
+    </template>
+    <template v-else-if="name === 'closed'">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.8 8.8l6.4 6.4M15.2 8.8l-6.4 6.4" />
+    </template>
+    <template v-else-if="name === 'hourglass'">
+      <path d="M7 3.5h10M7 20.5h10" />
+      <path
+        d="M8 3.5c0 4 2.2 5.2 4 8.5-1.8 3.3-4 4.5-4 8.5M16 3.5c0 4-2.2 5.2-4 8.5 1.8 3.3 4 4.5 4 8.5"
+      />
+    </template>
+    <template v-else-if="name === 'people'">
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+      <circle cx="17" cy="9" r="2.4" />
+      <path d="M16.2 14.1a4.4 4.4 0 0 1 5.3 4.2" />
     </template>
     <template v-else>
       <circle cx="6" cy="12" r="1.25" fill="currentColor" />

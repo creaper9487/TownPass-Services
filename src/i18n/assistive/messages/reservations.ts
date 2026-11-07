@@ -31,7 +31,26 @@ export const zh: Record<string, string> = {
   'reservations.cancelDialog.title': '要取消這筆預約嗎？',
   'reservations.cancelDialog.content': '取消後庫存會釋出給其他人，需要時得重新預約。',
   'reservations.cancelDialog.keep': '先不要',
-  'reservations.cancelDialog.confirm': '取消預約'
+  'reservations.cancelDialog.confirm': '取消預約',
+  'pickup.daysLabel': '取貨期限內的日子',
+  'pickup.today': '今天',
+  'pickup.open': '可前往',
+  'pickup.closed': '休館',
+  'pickup.deadline': '取貨期限',
+  'pickup.remaining': '還有 {n} 個開館日可以去取貨',
+  'pickup.lastToday': '今天是最後可以去取貨的一天',
+  'pickup.lastOn': '只剩 {date} 這一天可以去取貨',
+  'pickup.none': '期限內已經沒有可以去取貨的開館日',
+  'progress.label': '預約進度',
+  'progress.booked': '已預約',
+  'progress.submitted': '已送出',
+  'progress.confirmed': '中心已確認',
+  'progress.completed': '已完成',
+  'progress.cancelled': '已取消',
+  'progress.expired': '已逾期',
+  'progress.srDone': '已達成',
+  'progress.srNow': '目前進度',
+  'progress.srTodo': '尚未'
 };
 export const en: Record<string, string> = {
   'reservations.status.cancelled': 'Cancelled',
@@ -66,5 +85,24 @@ export const en: Record<string, string> = {
   'reservations.cancelDialog.content':
     'The stock will be released to others. If you still need it, you will have to book again.',
   'reservations.cancelDialog.keep': 'Keep reservation',
-  'reservations.cancelDialog.confirm': 'Cancel reservation'
+  'reservations.cancelDialog.confirm': 'Cancel reservation',
+  'pickup.daysLabel': 'Days within the pickup deadline',
+  'pickup.today': 'Today',
+  'pickup.open': 'Open',
+  'pickup.closed': 'Closed',
+  'pickup.deadline': 'Deadline',
+  'pickup.remaining': '{n} open days left to collect',
+  'pickup.lastToday': 'Today is the last day you can collect',
+  'pickup.lastOn': '{date} is the only day left to collect',
+  'pickup.none': 'No open days left within the deadline',
+  'progress.label': 'Reservation progress',
+  'progress.booked': 'Reserved',
+  'progress.submitted': 'Submitted',
+  'progress.confirmed': 'Center confirmed',
+  'progress.completed': 'Completed',
+  'progress.cancelled': 'Cancelled',
+  'progress.expired': 'Expired',
+  'progress.srDone': 'reached',
+  'progress.srNow': 'current step',
+  'progress.srTodo': 'not yet'
 };

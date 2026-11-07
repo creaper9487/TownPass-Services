@@ -4,11 +4,15 @@ import { useRoute } from 'vue-router';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import CenterCard from '@/components/assistive/CenterCard.vue';
+import AStatusSteps from '@/components/assistive/AStatusSteps.vue';
+import APickupCountdown from '@/components/assistive/APickupCountdown.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseDialog from '@/components/atoms/BaseDialog.vue';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { isPushRegistered } from '@/utils/assistive/push';
+import { pickupRemaining } from '@/utils/assistive/pickup';
+import { useTaipeiNow } from '@/utils/assistive/time';
 import {
   cancelReservation,
   deadlineText,
@@ -25,7 +29,11 @@ import { t, trSummary } from '@/i18n/assistive';
 const route = useRoute();
 const native = useAssistiveNative();
 
+const now = useTaipeiNow();
 const reservation = ref<Reservation>();
+const remaining = computed(() =>
+  reservation.value ? pickupRemaining(reservation.value, now.value) : null
+);
 const loaded = ref(false);
 const confirming = ref(false);
 const cancelling = ref(false);
@@ -93,7 +101,13 @@ const doCancel = async () => {
         >
           {{ statusText(reservation) }}
         </p>
-        <dl class="mt-3 divide-y divide-grey-100">
+        <AStatusSteps
+          class="mt-4"
+          :status="effectiveStatus(reservation)"
+          :service="reservation.service"
+        />
+        <APickupCountdown v-if="remaining" :remaining="remaining" class="mt-4" />
+        <dl class="mt-4 divide-y divide-grey-100">
           <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base first:pt-0">
             <dt class="text-grey-700">{{ t('reservations.number') }}</dt>
             <dd>{{ reservation.id }}</dd>

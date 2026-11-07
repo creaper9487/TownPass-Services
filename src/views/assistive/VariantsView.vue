@@ -6,6 +6,7 @@ import ASection from '@/components/assistive/ASection.vue';
 import AImage from '@/components/assistive/AImage.vue';
 import StockError from '@/components/assistive/StockError.vue';
 import AInput from '@/components/assistive/AInput.vue';
+import AIcon from '@/components/assistive/AIcon.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { t, tx, zhAttr } from '@/i18n/assistive';
 import { useAssistiveStore } from '@/stores/assistive';
@@ -202,13 +203,24 @@ const choose = (v: Variant) => {
               {{ v.description }}
             </p>
             <p
-              class="mt-3 text-base font-semibold"
-              :class="{ 'text-grey-700': loaded && !left(v) }"
+              class="mt-3 flex items-center gap-1.5 text-base font-semibold"
+              :class="loaded && !left(v) ? 'text-grey-700' : ''"
             >
               <template v-if="!loaded">&nbsp;</template>
-              <template v-else>{{ t('borrow.stockLeft', { n: left(v) }) }}</template>
+              <template v-else>
+                <AIcon
+                  :name="left(v) ? 'check' : 'hourglass'"
+                  class="h-[20px] w-[20px] shrink-0"
+                  :class="left(v) ? 'text-primary-700' : ''"
+                />
+                {{ t('borrow.stockLeft', { n: left(v) }) }}
+              </template>
             </p>
-            <p v-if="loaded && !left(v) && waiting(v)" class="text-base">
+            <p
+              v-if="loaded && !left(v) && waiting(v)"
+              class="mt-0.5 flex items-center gap-1.5 text-base"
+            >
+              <AIcon name="people" class="h-[20px] w-[20px] shrink-0 text-grey-700" />
               {{ t('borrow.waiting', { n: waiting(v) }) }}
             </p>
             <BaseButton v-if="loaded && left(v) > 0" class="mt-3 w-full" @click="choose(v)">

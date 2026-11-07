@@ -171,6 +171,10 @@ export const upcomingClosures = (
     .map(({ day, date }) => ({ center: c, date, reason: day.reason }));
 };
 
+/** 只有星期：週六／Sat */
+export const weekdayText = (d: Date) =>
+  lang.value === 'en' ? weekdayEn[d.getDay()] : `週${weekdayLabel[d.getDay()]}`;
+
 export const formatDate = (d: Date) =>
   lang.value === 'en'
     ? `${weekdayEn[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`
