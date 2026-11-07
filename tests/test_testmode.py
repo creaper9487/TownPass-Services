@@ -144,7 +144,11 @@ def test_panel_endpoints_direct_push_and_events(client, test_mode):
     assert client.get(f"{P}/_test/events?mailbox_id=nope").status_code == 404
 
 
-def test_simulated_changes_trigger_pushes(client, test_mode):
+def test_simulated_changes_trigger_pushes(client, test_mode, monkeypatch):
+    from app import config
+
+    monkeypatch.setattr(config, "TEST_SIMULATE_CHANGES", True)
+    monkeypatch.setattr(config, "TEST_SIM_NOTICE_EVERY", 3)
     r = client.post(f"{P}/_test/scenario", json={}).json()
     auth = {"Authorization": f"Bearer {r['mailbox_key']}"}
     zero = [v for v, x in client.get(f"{P}/stock").json()["items"].items() if x["stock"] == 0]
@@ -160,7 +164,10 @@ def test_simulated_changes_trigger_pushes(client, test_mode):
     assert "service.notice" in types  # 每 3 次出現一則新公告
 
 
-def test_sync_reports_events_for_mailbox_without_device(client, test_mode):
+def test_sync_reports_events_for_mailbox_without_device(client, test_mode, monkeypatch):
+    from app import config
+
+    monkeypatch.setattr(config, "TEST_SIMULATE_CHANGES", True)
     client.post(f"{P}/_test/sync")
     mb = client.post(f"{P}/mailboxes").json()  # 跟網頁一樣：沒有 POST /devices
     auth = {"Authorization": f"Bearer {mb['mailbox_key']}"}

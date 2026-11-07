@@ -99,8 +99,8 @@
 
   <section>
     <h2>④ 模擬「定時抓資料 → 有變化就推播」</h2>
-    <p class="hint">後端平常每 <span id="sync-interval">?</span> 秒自動抓一次。測試模式下每次抓，假資料都會變：
-      你訂閱的缺貨品項會變成有貨（推到貨通知）、每幾次會出現新公告（推服務公告）。不想等就按這裡。</p>
+    <p class="hint">後端平常每 <span id="sync-interval">?</span> 秒自動抓一次，不想等就按「立刻抓一次」（= python -m app.cli sync）。
+      假資料預設不會變；要模擬到貨，把 app/config.py 的 TEST_SIMULATE_CHANGES 改成 True。</p>
     <div class="row">
       <button onclick="subscribeOne()">先訂閱一個缺貨品項</button>
       <button class="primary" onclick="syncNow()">立刻抓一次</button>
