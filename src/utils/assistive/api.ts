@@ -12,13 +12,12 @@ import { taipeiNow } from './time';
 import { lang, t } from '@/i18n/assistive';
 import { inApp } from '@/composables/useAssistiveNative';
 import { askApp } from './appBridge';
-import { catalog } from './catalog';
+import { catalog, loadCatalog } from './catalog';
 import { ApiError, getJson, hasBackend, requestJson, useSample } from './remote';
 import type {
   ApplicantForm,
   CalendarDay,
   Center,
-  CenterStockMap,
   Reservation,
   ServiceId,
   Stock,
@@ -47,25 +46,49 @@ const write = (key: string, value: unknown) => {
   }
 };
 
+// 最近一次從後端拿到的庫存與版本（refreshStock 用）
+let liveStock: { version: number; items: Record<string, Stock> } | null = null;
+
 export const fetchStock = async (): Promise<Record<string, Stock>> => {
   // 開發用：在主控台執行 localStorage.setItem('assistive.failStock', '1') 可模擬庫存讀取失敗
   if (import.meta.env.DEV && localStorage.getItem('assistive.failStock') === '1') {
     throw new Error('stock unavailable');
   }
   // GET /stock → { version, as_of, items: { [variantId]: { stock, waiting } } }；後端還沒有資料時退回快照
-  const data = await getJson<{ items?: Record<string, { stock?: number; waiting?: number }> }>(
-    '/stock'
-  );
+  const data = await getJson<{
+    version?: number;
+    items?: Record<string, { stock?: number; waiting?: number }>;
+  }>('/stock');
   if (data?.items && Object.keys(data.items).length) {
-    return Object.fromEntries(
+    const items: Record<string, Stock> = Object.fromEntries(
       Object.entries(data.items).map(([id, v]) => [
         id,
         { stock: Number(v.stock ?? 0), waiting: Number(v.waiting ?? 0) }
       ])
     );
+    if (typeof data.version === 'number') liveStock = { version: data.version, items };
+    return items;
   }
   await delay(150);
   return stockSnapshot.items as Record<string, Stock>;
+};
+
+// 頁面開著時的輪詢：帶上次拿到的版本，只收有變動的款式；沒有變動後端回 304（getJson 會回 null），畫面維持原樣。
+
+export const refreshStock = async (): Promise<Record<string, Stock>> => {
+  if (!hasBackend || !liveStock) return fetchStock();
+  const data = await getJson<{
+    version?: number;
+    items?: Record<string, { stock?: number; waiting?: number }>;
+  }>(`/stock?since=${liveStock.version}`);
+  if (data?.items) {
+    const merged = { ...liveStock.items };
+    for (const [id, v] of Object.entries(data.items)) {
+      merged[id] = { stock: Number(v.stock ?? 0), waiting: Number(v.waiting ?? 0) };
+    }
+    liveStock = { version: data.version ?? liveStock.version, items: merged };
+  }
+  return liveStock.items;
 };
 
 /** 每種服務送給後端的一筆預約。評估與維修在同一張表單，勾了兩邊就會分成兩筆。 */
@@ -96,8 +119,11 @@ export const newIdempotencyKey = () =>
 
 const prefix: Record<ServiceId, string> = { borrow: 'B', assess: 'A' };
 
-const dayToIso = (ymd: string) => {
-  const [y, m, d] = ymd.split('-').map(Number);
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const dayToIso = (day: string) => {
+  const [y, m, d] = day.split('-').map(Number);
   return new Date(y, m - 1, d).toISOString();
 };
 
@@ -227,7 +253,14 @@ const submitToBackend = async (payload: SubmitPayload): Promise<Reservation[]> =
     };
     if (res.pickup) {
       reservation.pickupDeadline = dayToIso(res.pickup.deadline);
-      reservation.pickupDates = res.pickup.open_dates.map(dayToIso);
+      // 後端目前關閉開館檢查，open_dates 會列出期限內的每一天（包含休館日）；
+      // 實際可以去取貨的日子以行事曆為準：畫面上算出來的開館日有的話取交集。
+      const calendarOpen = payload.pickup?.openDates.map(ymd);
+      reservation.pickupDates = (
+        calendarOpen
+          ? res.pickup.open_dates.filter((d) => calendarOpen.includes(d))
+          : res.pickup.open_dates
+      ).map(dayToIso);
     }
     // 每建立一筆就先存起來：第二筆失敗時，第一筆不會從清單消失。
     write(STORAGE_KEY, [reservation, ...read<Reservation[]>(STORAGE_KEY, [])]);
@@ -301,7 +334,8 @@ export const listReservations = async (): Promise<Reservation[]> => {
         ...r,
         status: x.status,
         pickupDeadline: x.pickup ? dayToIso(x.pickup.deadline) : r.pickupDeadline,
-        pickupDates: x.pickup ? x.pickup.open_dates.map(dayToIso) : r.pickupDates
+        // 開館日是預約時依行事曆整理好的，更新狀態時不要用後端的（它會列出期限內每一天）蓋掉
+        pickupDates: r.pickupDates ?? (x.pickup ? x.pickup.open_dates.map(dayToIso) : undefined)
       };
     });
     write(STORAGE_KEY, merged);
@@ -560,16 +594,35 @@ export const fetchCenterCalendar = async (
   return list?.length ? list : null;
 };
 
-/** 某款式在各中心的庫存。GET /stock/{variantId}/centers（注意：不可用分類總庫存代替） */
-export const fetchCenterStock = async (variantId: string): Promise<CenterStockMap | null> => {
-  if (import.meta.env.DEV && useSample()) return (await import('./sample')).sampleCenterStock();
-  return getJson<CenterStockMap>(`/stock/${encodeURIComponent(variantId)}/centers`);
-};
-
-/** 款式的結構化規格（身高、座寬、體重）。GET /variants/specs */
+/**
+ * 款式的結構化規格（身高、座寬、體重）：直接從後端目錄每一款的 attrs 取，沒有另外的規格 API
+ * （GET /variants/specs 不存在）。目錄裡沒有 attrs 時回傳 null，畫面就把規格當作未標示。
+ */
 export const fetchVariantFits = async (): Promise<Record<string, VariantFit> | null> => {
   if (import.meta.env.DEV && useSample()) return (await import('./sample')).sampleVariantFit;
-  return getJson<Record<string, VariantFit>>('/variants/specs');
+  await loadCatalog();
+  const fits: Record<string, VariantFit> = {};
+  for (const category of catalog.value) {
+    for (const variant of category.variants as Array<{
+      id: string;
+      attrs?: {
+        height_min?: number | null;
+        height_max?: number | null;
+        seat_width_in?: number | null;
+        weight_max_kg?: number | null;
+      } | null;
+    }>) {
+      const a = variant.attrs;
+      if (!a) continue;
+      const fit: VariantFit = {};
+      if (a.height_min != null) fit.heightMin = a.height_min;
+      if (a.height_max != null) fit.heightMax = a.height_max;
+      if (a.seat_width_in != null) fit.seatWidthIn = [a.seat_width_in];
+      if (a.weight_max_kg != null) fit.weightMaxKg = a.weight_max_kg;
+      if (Object.keys(fit).length) fits[variant.id] = fit;
+    }
+  }
+  return Object.keys(fits).length ? fits : null;
 };
 
 export { hasBackend };

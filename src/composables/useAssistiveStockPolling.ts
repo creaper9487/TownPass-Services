@@ -1,5 +1,5 @@
 import { onBeforeUnmount, onMounted } from 'vue';
-import { fetchStock } from '@/utils/assistive/api';
+import { refreshStock } from '@/utils/assistive/api';
 import { hasBackend } from '@/utils/assistive/remote';
 import type { Stock } from '@/utils/assistive/types';
 
@@ -17,7 +17,7 @@ export const useAssistiveStockPolling = (
     timer = setInterval(async () => {
       if (document.visibilityState !== 'visible') return;
       try {
-        apply(await fetchStock());
+        apply(await refreshStock());
       } catch {
         /* 保留目前畫面 */
       }

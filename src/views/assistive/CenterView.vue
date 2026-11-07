@@ -9,8 +9,6 @@ import { useAssistiveStore } from '@/stores/assistive';
 import { t, tx } from '@/i18n/assistive';
 import { useTaipeiNow } from '@/utils/assistive/time';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
-import { fetchCenterStock } from '@/utils/assistive/api';
-import type { CenterStockMap } from '@/utils/assistive/types';
 import { useAssistiveLocate } from '@/composables/useAssistiveLocate';
 import {
   centerName,
@@ -29,12 +27,12 @@ const error = computed(() => (errorKey.value ? t(errorKey.value) : ''));
 
 const now = useTaipeiNow();
 
-// 逐日行事曆（國定假日、臨時休館）與這款在各中心的庫存；取不到就維持只看星期的做法，不拿分類總庫存代替。
-const centerStock = ref<CenterStockMap | null>(null);
-onMounted(async () => {
-  store.loadCalendars();
-  if (store.variants.length === 1) centerStock.value = await fetchCenterStock(store.variants[0].id);
-});
+// 逐日行事曆（國定假日、臨時休館）；後端沒有分中心的庫存，所以中心卡片不寫庫存。
+onMounted(() => store.loadCalendars());
+
+// 取貨期限內中心沒開館時要不要擋下：後端目前關閉開館檢查（會收下這種預約），網頁預設跟著放行，只顯示提醒；
+// 要恢復擋下，在 .env 設 VITE_ASSISTIVE_ENFORCE_OPENING=1。
+const enforceOpening = import.meta.env.VITE_ASSISTIVE_ENFORCE_OPENING === '1';
 const rows = computed(() => {
   const loc = store.location;
   const rec = store.recommendedCenter;
@@ -49,7 +47,6 @@ const rows = computed(() => {
   );
   return sorted.map((c) => {
     const win = store.windowFor(c, now.value);
-    const stockEntry = centerStock.value?.[c.id];
     const tag =
       c.id === rec?.id
         ? store.recommendedBy === 'location'
@@ -73,38 +70,23 @@ const rows = computed(() => {
           dates: win.openDates.map(formatDate).join(t('center.sepList'))
         })
       : t('center.pickupNone', { deadline: formatDate(win.deadline) });
-    const stockText = stockEntry
-      ? stockEntry.stock > 0
-        ? t('center.stockLeft', { n: stockEntry.stock })
-        : t('center.stockNone')
-      : '';
     return {
       win,
-      stock: stockEntry?.stock,
       option: {
         value: c.id,
         label: tag ? t('center.nameTag', { name: centerName(c), tag }) : centerName(c),
-        description: [
-          c.address,
-          `${openDaysText(c)} ${hoursText(c)}`,
-          reach,
-          pickup,
-          closureText,
-          stockText
-        ]
+        description: [c.address, `${openDaysText(c)} ${hoursText(c)}`, reach, pickup, closureText]
           .filter(Boolean)
           .join('\n'),
-        disabled: win.openDates.length === 0
+        disabled: enforceOpening && win.openDates.length === 0
       }
     };
   });
 });
 // 期限內可去的排前面，去不了的放最後
-// 排序：期限內可去且有這款的 → 期限內可去（庫存未知）→ 可去但這家沒有這款 → 期限內去不了
-const rank = (r: { option: { disabled: boolean }; stock?: number }) =>
-  r.option.disabled ? 3 : r.stock === undefined ? 1 : r.stock > 0 ? 0 : 2;
+const rank = (r: { win: { openDates: Date[] } }) => (r.win.openDates.length ? 0 : 1);
 const ordered = computed(() => [...rows.value].sort((a, b) => rank(a) - rank(b)));
-const allClosed = computed(() => rows.value.every((r) => r.option.disabled));
+const allClosed = computed(() => rows.value.every((r) => r.win.openDates.length === 0));
 
 // 三家中心在取貨期限內都沒有開館（例如週六晚上、隔天週日休館）：直接告訴使用者哪天可以再來，
 // 而不是只留下三張灰掉的卡片。從明天起逐日找，第一個有中心開館的日子就是答案。
@@ -131,7 +113,7 @@ const selected = computed<string>({
 
 const next = () => {
   if (!store.centerId) {
-    errorKey.value = allClosed.value ? 'center.allClosed' : 'center.pickRequired';
+    errorKey.value = enforceOpening && allClosed.value ? 'center.allClosed' : 'center.pickRequired';
     return;
   }
   flow.goNext();
@@ -161,7 +143,9 @@ const next = () => {
       >
         {{
           nextOpenDate
-            ? t('center.allClosedNext', { date: formatDate(nextOpenDate) })
+            ? t(enforceOpening ? 'center.allClosedNext' : 'center.allClosedWarn', {
+                date: formatDate(nextOpenDate)
+              })
             : t('center.allClosed')
         }}
       </p>
