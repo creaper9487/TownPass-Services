@@ -28,6 +28,7 @@
 | 422 | `INVALID_FIELD` | 欄位錯誤；`fields` 列出哪幾個欄位（不會回顯你填的值） |
 | 422 | `PICKUP_WINDOW_CLOSED` | 該中心取貨期限內沒有開館日，請換中心 |
 | 422 | `NOT_ELIGIBLE` | 居住地不在臺北市 |
+| 503 | `SOURCE_UNAVAILABLE` | 官網資料暫時抓不到（目錄有備份時會回上次的資料，不會出現這個） |
 
 ---
 

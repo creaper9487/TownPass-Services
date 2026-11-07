@@ -1,6 +1,12 @@
-"""品項目錄：從爬蟲取得，快取 1 小時；依 config 過濾開放借用的分類 / 品項。"""
+"""品項目錄：從爬蟲取得，快取 1 小時；依 config 過濾開放借用的分類 / 品項。
+
+官網連不到時，改用「上一次成功抓到的目錄」（存在 SQLite，server 重啟也還在）；連一次都沒抓到過才回 503。
+"""
+
+import json
 
 from app import config
+from app.tools import db
 from app.tools import exceptions as E
 from app.tools.cache import TTLCache, etag_of
 from app.tools.crawlers import fetch_catalog
@@ -30,9 +36,17 @@ async def get_catalog() -> tuple[list[dict], str]:
     """回傳 (開放借用的分類列表, ETag)。"""
     cached = _cache.get()
     if cached is None:
-        categories = await run_crawler(fetch_catalog, list[CatalogCategory])
-        cached = [c.model_dump() for c in categories]
-        _cache.set(cached)
+        try:
+            categories = await run_crawler(fetch_catalog, list[CatalogCategory])
+            cached = [c.model_dump() for c in categories]
+            db.set_meta("catalog_last_good", json.dumps(cached, ensure_ascii=False))
+            _cache.set(cached)
+        except E.AppError:
+            last = db.get_meta("catalog_last_good")
+            if last is None:
+                raise
+            logger.warning("catalog source unavailable, serving last good copy")
+            cached = json.loads(last)  # 不放進快取：下一個請求會再試官網
     data = _filter(cached)
     return data, etag_of(data)
 

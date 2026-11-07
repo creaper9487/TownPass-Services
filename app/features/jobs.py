@@ -66,8 +66,9 @@ async def sync_now() -> dict:
             if f"{step}:" not in " ".join(result["errors"]):
                 result["errors"].append(f"{step}: {exc}")
         except Exception as exc:  # noqa: BLE001  官網連不到、格式變了…：記下來，其他步驟照跑
-            logger.error("[sync] %s failed: %s", step, type(exc).__name__)
-            result["errors"].append(f"{step}: {type(exc).__name__}")
+            reason = getattr(exc, "code", type(exc).__name__)  # SOURCE_UNAVAILABLE = 官網抓不到
+            logger.error("[sync] %s failed: %s", step, reason)
+            result["errors"].append(f"{step}: {reason}")
     await notification_service.drain()
     pushes = db.query("SELECT type, result FROM push_log WHERE id > ? ORDER BY id", (before,))
     result["pushes"] = [dict(p) for p in pushes]

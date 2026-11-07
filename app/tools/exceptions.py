@@ -58,6 +58,10 @@ def rate_limited() -> AppError:
     return AppError("RATE_LIMITED", 429, "請求過於頻繁")
 
 
+def source_unavailable() -> AppError:
+    return AppError("SOURCE_UNAVAILABLE", 503, "官方資料暫時無法取得，請稍後再試")
+
+
 def not_found(what: str = "資源") -> AppError:
     return AppError("NOT_FOUND", 404, f"找不到{what}")
 

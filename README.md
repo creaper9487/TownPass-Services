@@ -129,7 +129,7 @@ python -m app.cli --help
 | `topic --title "..."` | | 推公告到 topic |
 | `types` | | 列出 8 種通知與文案 |
 | `outbox` / `watch` | | 看推播紀錄 / 即時顯示新推播 |
-| `state` | ✓ | 信箱、預約、裝置、最近推播 |
+| `state` | | 信箱、預約、到貨訂閱狀態、裝置、最近推播（直接讀 DB，正式模式也能用） |
 | `scenario --token <token>` | ✓ | 建信箱 + 登記手機 + 借用預約（推「預約成功」） |
 | `trigger <預約編號> pickup_reminder\|expired\|confirmed\|completed\|cancelled` | ✓ | 讓預約進入該狀態並推播 |
 | `stock <variant_id> <數量>` | ✓ | 設定庫存；0 → >0 推「到貨通知」 |

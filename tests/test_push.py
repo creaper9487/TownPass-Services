@@ -168,7 +168,10 @@ def test_notice_watch_pushes_only_new_notices_via_topic(client, fake_fcm, monkey
     assert [(e["type"], e["data"]["title"]) for e in ev] == [("service.notice", "11/20 系統維護")]
 
 
-def test_no_push_when_fcm_not_configured(client, monkeypatch):
+def test_without_fcm_push_is_logged_as_local(client, monkeypatch):
+    """沒設定 Firebase：照樣走推播流程，push_log 記成 local（看得到推了什麼），事件也在信箱。"""
+    from app.tools import db
+
     calls = []
     monkeypatch.setattr(notification_service, "_spawn", calls.append)
     mailbox_id, auth = new_mailbox(client)
@@ -176,7 +179,9 @@ def test_no_push_when_fcm_not_configured(client, monkeypatch):
     from app.features.mailbox import service as mailbox_service
 
     mailbox_service.append_event(mailbox_id, "reservation.expired", ref={"reservation_id": "B1"})
-    assert calls == []
+    asyncio.run(_gather(calls))
+    row = db.query("SELECT result, type FROM push_log ORDER BY id DESC LIMIT 1")[0]
+    assert (row["result"], row["type"]) == ("local", "reservation.expired")
     assert len(client.get(f"{P}/mailboxes/{mailbox_id}/events?wait=0", headers=auth).json()["events"]) == 1
 
 

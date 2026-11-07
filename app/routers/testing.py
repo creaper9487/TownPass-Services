@@ -25,6 +25,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from app import config
+from app.config import get_settings
 from app.features.devices import repository as devices_repo
 from app.features.devices import service as devices_service
 from app.features.mailbox import repository as mailbox_repo
@@ -66,7 +67,7 @@ async def panel():
 @router.get("/state", summary="狀態總覽")
 async def state(limit: int = 20):
     return {
-        "test_mode": True,
+        "test_mode": get_settings().test_mode,
         "fcm_enabled": fcm.is_enabled(),
         "api_enabled": config.API_ENABLED,
         "intervals": {"stock_sync_seconds": config.STOCK_SYNC_SECONDS, "push_check_minutes": config.PUSH_CHECK_MINUTES},

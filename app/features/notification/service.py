@@ -16,7 +16,6 @@ import json
 from dataclasses import dataclass
 
 from app import config
-from app.config import get_settings
 from app.features.devices import service as devices_service
 from app.features.mailbox.schemas import Event
 from app.features.notification import texts
@@ -100,8 +99,7 @@ async def _deliver(push: PendingPush) -> None:
 
 def notify_event(mailbox_id: str, event: Event) -> None:
     """mailbox 寫入事件後呼叫。不阻塞呼叫端。"""
-    if not fcm.is_enabled() and not get_settings().test_mode:
-        return  # 測試模式下沒設定 FCM 也照樣跑流程，結果記成 local，方便看推了什麼
+    # 沒設定 FCM 也照樣跑流程：fcm.send 回 local、記進 push_log，方便看推了什麼
     title, body = _event_text(event)
     for token in devices_service.tokens_of(mailbox_id):
         msg = fcm.build_message(title=title, body=body, data=_data(event), token=token)
@@ -110,8 +108,6 @@ def notify_event(mailbox_id: str, event: Event) -> None:
 
 def notify_topic(event: Event) -> None:
     """公告：發一次到 topic，所有訂閱 assistive-notice 的 App 都會收到。"""
-    if not fcm.is_enabled() and not get_settings().test_mode:
-        return
     title, body = _event_text(event)
     msg = fcm.build_message(title=title, body=body, data=_data(event), topic=config.FCM_NOTICE_TOPIC)
     _spawn(_deliver(PendingPush(msg, None, 0)))

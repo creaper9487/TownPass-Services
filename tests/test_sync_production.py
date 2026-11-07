@@ -53,7 +53,7 @@ def test_cli_sync_reports_crawler_problems_instead_of_crashing(monkeypatch, caps
     monkeypatch.setattr(stock_service, "fetch_stock", broken)
     cli(["sync"])
     out = capsys.readouterr().out
-    assert "stock: ConnectionError" in out
+    assert "stock: SOURCE_UNAVAILABLE" in out
 
 
 def test_seen_notices_are_persisted(monkeypatch):

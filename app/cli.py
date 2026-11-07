@@ -14,9 +14,9 @@
 
 【立刻更新】不用等 3 分鐘、不需要測試模式、不用開 server
     python -m app.cli sync                                 抓一次資料 → 更新到貨訂閱狀態 → 推播給訂閱人
+    python -m app.cli state                                信箱、預約、到貨訂閱狀態、裝置、最近推播
 
 【功能狀態】要先用 TEST_MODE=true 開 server（python app/main.py），走真正的流程並推播
-    python -m app.cli state                                信箱、預約、裝置、最近推播
     python -m app.cli scenario --token <FCM token>         建信箱 + 登記手機 + 借用預約（推「預約成功」）
     python -m app.cli trigger <預約編號> pickup_reminder   取貨提醒
     python -m app.cli trigger <預約編號> expired           逾期自動取消（會釋回庫存）
@@ -147,7 +147,10 @@ def cmd_watch(args) -> None:
 
 # ---------------- 功能狀態（打測試模式 server）----------------
 def cmd_state(args) -> None:
-    s = _call(args, "GET", "/_test/state", params={"limit": args.n})
+    """直接讀 DB（正式 / 測試模式都可以，不需要 server）。"""
+    from app.routers import testing
+
+    s = asyncio.run(testing.state(limit=args.n))
     print(f"FCM：{'已設定' if s['fcm_enabled'] else '未設定（只記錄不送出）'}　庫存版本：{s['stock_version']}")
     print(f"\n信箱（{len(s['mailboxes'])}）")
     for m in s["mailboxes"]:
@@ -280,7 +283,7 @@ def main(argv=None) -> None:
     s.add_argument("--interval", type=float, default=2)
     s.set_defaults(fn=cmd_watch)
 
-    s = sub.add_parser("state", help="[server] 狀態總覽")
+    s = sub.add_parser("state", help="狀態總覽：信箱、預約、到貨訂閱、裝置、最近推播（直接讀 DB）")
     s.add_argument("-n", type=int, default=10)
     s.set_defaults(fn=cmd_state)
 
