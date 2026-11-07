@@ -81,7 +81,8 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
 - 爬蟲**不連官網**，改用 `app/tools/testdata.py` 的固定假資料：12 類 62 款、3 間中心、行事曆（例假日 / 國定假日 /
   臨時休館 / 補班）、4 則公告。欄位刻意做得變化多（沒圖、規格空、說明很長、名稱很長、庫存 0 / 999…）方便測相容性。
 - 開放 `/assistive/v1/_test/*` 測試 API（正式模式回 404），可以直接觸發各種狀態，不用等時間、不用中心系統。
-- 沒設定 FCM 也會跑完整推播流程，結果記成 `disabled`；設定了就真的送到手機。
+- 沒設定 FCM 也會跑完整推播流程，結果記成 `local`（只記錄在本機）；設定了就真的送到手機。
+- `scenario` / `flow` 沒給 `--token` 時會登記本機假裝置（`local-信箱ID`），推播照樣記錄，`outbox` / `watch` 看得到。
 - 每一則推播都記錄在本機 DB（`DB_PATH`，預設 `data/local.db`）的 `push_log`。
 
 **正式環境一定要 `TEST_MODE=false`。**

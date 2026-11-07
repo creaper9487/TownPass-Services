@@ -62,7 +62,7 @@ async def state(limit: int = 20):
 
 
 class ScenarioIn(BaseModel):
-    token: str | None = Field(None, description="手機的 FCM token；給了就會登記並收到推播")
+    token: str | None = Field(None, description="手機的 FCM token；不給就登記本機假裝置（推播只記錄在本機）")
     variant_id: str | None = Field(None, description="要借哪一款；不給就挑第一個有庫存的")
 
 
@@ -71,8 +71,8 @@ async def scenario(body: ScenarioIn):
     if stock_repo.current_version() == 0:
         await stock_service.sync_from_source()
     mb = mailbox_service.create()
-    if body.token:
-        devices_service.register(mb.mailbox_id, "fcm", body.token)
+    token = body.token or fcm.local_token(mb.mailbox_id)
+    devices_service.register(mb.mailbox_id, "fcm", token)
     variant_id = body.variant_id or next((r.variant_id for r in stock_repo.rows.values() if r.stock > 0), None)
     if variant_id is None:
         raise E.out_of_stock(0, 0)
@@ -89,7 +89,7 @@ async def scenario(body: ScenarioIn):
             last_error = exc
     else:
         raise last_error
-    return {"mailbox_id": mb.mailbox_id, "mailbox_key": mb.mailbox_key, "device_registered": bool(body.token),
+    return {"mailbox_id": mb.mailbox_id, "mailbox_key": mb.mailbox_key, "device_token": token,
             "reservation": r.model_dump(mode="json"), "center_id": center_id}
 
 

@@ -25,7 +25,7 @@ class SendResult(str, Enum):
     INVALID_TOKEN = "invalid_token"  # token 失效 → 呼叫端要刪掉這個裝置
     RETRY = "retry"  # 暫時失敗（429、5xx、網路）→ 之後重試
     FAILED = "failed"  # 其他錯誤，不重試
-    DISABLED = "disabled"  # 沒設定 FCM
+    LOCAL = "local"  # 只記錄在本機，沒送到手機（沒設定 FCM，或是本機假裝置 local-*）
 
 
 _credentials = None
@@ -68,9 +68,16 @@ def build_message(*, title: str, body: str, data: dict[str, str],
     }
 
 
+LOCAL_TOKEN_PREFIX = "local-"  # 測試用本機假裝置，不送 FCM
+
+
+def local_token(mailbox_id: str) -> str:
+    return f"{LOCAL_TOKEN_PREFIX}{mailbox_id}"
+
+
 async def send(message: dict) -> SendResult:
-    if not is_enabled():
-        return SendResult.DISABLED
+    if not is_enabled() or message["message"].get("token", "").startswith(LOCAL_TOKEN_PREFIX):
+        return SendResult.LOCAL
     url = f"https://fcm.googleapis.com/v1/projects/{get_settings().fcm_project_id}/messages:send"
     try:
         token = await _access_token()
