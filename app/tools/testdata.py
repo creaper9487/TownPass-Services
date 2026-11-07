@@ -7,7 +7,10 @@
     - 庫存：0 有人排隊、0 沒人排隊、1、很多、999
     - 行事曆：例假日、國定假日、臨時休館、補班、午休兩段
     - 公告：全部中心、單一中心、已結束（不該出現）、尚未開始
-資料是固定的（同樣輸入永遠同樣輸出），方便寫測試、截圖比對。
+基本資料是固定的；config.TEST_SIMULATE_CHANGES = True 時，每次 fetch_stock 會「模擬官網資料變化」：
+    - 有人訂閱、目前缺貨的品項 → 變成有貨（觸發到貨通知推播），每次最多 TEST_SIM_ARRIVALS_PER_SYNC 個
+    - 另外挑 2 個有貨的品項 → 變成 0（之後可以再訂閱）
+    - 每 TEST_SIM_NOTICE_EVERY 次 → fetch_notices 多一則新公告（觸發公告推播）
 """
 
 from datetime import date, datetime, timedelta
@@ -80,13 +83,47 @@ def fetch_catalog() -> list[dict]:
              "variants": variants[cid]} for cid, name, _ in CATEGORIES]
 
 
+# ---------------- 模擬資料變化 ----------------
+_sim = {"tick": 0, "overrides": {}, "notices": []}
+
+
+def _simulate() -> None:
+    from app import config
+    from app.tools import db
+
+    _sim["tick"] += 1
+    tick, overrides = _sim["tick"], _sim["overrides"]
+    current = {r["variant_id"]: r["stock"] for r in db.query("SELECT variant_id, stock FROM stock")}
+    subscribed = [r["variant_id"] for r in db.query("SELECT DISTINCT variant_id FROM subscriptions ORDER BY seq")]
+    arrivals = [v for v in subscribed if current.get(v, 0) == 0][: config.TEST_SIM_ARRIVALS_PER_SYNC]
+    for v in arrivals:
+        overrides[v] = (2, 1)
+    in_stock = sorted(v for v, n in current.items() if n > 0 and v not in arrivals)
+    for v in in_stock[(tick * 7) % max(len(in_stock), 1):][:2]:
+        overrides[v] = (0, 1 + tick % 5)
+    if tick % config.TEST_SIM_NOTICE_EVERY == 0:
+        t = datetime.now(TAIPEI).replace(microsecond=0)
+        _sim["notices"].append({"id": f"sim-{tick}", "title": f"【模擬】第 {tick} 次更新的新公告", "body": "模擬公告內容",
+                                "center_ids": [], "starts_at": None, "ends_at": t + timedelta(days=7),
+                                "published_at": t})
+
+
+def reset_simulation() -> None:
+    _sim.update(tick=0, overrides={}, notices=[])
+
+
 def fetch_stock() -> list[dict]:
+    from app import config
+
+    if config.TEST_SIMULATE_CHANGES:
+        _simulate()
     result = []
     for cid, v in _variants():
         i = int(v["id"]) - 181
         stock, waiting = [(0, 3 + i % 21), (1, 0), (12, 0), (0, 0), (3, 2)][i % 5]
         if i == 61:
             stock, waiting = 999, 0  # 很大的數字
+        stock, waiting = _sim["overrides"].get(v["id"], (stock, waiting))
         result.append({"variant_id": v["id"], "stock": stock, "waiting": waiting})
     return result
 
@@ -142,7 +179,7 @@ def fetch_notices() -> list[dict]:
          "starts_at": t + timedelta(days=10), "ends_at": t + timedelta(days=14), "published_at": t},
         {"id": "test-old", "title": "【測試】已結束的公告（不該出現）", "body": "", "center_ids": [],
          "starts_at": t - timedelta(days=20), "ends_at": t - timedelta(days=10), "published_at": t - timedelta(days=21)},
-    ]
+    ] + list(_sim["notices"])
 
 
 def forward_reservation(payload: dict) -> dict:

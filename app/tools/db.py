@@ -1,8 +1,16 @@
 """本機 SQLite 資料庫（標準函式庫 sqlite3，不用另外裝）。
 
-目前存：
-    devices    推播裝置（FCM token ↔ 信箱），server 重啟也不會不見
-    push_log   每一則推播的紀錄（測試時看推了什麼、結果如何）
+存的東西（全部不含個資）：
+    devices        推播裝置（FCM token ↔ 信箱）
+    push_log       每一則推播的紀錄（測試時看推了什麼、結果如何）
+    mailboxes      匿名信箱
+    events         信箱事件（通知 / 預約狀態）
+    reservations   預約（不含聯絡資料）
+    idempotency    Idempotency-Key 對應的預約
+    subscriptions  到貨通知
+    stock          各品項庫存 + meta 裡的 stock_version
+    hook_events    中心 webhook 已處理過的 event_id（去重）
+server 重啟資料都還在；要清空就刪掉 DB 檔（預設 data/local.db）。
 
 檔案位置：設定 DB_PATH（預設 data/local.db，已加入 .gitignore）。
 server 與 CLI 是不同 process，但讀寫同一個檔案，所以 CLI 看得到 App 登記的裝置。
@@ -10,6 +18,7 @@ server 與 CLI 是不同 process，但讀寫同一個檔案，所以 CLI 看得�
 
 import sqlite3
 import threading
+from contextlib import contextmanager
 from pathlib import Path
 
 from app.config import get_settings
@@ -33,6 +42,79 @@ CREATE TABLE IF NOT EXISTS push_log (
     body        TEXT,
     data        TEXT,               -- JSON
     result      TEXT NOT NULL       -- ok / invalid_token / retry / failed / local(=只記錄在本機，沒送到手機)
+);
+
+CREATE TABLE IF NOT EXISTS mailboxes (
+    id            TEXT PRIMARY KEY,
+    key_hash      TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    last_seen_at  TEXT NOT NULL,
+    next_cursor   INTEGER NOT NULL DEFAULT 1,
+    acked_cursor  INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS events (
+    mailbox_id  TEXT NOT NULL,
+    cursor      INTEGER NOT NULL,
+    id          TEXT NOT NULL,
+    type        TEXT NOT NULL,
+    ts          TEXT NOT NULL,
+    ref         TEXT NOT NULL,   -- JSON
+    data        TEXT NOT NULL,   -- JSON
+    expires_at  TEXT NOT NULL,
+    PRIMARY KEY (mailbox_id, cursor)
+);
+
+CREATE TABLE IF NOT EXISTS reservations (
+    id               TEXT PRIMARY KEY,
+    access_key_hash  TEXT NOT NULL,
+    mailbox_id       TEXT NOT NULL,
+    service          TEXT NOT NULL,
+    center_id        TEXT NOT NULL,
+    items            TEXT NOT NULL,   -- JSON
+    status           TEXT NOT NULL,
+    version          INTEGER NOT NULL,
+    pickup_deadline  TEXT,
+    pickup_dates     TEXT NOT NULL,   -- JSON
+    forward_state    TEXT NOT NULL,
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL,
+    reminders_sent   TEXT NOT NULL    -- JSON
+);
+CREATE INDEX IF NOT EXISTS idx_reservations_status ON reservations(status);
+
+CREATE TABLE IF NOT EXISTS idempotency (
+    key             TEXT PRIMARY KEY,
+    body_hash       TEXT NOT NULL,
+    reservation_id  TEXT NOT NULL,
+    access_key      TEXT NOT NULL,   -- 重送同一個請求時要回同一把 key
+    created_at      TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    seq          INTEGER PRIMARY KEY AUTOINCREMENT,   -- 候補順序
+    id           TEXT NOT NULL UNIQUE,
+    mailbox_id   TEXT NOT NULL,
+    variant_id   TEXT NOT NULL,
+    category_id  TEXT,
+    created_at   TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS stock (
+    variant_id  TEXT PRIMARY KEY,
+    stock       INTEGER NOT NULL,
+    waiting     INTEGER NOT NULL,
+    version     INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS meta (
+    key    TEXT PRIMARY KEY,
+    value  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS hook_events (
+    event_id    TEXT PRIMARY KEY,
+    created_at  TEXT NOT NULL
 );
 """
 
@@ -62,6 +144,30 @@ def execute(sql: str, params: tuple | dict = ()) -> sqlite3.Cursor:
 def query(sql: str, params: tuple | dict = ()) -> list[sqlite3.Row]:
     with _lock:
         return conn().execute(sql, params).fetchall()
+
+
+@contextmanager
+def transaction():
+    """多個寫入要一起成功或一起失敗時用：with db.transaction() as c: c.execute(...)"""
+    with _lock:
+        c = conn()
+        c.execute("BEGIN IMMEDIATE")
+        try:
+            yield c
+        except BaseException:
+            c.execute("ROLLBACK")
+            raise
+        c.execute("COMMIT")
+
+
+def get_meta(key: str, default: str | None = None) -> str | None:
+    rows = query("SELECT value FROM meta WHERE key = ?", (key,))
+    return rows[0]["value"] if rows else default
+
+
+def set_meta(key: str, value: str) -> None:
+    execute("INSERT INTO meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value))
 
 
 def close() -> None:

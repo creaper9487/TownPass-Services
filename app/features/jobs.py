@@ -50,6 +50,25 @@ async def _push_check() -> None:
         await notification_service.retry_failed()
 
 
+async def sync_now() -> dict:
+    """立刻跑一次「抓資料 → 有變化就推播」（測試面板 / CLI 用，背景排程也是做同一件事）。"""
+    from app.tools import db
+
+    before = db.query("SELECT COALESCE(MAX(id), 0) AS m FROM push_log")[0]["m"]
+    result: dict = {"stock_changed": 0, "new_notices": 0, "errors": []}
+    for step, fn in (("notices", notice_watch.check_new_notices), ("stock", stock_service.sync_from_source),
+                     ("notices", notice_watch.check_new_notices)):
+        try:
+            n = await fn()
+            result["stock_changed" if step == "stock" else "new_notices"] += n
+        except NotImplementedError as exc:
+            result["errors"].append(f"{step}: {exc}")
+    await notification_service.drain()
+    pushes = db.query("SELECT type, result FROM push_log WHERE id > ? ORDER BY id", (before,))
+    result["pushes"] = [dict(p) for p in pushes]
+    return result
+
+
 def start() -> list[asyncio.Task]:
     return [
         asyncio.create_task(_loop("stock-sync", config.STOCK_SYNC_SECONDS, stock_service.sync_from_source)),

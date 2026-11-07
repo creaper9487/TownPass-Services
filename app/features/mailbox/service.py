@@ -31,32 +31,30 @@ def create() -> MailboxCreated:
     key = new_secret()
     mailbox_id = new_id("mb")
     ts = now()
-    repo.mailboxes[mailbox_id] = repo.MailboxRow(mailbox_id, hash_secret(key), ts, ts)
+    repo.insert(repo.MailboxRow(mailbox_id, hash_secret(key), ts, ts))
     return MailboxCreated(mailbox_id=mailbox_id, mailbox_key=key)
 
 
 def exists(mailbox_id: str) -> bool:
-    return mailbox_id in repo.mailboxes
+    return repo.get(mailbox_id) is not None
 
 
 def authenticate(mailbox_id: str, key: str | None) -> repo.MailboxRow:
-    row = repo.mailboxes.get(mailbox_id)
+    row = repo.get(mailbox_id)
     if row is None or not key or not verify_secret(key, row.key_hash):
         raise E.bad_key()
-    row.last_seen_at = now()
+    repo.touch(mailbox_id, now())
     return row
 
 
 def append_event(mailbox_id: str, type: EventType, ref: dict[str, Any] | None = None,
                  data: dict[str, Any] | None = None, push: bool = True) -> Event | None:
-    row = repo.mailboxes.get(mailbox_id)
-    if row is None:
-        return None
     ts = now()
-    event = Event(cursor=row.next_cursor, id=new_id("ev"), type=type, ts=ts,
-                  ref=ref or {}, data=data or {}, expires_at=ts + EVENT_TTL)
-    row.next_cursor += 1
-    row.events.append(event)
+    event = repo.add_event(mailbox_id, lambda cursor: Event(
+        cursor=cursor, id=new_id("ev"), type=type, ts=ts, ref=ref or {}, data=data or {},
+        expires_at=ts + EVENT_TTL))
+    if event is None:
+        return None
     _signal(mailbox_id)
     if push:
         notification_service.notify_event(mailbox_id, event)
@@ -65,7 +63,7 @@ def append_event(mailbox_id: str, type: EventType, ref: dict[str, Any] | None = 
 
 def broadcast(type: EventType, data: dict[str, Any]) -> int:
     """service.notice：公告寫進所有信箱（給 pull 補拉），推播只發一次 FCM topic。"""
-    count = sum(1 for mid in list(repo.mailboxes) if append_event(mid, type, data=data, push=False))
+    count = sum(1 for m in repo.all_mailboxes() if append_event(m.id, type, data=data, push=False))
     ts = now()
     notification_service.notify_topic(Event(cursor=0, id=new_id("ev"), type=type, ts=ts, data=data,
                                             expires_at=ts + EVENT_TTL))
@@ -73,8 +71,7 @@ def broadcast(type: EventType, data: dict[str, Any]) -> int:
 
 
 def events_after(row: repo.MailboxRow, cursor: int) -> list[Event]:
-    t = now()
-    return [e for e in row.events if e.cursor > cursor and e.expires_at > t]
+    return repo.events_after(row.id, cursor, now().isoformat())
 
 
 async def wait_events(row: repo.MailboxRow, cursor: int, wait: int) -> list[Event]:
@@ -91,15 +88,10 @@ async def wait_events(row: repo.MailboxRow, cursor: int, wait: int) -> list[Even
 
 
 def ack(row: repo.MailboxRow, cursor: int) -> None:
-    row.acked_cursor = max(row.acked_cursor, min(cursor, row.next_cursor - 1))
-    row.events = [e for e in row.events if e.cursor > row.acked_cursor]
+    repo.ack(row.id, cursor)
 
 
 def purge_expired() -> None:
     """背景工作：刪過期事件與閒置 180 天的信箱。"""
     t = now()
-    for mid, row in list(repo.mailboxes.items()):
-        if t - row.last_seen_at > MAILBOX_IDLE_TTL:
-            del repo.mailboxes[mid]
-            continue
-        row.events = [e for e in row.events if e.expires_at > t]
+    repo.purge(t.isoformat(), (t - MAILBOX_IDLE_TTL).isoformat())

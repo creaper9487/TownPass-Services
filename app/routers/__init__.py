@@ -32,6 +32,8 @@ def build_api_router() -> APIRouter:
     for name, module in ROUTERS.items():
         if config.API_ENABLED.get(name, False):
             api_router.include_router(module.router)
+            if hasattr(module, "forms_router"):
+                api_router.include_router(module.forms_router)
         else:
             off.append(name)
     if off:

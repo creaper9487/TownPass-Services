@@ -142,3 +142,19 @@ def test_panel_endpoints_direct_push_and_events(client, test_mode):
     ev = client.get(f"{P}/_test/events?mailbox_id={mb}").json()["events"]
     assert [e["type"] for e in ev] == ["service.notice"]
     assert client.get(f"{P}/_test/events?mailbox_id=nope").status_code == 404
+
+
+def test_simulated_changes_trigger_pushes(client, test_mode):
+    r = client.post(f"{P}/_test/scenario", json={}).json()
+    auth = {"Authorization": f"Bearer {r['mailbox_key']}"}
+    zero = [v for v, x in client.get(f"{P}/stock").json()["items"].items() if x["stock"] == 0]
+    assert client.post(f"{P}/subscriptions", json={"mailbox_id": r["mailbox_id"], "variant_id": zero[0]},
+                       headers=auth).status_code == 201
+
+    first = client.post(f"{P}/_test/sync").json()
+    assert first["stock_changed"] > 0
+    assert any(p["type"] == "stock.arrived" for p in first["pushes"])
+    assert client.get(f"{P}/stock").json()["items"][zero[0]]["stock"] > 0
+
+    types = [p["type"] for _ in range(3) for p in client.post(f"{P}/_test/sync").json()["pushes"]]
+    assert "service.notice" in types  # 每 3 次出現一則新公告

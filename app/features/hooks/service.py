@@ -5,11 +5,12 @@ from app.config import get_settings
 from app.features.hooks.schemas import CenterStatusHook, CenterStockHook
 from app.features.reservation import service as reservation_service
 from app.features.stock import service as stock_service
+from app.tools import db
 from app.tools import exceptions as E
 from app.tools.crawlers.schemas import StockItem
 from app.tools.security import verify_signature
+from app.tools.timeutil import now
 
-_seen_event_ids: set[str] = set()  # TODO: 正式版放資料庫並設保存期限
 
 
 def verify(body: bytes, timestamp: str | None, signature: str | None) -> None:
@@ -19,17 +20,17 @@ def verify(body: bytes, timestamp: str | None, signature: str | None) -> None:
 
 
 def _first_time(event_id: str) -> bool:
-    if event_id in _seen_event_ids:
-        return False
-    _seen_event_ids.add(event_id)
-    return True
+    """記錄到 SQLite 的 hook_events；已經處理過回 False。"""
+    cur = db.execute("INSERT OR IGNORE INTO hook_events(event_id, created_at) VALUES (?, ?)",
+                     (event_id, now().isoformat()))
+    return cur.rowcount == 1
 
 
 async def handle_status(hook: CenterStatusHook) -> None:
     if not _first_time(hook.event_id):
         return
     if not await reservation_service.apply_center_status(hook.reservation_id, hook.status):
-        _seen_event_ids.discard(hook.event_id)
+        db.execute("DELETE FROM hook_events WHERE event_id = ?", (hook.event_id,))
         raise E.not_found("預約")
 
 
@@ -40,4 +41,4 @@ async def handle_stock(hook: CenterStockHook) -> None:
 
 
 def reset() -> None:
-    _seen_event_ids.clear()
+    db.execute("DELETE FROM hook_events")

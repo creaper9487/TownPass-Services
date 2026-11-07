@@ -27,6 +27,9 @@ def _reset():
                  devices_repo, notification_service, notice_watch):
         repo.reset()
     catalog_service._cache.clear()
+    from app.tools import testdata
+
+    testdata.reset_simulation()
     centers_service._centers_cache.clear()
     centers_service._calendar_cache.clear()
     yield

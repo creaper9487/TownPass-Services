@@ -55,7 +55,7 @@ def _event_text(event: Event) -> tuple[str, str]:
     from app.features.reservation import repository as reservation_repo
 
     rid = event.ref.get("reservation_id")
-    row = reservation_repo.reservations.get(rid) if rid else None
+    row = reservation_repo.get(rid) if rid else None
     return texts.build(
         event.type,
         deadline=event.data.get("pickup_deadline") or (row.pickup_deadline if row else None),

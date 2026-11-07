@@ -20,6 +20,7 @@
     python -m app.cli trigger <預約編號> confirmed|completed|cancelled
     python -m app.cli stock <variant_id> 3                 設定庫存（0 → >0 推「到貨通知」）
     python -m app.cli notice "11/20 系統維護"              發公告
+    python -m app.cli sync                                 立刻抓一次資料（模擬變化）→ 有變化就推播
     python -m app.cli flow --token <FCM token>             一次跑完：預約成功 → 取貨提醒 → 逾期
 """
 
@@ -190,6 +191,17 @@ def cmd_notice(args) -> None:
     print(f"✓ 公告已寫進 {r['mailboxes']} 個信箱，並推播到 topic")
 
 
+def cmd_sync(args) -> None:
+    r = _call(args, "POST", "/_test/sync")
+    print(f"✓ 庫存變動 {r['stock_changed']} 個品項、新公告 {r['new_notices']} 則")
+    for e in r["errors"]:
+        print(f"· {e}")
+    if not r["pushes"]:
+        print("· 這次沒有推播（沒有人訂閱缺貨品項？先用 scenario / 面板訂閱）")
+    for p in r["pushes"]:
+        print(f"  推播 [{p['result']}] {p['type']}")
+
+
 def cmd_flow(args) -> None:
     print("① 建立預約")
     r = cmd_scenario(args)
@@ -268,6 +280,8 @@ def main(argv=None) -> None:
     s.add_argument("title")
     s.add_argument("--center", action="append", choices=["heyi", "south", "west"])
     s.set_defaults(fn=cmd_notice)
+
+    sub.add_parser("sync", help="[server] 立刻抓一次資料（模擬變化）→ 有變化就推播").set_defaults(fn=cmd_sync)
 
     s = sub.add_parser("flow", help="[server] 一次跑完：預約成功 → 取貨提醒 → 逾期")
     s.add_argument("--token")
