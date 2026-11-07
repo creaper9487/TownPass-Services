@@ -1,7 +1,7 @@
 """僅涵蓋輔具借用、評估入口的公開資料試跑。
 
-執行：python -m app.tools.crawlers.preview --core-only
-借用／評估來源：python -m app.tools.crawlers.preview
+執行：python -m scripts.preview --core-only
+借用／評估來源：python -m scripts.preview
 輸出說明見 PREVIEW.md。只發送 GET，不送出預約或候補表單。
 """
 
@@ -23,19 +23,18 @@ import httpx
 from bs4 import BeautifulSoup
 from pydantic import TypeAdapter, ValidationError
 
-from .schemas import CalendarDay, CatalogCategory, Center, StockItem
-from .centers import fetch_centers
-from .center_calendar import fetch_center_calendar
-from ._borrow_source import (clean, soup_of, main_content, parse_categories,
-                             parse_attrs, labelled_count, parse_variants)
+from app.tools.crawlers.schemas import CalendarDay, CatalogCategory, Center, StockItem
+from app.tools.crawlers.centers import fetch_centers
+from app.tools.crawlers.center_calendar import fetch_center_calendar
+from app.tools.crawlers._borrow_source import (clean, soup_of, main_content, parse_categories,
+                                              parse_attrs, labelled_count, parse_variants)
 
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[1]
 TAIPEI = timezone(timedelta(hours=8))
 BASE = "https://tpap.gov.taipei"
 CATALOG_URL = BASE + "/app37/rentView/additem"
 ALLOWED_HOSTS = {"tpap.gov.taipei", "tpap.taipei"}
-# rid 是 data.taipei 公布的資源代碼，不是自行產生的資料 ID。
 PUBLIC_PAGES = {
     "borrowing_rules": BASE + "/app37/rentView/intaipei",
     "evaluation_entry": BASE + "/app37/otherReserveView/where",
@@ -280,7 +279,7 @@ class Preview:
         for cid, values in calendars.items():
             self.validate("calendar_" + cid, values, list[CalendarDay])
         self.counts["calendar_days"] = sum(map(len, calendars.values()))
-        self.issue("calendar", "已接入每週時段、2026 年官方日曆與可解析的文字休館公告；補班需中心明確公告，影像型公告需人工核對。")
+        self.issue("calendar", "已接入每週時段、2026～2027 年官方日曆與文字休館公告；公告失敗沿用最近成功結果或已核對資料，略過的影像型公告需人工核對。")
 
     def public_page(self, key: str, url: str):
         document = self.client.get(url)

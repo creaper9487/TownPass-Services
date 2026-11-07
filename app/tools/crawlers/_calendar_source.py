@@ -14,18 +14,27 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from bs4 import BeautifulSoup
 
+from app.tools.logger import get_logger
+
 from .centers import fetch_centers
 from .schemas import CalendarDay, CenterId
 
 BASE = "https://tpap.gov.taipei"
-# 官方資料集 https://data.gov.tw/dataset/14718 的 115 年 CSV。
+# 官方資料集 https://data.gov.tw/dataset/14718 的 115、116 年 CSV。
 GOVERNMENT_CALENDARS = {2026: (
     "https://www.dgpa.gov.tw/FileConversion?filename=dgpa%2Ffiles%2F202506%2F"
     "a52331bd-a189-466b-b0f0-cae3062bbf74.csv&name="
     "115%E5%B9%B4%E4%B8%AD%E8%8F%AF%E6%B0%91%E5%9C%8B%E6%94%BF%E5%BA%9C"
     "%E8%A1%8C%E6%94%BF%E6%A9%9F%E9%97%9C%E8%BE%A6%E5%85%AC%E6%97%A5"
     "%E6%9B%86%E8%A1%A8.csv&nfix="
+), 2027: (
+    "https://www.dgpa.gov.tw/FileConversion?filename=dgpa%2Ffiles%2F202607%2F"
+    "f538b1ff-ba60-4c63-9477-10db8e6612d1.csv&name="
+    "116%E5%B9%B4%E4%B8%AD%E8%8F%AF%E6%B0%91%E5%9C%8B%E6%94%BF%E5%BA%9C"
+    "%E8%A1%8C%E6%94%BF%E6%A9%9F%E9%97%9C%E8%BE%A6%E5%85%AC%E6%97%A5"
+    "%E6%9B%86%E8%A1%A8_utf8bom.csv&nfix="
 )}
+logger = get_logger(__name__)
 _CENTER_NAMES = {"合宜": "heyi", "南區": "south", "西區": "west"}
 _DATE_PATTERN = re.compile(r"(\d{3,4})[年/.-](\d{1,2})[月/.-](\d{1,2})日?")
 _closures: dict[tuple[str, date], str] | None = None
@@ -121,6 +130,9 @@ def _reviewed_closures() -> dict[tuple[str, date], str]:
 def _fetch_closures() -> dict[tuple[str, date], str]:
     pending, visited, notices = deque([BASE + "/app37/newsView/index"]), set(), set()
     result = _reviewed_closures()
+    # 單則公告暫時讀不懂時，仍保留此前已成功確認的休館日期。
+    if _closures is not None:
+        result.update(_closures)
     with httpx.Client(follow_redirects=True, timeout=20,
                       headers={"User-Agent": "TownPass-AssistiveCrawler/0.1"}) as client:
         while pending:
@@ -149,16 +161,29 @@ def _fetch_closures() -> dict[tuple[str, date], str]:
                         notices.add(href)
         for url in sorted(notices):
             time.sleep(1)
-            result.update(parse_closure_notice(_get(client, url)))
+            try:
+                result.update(parse_closure_notice(_get(client, url)))
+            except Exception as exc:
+                # 不輸出例外本文、HTML 或 URL，以免第三方內容含有個資。
+                logger.warning("Skipping unavailable or unreadable closure notice (%s)",
+                               type(exc).__name__)
     return result
 
 
 def _load_closures() -> dict[tuple[str, date], str]:
+    """公告為可降級資料源；失敗沿用已知資料，五分鐘後再嘗試。"""
     global _closures, _closures_at
     with _closures_lock:
         if _closures is not None and time.monotonic() - _closures_at < 300:
             return _closures
-        fresh = _fetch_closures()
+        try:
+            fresh = _fetch_closures()
+        except Exception as exc:
+            fallback = "last known result" if _closures is not None else "reviewed closures"
+            logger.warning("Closure refresh failed (%s); using %s",
+                           type(exc).__name__, fallback)
+            fresh = _closures if _closures is not None else _reviewed_closures()
+        # 失敗也暫存回退結果，避免每次借用請求都重試不可用的官網。
         _closures, _closures_at = fresh, time.monotonic()
         return fresh
 

@@ -12,6 +12,16 @@ from app.tools.crawlers import _borrow_source as borrow
 from app.tools.crawlers import _calendar_source as cal
 
 
+@pytest.fixture(autouse=True)
+def isolated_calendar_cache(monkeypatch):
+    monkeypatch.setattr(cal, "_closures", None)
+    monkeypatch.setattr(cal, "_closures_at", 0)
+    loader = cal._load_holidays
+    loader.cache_clear()
+    yield
+    loader.cache_clear()
+
+
 def variant_html(vid, stock="0", waiting="13", available=False):
     button = f'''<button onclick="window.location.assign('/app37/rentView/chooseCenterCategory/{vid}')">預約</button>''' if available else ""
     queue = "" if waiting is None else f"<span>等待人數：{waiting}</span>"
@@ -147,5 +157,105 @@ def test_government_weekends_do_not_override_center_weekdays():
 
 
 def test_missing_calendar_year_is_not_guessed():
-    with pytest.raises(NotImplementedError, match="2027"):
-        cal._load_holidays(2027)
+    with pytest.raises(NotImplementedError, match="2028"):
+        cal._load_holidays(2028)
+
+
+@pytest.mark.parametrize("error", [httpx.ConnectError, ValueError, RuntimeError])
+def test_closure_refresh_failure_uses_reviewed_dates_on_cold_start(monkeypatch, caplog, error):
+    attempts = []
+
+    def unavailable():
+        attempts.append(True)
+        raise error("DO-NOT-LOG-PRIVATE-CONTENT")
+
+    monkeypatch.setattr(cal, "_fetch_closures", unavailable)
+    monkeypatch.setattr(cal, "_load_holidays", lambda year: {})
+    monkeypatch.setattr(cal.time, "monotonic", lambda: 1000)
+    days = fetch_center_calendar("heyi", date(2026, 10, 9), 14)
+    assert len(days) == 14
+    assert [d.date for d in days] == [date(2026, 10, 9) + timedelta(days=i) for i in range(14)]
+    assert all(not d.open for d in days[:4])  # 已人工核對的國慶休館仍有效。
+    assert days[4].open and len(days[4].hours) == 2
+    fetch_center_calendar("south", date(2026, 10, 9), 14)
+    assert len(attempts) == 1  # 失敗後不因每次 API 請求而重打官網。
+    assert error.__name__ in caplog.text
+    assert "DO-NOT-LOG-PRIVATE-CONTENT" not in caplog.text
+
+
+def test_closure_refresh_failure_keeps_last_success_then_recovers(monkeypatch, caplog):
+    previous = {("heyi", date(2026, 11, 10)): "上次已確認休館"}
+    monkeypatch.setattr(cal, "_closures", previous)
+    monkeypatch.setattr(cal, "_closures_at", 0)
+    monkeypatch.setattr(cal, "_load_holidays", lambda year: {})
+    clock = [1000]
+    monkeypatch.setattr(cal.time, "monotonic", lambda: clock[0])
+
+    def unavailable():
+        raise httpx.ConnectError("DO-NOT-LOG-PRIVATE-CONTENT")
+
+    monkeypatch.setattr(cal, "_fetch_closures", unavailable)
+    days = fetch_center_calendar("heyi", date(2026, 11, 10), 14)
+    assert len(days) == 14 and days[0].reason == "上次已確認休館"
+    assert cal._closures == previous
+    assert "last known result" in caplog.text
+    assert "DO-NOT-LOG-PRIVATE-CONTENT" not in caplog.text
+    # 五分鐘後能恢復更新，不會永遠停留於回退快照。
+    clock[0] = 1301
+    monkeypatch.setattr(cal, "_fetch_closures", lambda: {("heyi", date(2026, 11, 11)): "新公告"})
+    days = fetch_center_calendar("heyi", date(2026, 11, 10), 2)
+    assert days[0].open and days[1].reason == "新公告"
+
+
+@pytest.mark.parametrize("bad_status", [200, 503])
+def test_unreadable_notice_does_not_discard_other_or_previous_closures(monkeypatch, caplog, bad_status):
+    previous = {("west", date(2026, 11, 12)): "先前成功公告"}
+    monkeypatch.setattr(cal, "_closures", previous)
+    monkeypatch.setattr(cal.time, "sleep", lambda seconds: None)
+    client_class = httpx.Client
+
+    def respond(request):
+        if request.url.path.endswith("/index"):
+            body = '''<div class="col-md-9"><h2>全部消息</h2>
+            <div class="row">圖片休館公告<a href="/app37/newsView/detail?newsid=1">閱讀</a></div>
+            <div class="row">文字休館公告<a href="/app37/newsView/detail?newsid=2">閱讀</a></div></div>'''
+            return httpx.Response(200, text=body)
+        if request.url.params["newsid"] == "1":
+            return httpx.Response(bad_status, text='<div class="col-md-9"><p>休館詳見圖片 PRIVATE-CONTENT</p></div>')
+        return httpx.Response(200, text='<div class="col-md-9"><p>南區中心115/11/10休館</p></div>')
+
+    monkeypatch.setattr(cal.httpx, "Client", lambda **kwargs: client_class(
+        transport=httpx.MockTransport(respond), **kwargs))
+    result = cal._fetch_closures()
+    assert result["west", date(2026, 11, 12)] == "先前成功公告"
+    assert ("south", date(2026, 11, 10)) in result
+    assert all(key in result for key in cal._reviewed_closures())
+    assert "Skipping unavailable or unreadable" in caplog.text
+    assert "PRIVATE-CONTENT" not in caplog.text
+
+
+def test_official_sources_support_december_and_new_year_windows(monkeypatch):
+    client_class = httpx.Client
+    requested_years = []
+
+    def respond(request):
+        year = next(year for year, url in cal.GOVERNMENT_CALENDARS.items() if str(request.url) == str(httpx.URL(url)))
+        requested_years.append(year)
+        writer_buffer = io.StringIO()
+        writer = csv.writer(writer_buffer)
+        writer.writerow(["西元日期", "是否放假", "備註"])
+        for i in range(365):
+            day = date(year, 1, 1) + timedelta(days=i)
+            note = "元旦" if day.month == day.day == 1 else ""
+            writer.writerow([day.strftime("%Y%m%d"), "2" if note or day.isoweekday() >= 6 else "0", note])
+        return httpx.Response(200, content=writer_buffer.getvalue().encode("utf-8-sig"))
+
+    monkeypatch.setattr(cal.httpx, "Client", lambda **kwargs: client_class(
+        transport=httpx.MockTransport(respond), **kwargs))
+    monkeypatch.setattr(cal, "_load_closures", lambda: {})
+    days = fetch_center_calendar("heyi", date(2026, 12, 19), 14)
+    assert len(days) == 14 and days[-1].date == date(2027, 1, 1)
+    assert not days[-1].open and days[-1].reason == "元旦"
+    pickup = fetch_center_calendar("south", date(2026, 12, 31), 2)
+    assert [d.open for d in pickup] == [True, False]
+    assert requested_years == [2026, 2027]

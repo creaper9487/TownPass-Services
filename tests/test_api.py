@@ -1,6 +1,6 @@
 import json
 import time
-from datetime import timedelta
+from datetime import date, timedelta
 
 from app.config import get_settings
 from app.features.catalog import service as catalog_service
@@ -118,6 +118,31 @@ def test_borrow_flow(client, monkeypatch):
     bad = client.post(f"{P}/reservations/{r['id']}:cancel", json={"access_key": "wrong"})
     assert bad.status_code == 401 and bad.json()["code"] == "BAD_KEY"
     assert client.get(f"{P}/stock").json()["items"]["101"]["stock"] == 1
+
+
+def test_calendar_and_borrow_api_work_when_closure_announcements_fail(client, monkeypatch):
+    from app.features.reservation import service as reservation_service
+    from app.tools.crawlers import _calendar_source as cal
+
+    def unavailable():
+        raise RuntimeError("官網公告暫時不可用")
+
+    monkeypatch.setattr(cal, "_closures", None)
+    monkeypatch.setattr(cal, "_closures_at", 0)
+    monkeypatch.setattr(cal, "_fetch_closures", unavailable)
+    monkeypatch.setattr(cal, "_load_holidays", lambda year: {})
+    monkeypatch.setattr(reservation_service, "today", lambda: date(2026, 11, 10))
+    response = client.get(f"{P}/centers/heyi/calendar?from=2026-11-10&days=14")
+    assert response.status_code == 200, response.text
+    assert len(response.json()["days"]) == 14
+    assert signed_post(client, "/hooks/center/stock",
+                       {"event_id": "fallback-stock", "variant_id": "101", "stock": 1, "waiting": 0}).status_code == 204
+    mailbox_id, _ = new_mailbox(client)
+    response = client.post(f"{P}/reservations", json=borrow_body(mailbox_id),
+                           headers={"Idempotency-Key": "closure-fallback"})
+    assert response.status_code == 201, response.text
+    assert response.json()["status"] == "booked"
+    assert response.json()["pickup"]["deadline"] == "2026-11-11"
 
 
 def test_subscription_arrival(client, monkeypatch):

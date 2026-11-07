@@ -3,8 +3,8 @@
 import unittest
 from datetime import date
 
-from .preview import (build_calendar, parse_attrs, parse_categories, parse_variants,
-                      read_csv, soup_of, table_rows)
+from scripts.preview import (build_calendar, parse_attrs, parse_categories, parse_variants,
+                             read_csv, soup_of, table_rows)
 
 
 class ParserTests(unittest.TestCase):
