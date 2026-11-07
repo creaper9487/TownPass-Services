@@ -22,7 +22,6 @@ from app.tools.districts import center_for_district
 from app.tools.security import hash_secret, new_secret, verify_secret
 from app.tools.timeutil import TAIPEI, now, today
 
-TAIPEI_COUNTIES = {"臺北市", "台北市"}
 FINAL_STATUSES = {"completed", "cancelled", "expired"}
 _PREFIX = {"borrow": "B", "assess": "A", "repair": "R", "recycle": "C"}
 
@@ -47,16 +46,8 @@ def _resolve_center(p: ReservationCreate) -> str:
     """借用用使用者選的中心；其他服務依居住行政區分派，算完即丟棄行政區。"""
     if p.service == "borrow":
         return p.center_id
-    if p.service in ("assess", "repair"):
-        if p.subject.living_county not in TAIPEI_COUNTIES:
-            raise E.not_eligible()
-        district = p.subject.living_district
-    else:
-        district = p.pickup.district
-    center = center_for_district(district)
-    if center is None:
-        raise E.not_eligible()
-    return center
+    district = p.subject.living_district if p.service in ("assess", "repair") else p.pickup.district
+    return center_for_district(district)
 
 
 def _set_status(row: repo.ReservationRow, status: str) -> None:

@@ -1,6 +1,6 @@
 # taipei-codefest-2026-Backend
 
-輔具預約後端（FastAPI）。API 基準路徑 `/assistive/v1`，啟動後看 http://127.0.0.1:8000/docs
+臺北市輔具預約後端（FastAPI），只服務臺北市 12 個行政區。API 基準路徑 `/assistive/v1`，啟動後看 http://127.0.0.1:8000/docs
 
 ## 分層
 
@@ -28,9 +28,10 @@ app/
     │   ├── stock.py        # fetch_stock()
     │   ├── centers.py      # fetch_centers()
     │   ├── center_calendar.py  # fetch_center_calendar()
-    │   └── center_forward.py   # forward_reservation()
+    │   ├── center_forward.py   # forward_reservation()
+    │   └── check.py        # 爬蟲格式自我檢查
     ├── exceptions.py       # problem+json 錯誤碼
-    ├── security.py  districts.py  push.py  cache.py  timeutil.py  http_client.py  logger.py
+    ├── security.py  districts.py（臺北市 12 區 → 中心）  push.py  cache.py  timeutil.py  http_client.py  logger.py
 ```
 
 ## 爬蟲（tools/crawlers）
@@ -45,7 +46,13 @@ app/
 | `fetch_center_calendar(center_id, start, days)` | 開館時段 + data.gov.tw 辦公日曆表 + 臨時休館公告 | `list[CalendarDay]` | 行事曆、取貨期限 |
 | `forward_reservation(payload)` | 送往中心（介接方式待確認） | `ForwardReceipt` | 送件佇列 |
 
-詳細欄位與範例寫在每個 function 的 docstring。
+每個 function 的註解裡寫了：網址、步驟、「網頁上看到的 → 要填的欄位」對照表、注意事項、回傳範例。
+
+寫完後自己檢查格式（在專案根目錄）：
+
+```bash
+python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar / all
+```
 
 ## 開發
 

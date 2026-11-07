@@ -128,7 +128,7 @@ def test_repair_status_hook(client):
     mailbox_id, auth = new_mailbox(client)
     body = {"service": "repair", "mailbox_id": mailbox_id, "items": ["輪椅"], "contact": CONTACT,
             "subject": {"name": "王小明", "id_no": "A123456789", "registered_district": "大安區",
-                        "living_county": "臺北市", "living_district": "大安區"}}
+                        "living_district": "大安區"}}
     r = client.post(f"{P}/reservations", json=body, headers={"Idempotency-Key": "r1"}).json()
     assert r["status"] == "submitted" and r["center_id"] == "west"
 
@@ -138,10 +138,10 @@ def test_repair_status_hook(client):
     ev = client.get(f"{P}/mailboxes/{mailbox_id}/events?wait=0", headers=auth).json()
     assert [e["type"] for e in ev["events"]] == ["reservation.confirmed"]
 
-    # 不在臺北市
-    body["subject"]["living_county"] = "新北市"
+    # 只服務臺北市：非臺北市行政區直接 422
+    body["subject"]["living_district"] = "板橋區"
     res = client.post(f"{P}/reservations", json=body, headers={"Idempotency-Key": "r2"})
-    assert res.json()["code"] == "NOT_ELIGIBLE"
+    assert res.status_code == 422 and "subject.living_district" in res.json()["fields"]
 
 
 def test_validation_does_not_echo_values(client):

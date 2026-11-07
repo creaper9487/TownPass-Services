@@ -1,12 +1,15 @@
 """POST /reservations 欄位（規格「POST /reservations 欄位」表）。
 
 contact / subject / pickup / other_text 是個資：只轉送，不存資料庫、不進日誌。
+本系統只服務臺北市：所有行政區欄位只接受臺北市 12 區，其他值回 422 INVALID_FIELD。
 """
 
 from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
+
+from app.tools.districts import TaipeiDistrict
 
 Service = Literal["borrow", "assess", "repair", "recycle"]
 CenterId = Literal["heyi", "south", "west"]
@@ -26,16 +29,15 @@ class Subject(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=50)
     id_no: str = Field(..., pattern=r"^[A-Z][0-9A-Z]\d{8}$")
-    registered_district: str
-    living_county: str
-    living_district: str
+    registered_district: TaipeiDistrict  # 戶籍行政區
+    living_district: TaipeiDistrict  # 居住行政區（決定由哪間中心服務）
     remark: str | None = Field(None, max_length=500)
 
 
 class Pickup(BaseModel):
     """回收地點。"""
 
-    district: str
+    district: TaipeiDistrict  # 回收地點行政區（決定由哪間中心收取）
     address: str = Field(..., min_length=1, max_length=200)
     has_elevator: bool
     need_certificate: bool
