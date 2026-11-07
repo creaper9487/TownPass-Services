@@ -23,7 +23,9 @@ defineProps<{ days: PickupDay[] }>();
       :style="{ '--i': Math.min(i, 6) }"
     >
       <span class="text-sm">
-        {{ weekdayText(d.date) }}<template v-if="d.isToday"> · {{ t('pickup.today') }}</template>
+        {{
+          d.isToday ? t('pickup.todayOf', { weekday: weekdayText(d.date) }) : weekdayText(d.date)
+        }}
       </span>
       <span class="text-xl font-semibold leading-7">
         {{ d.date.getMonth() + 1 }}/{{ d.date.getDate() }}

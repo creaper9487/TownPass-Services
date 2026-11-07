@@ -63,46 +63,52 @@ const totals = computed(() =>
         <span>{{ t('borrow.items.backToCart') }}</span>
         <span>{{ t('borrow.items.cartCount', { n: store.variants.length }) }}</span>
       </RouterLink>
-      <ul class="grid grid-cols-2 gap-3">
-        <li
-          v-for="(c, i) in catalog"
-          :key="c.id"
-          class="a-rise tp-card flex flex-col overflow-hidden"
-          :style="{ '--i': Math.min(i, 8) }"
-        >
-          <AImage :src="c.image" hide-on-error class="h-32 p-2" />
-          <div class="flex flex-1 flex-col p-3">
-            <h2 class="text-base font-semibold">{{ tx(c.name) }}</h2>
-            <p
-              class="mt-1 flex items-center gap-1.5 text-base"
-              :class="loaded && totals[c.id] === 0 ? 'text-grey-700' : ''"
-            >
-              <template v-if="!loaded">&nbsp;</template>
-              <template v-else>
-                <AIcon
-                  :name="totals[c.id] ? 'check' : 'hourglass'"
-                  class="h-[20px] w-[20px] shrink-0"
-                  :class="totals[c.id] ? 'text-primary-700' : ''"
-                />
-                {{ t('borrow.stockLeft', { n: totals[c.id] }) }}
-              </template>
-            </p>
-            <RouterLink
-              v-if="loaded"
-              :to="{ name: 'assistive-variants', params: { service: 'borrow', categoryId: c.id } }"
-              class="a11y-focus mt-3 flex min-h-12 items-center justify-center rounded-lg px-3 text-base font-semibold"
-              :class="
-                totals[c.id] > 0
-                  ? 'bg-primary-700 text-white'
-                  : 'border border-primary-700 text-primary-700'
-              "
-            >
-              {{ totals[c.id] > 0 ? t('borrow.reserve') : t('borrow.arrivalNotice')
-              }}<span class="sr-only">{{ t('borrow.srItem', { text: tx(c.name) }) }}</span>
-            </RouterLink>
-          </div>
-        </li>
-      </ul>
+      <!-- 文字放大後兩欄太窄，改成一欄（見 index.css 的 a-grid-fit） -->
+      <div class="a-grid-fit">
+        <ul class="grid grid-cols-2 gap-3">
+          <li
+            v-for="(c, i) in catalog"
+            :key="c.id"
+            class="a-rise tp-card flex flex-col overflow-hidden"
+            :style="{ '--i': Math.min(i, 8) }"
+          >
+            <AImage :src="c.image" hide-on-error class="h-[128px] p-2" />
+            <div class="flex flex-1 flex-col p-3">
+              <h2 class="text-base font-semibold">{{ tx(c.name) }}</h2>
+              <p
+                class="mt-1 flex items-center gap-1.5 text-base"
+                :class="loaded && totals[c.id] === 0 ? 'text-grey-700' : ''"
+              >
+                <template v-if="!loaded">&nbsp;</template>
+                <template v-else>
+                  <AIcon
+                    :name="totals[c.id] ? 'check' : 'hourglass'"
+                    class="h-[20px] w-[20px] shrink-0"
+                    :class="totals[c.id] ? 'text-primary-700' : ''"
+                  />
+                  {{ t('borrow.stockLeft', { n: totals[c.id] }) }}
+                </template>
+              </p>
+              <RouterLink
+                v-if="loaded"
+                :to="{
+                  name: 'assistive-variants',
+                  params: { service: 'borrow', categoryId: c.id }
+                }"
+                class="a11y-focus mt-3 flex min-h-12 items-center justify-center rounded-lg px-3 text-base font-semibold"
+                :class="
+                  totals[c.id] > 0
+                    ? 'bg-primary-700 text-white'
+                    : 'border border-primary-700 text-primary-700'
+                "
+              >
+                {{ totals[c.id] > 0 ? t('borrow.reserve') : t('borrow.arrivalNotice')
+                }}<span class="sr-only">{{ t('borrow.srItem', { text: tx(c.name) }) }}</span>
+              </RouterLink>
+            </div>
+          </li>
+        </ul>
+      </div>
     </ASection>
   </AStepPage>
 </template>

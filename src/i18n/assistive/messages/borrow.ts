@@ -22,16 +22,17 @@ export const zh: Record<string, string> = {
 
   // 選擇輔具（類別）
   'borrow.items.title': '選擇輔具',
-  'borrow.items.lead': '請選擇你要的輔具，並於一小時內完成借用程序',
+  'borrow.items.lead': '請選擇您要借用的輔具',
   'borrow.items.backToCart': '回本次預約項目',
   'borrow.items.cartCount': '{n} 件',
 
   // 選擇種類（款式）
   'borrow.variants.title': '選擇種類',
-  'borrow.variants.noStock': '目前二手{name}都沒有庫存',
+  'borrow.variants.noStock': '目前二手{name}均無庫存',
   'borrow.variants.assessLink': '預約輔具評估，了解購買或租賃補助',
   'borrow.variants.height': '身高（公分）',
   'borrow.variants.weight': '體重（公斤）',
+  'borrow.variants.fitTitle': '依使用者身高、體重篩選',
   'borrow.variants.fitRange': '請輸入 {min}–{max} 之間的整數',
   'borrow.variants.fitNone': '沒有符合的款式',
   'borrow.variants.fitMatch': '符合 {yes} 款',
@@ -51,8 +52,8 @@ export const zh: Record<string, string> = {
   'center.lead': '請選擇借用輔具中心',
   'center.locate': '依目前位置排序',
   'center.legend': '取貨中心',
-  'center.nearest': '離你最近',
-  'center.matchAddress': '符合你的地址',
+  'center.nearest': '距離最近',
+  'center.matchAddress': '鄰近您的地址',
   'center.nameTag': '{name}（{tag}）',
   'center.distance': '距離約 {km} 公里',
   'center.closed': '{date}休館',
@@ -60,33 +61,34 @@ export const zh: Record<string, string> = {
   'center.sepSemi': '；',
   'center.sepList': '、',
   'center.pickup': '取貨期限 {deadline}，可前往：{dates}',
-  'center.pickupNone': '取貨期限 {deadline} 前沒有開館，這家無法在期限內取貨',
-  'center.stockLeft': '● 這款剩 {n} 件',
-  'center.stockNone': '○ 這家目前沒有這款',
-  'center.allClosed': '這幾天三家中心都休館，請改天再預約。',
+  'center.pickupNone': '取貨期限 {deadline} 前未開館，無法於期限內取貨',
+  'center.stockLeft': '此款尚餘 {n} 件',
+  'center.stockNone': '此中心目前無此款',
+  'center.allClosed': '取貨期限內三處中心均未開館，請於開館日再行預約。',
   'center.allClosedWarn':
     '現在三家中心在取貨期限（2 天內，含當日）內都沒有開館，預約後可能來不及取貨，逾期預約會自動取消。下一個開館日是 {date}。',
   'center.allClosedNext':
     '現在三家中心在取貨期限（2 天內，含當日）內都沒有開館，暫時無法預約借用。下一個開館日是 {date}，請屆時再預約。',
   'center.pickRequired': '請選擇一家取貨的輔具中心',
-  'center.open': '● 開館中',
-  'center.closedNow': '○ 目前休館',
+  'center.open': '開館中',
+  'center.closedNow': '目前休館',
 
   // 到貨通知
   'arrival.registerHeading': '登記項目',
   'arrival.device': '輔具',
-  'arrival.notFound': '找不到這個輔具',
+  'arrival.explain': '輔具到貨時將以台北通推播通知您；到貨通知不保留輔具，收到通知後請再行預約。',
+  'arrival.notFound': '查無此輔具',
   'arrival.home': '回輔具預約',
   'arrival.failed': '送出失敗，請檢查網路後再試一次。',
-  'arrival.duplicate': '這一類輔具已經有登記到貨通知，同一類一次只能登記一個。',
-  'arrival.unavailable': '這個品項目前不開放到貨通知。',
+  'arrival.duplicate': '同類輔具已登記到貨通知，同一類別僅可登記一項。',
+  'arrival.unavailable': '此品項目前不開放登記到貨通知。',
   'arrival.number': '登記編號',
   'arrival.sending': '送出中…',
   'arrival.submit': '確認送出',
   'arrival.reservations': '服務預約查詢與取消',
 
   // 庫存讀取失敗
-  'stock.title': '暫時讀不到庫存',
+  'stock.title': '無法取得庫存資料',
   'stock.hint': '請檢查網路後再試一次。',
 
   // 休館公告
@@ -117,7 +119,7 @@ export const en: Record<string, string> = {
 
   // 選擇輔具（類別）
   'borrow.items.title': 'Choose a device',
-  'borrow.items.lead': 'Choose the device you need and complete the loan within one hour',
+  'borrow.items.lead': 'Choose the device you want to borrow',
   'borrow.items.backToCart': "Back to this reservation's items",
   'borrow.items.cartCount': '{n} selected',
 
@@ -127,6 +129,7 @@ export const en: Record<string, string> = {
   'borrow.variants.assessLink': 'Reserve an assessment to learn about purchase or rental subsidies',
   'borrow.variants.height': 'Height (cm)',
   'borrow.variants.weight': 'Weight (kg)',
+  'borrow.variants.fitTitle': 'Filter by the user height and weight',
   'borrow.variants.fitRange': 'Enter a whole number between {min} and {max}',
   'borrow.variants.fitNone': 'No matching models',
   'borrow.variants.fitMatch': 'Matching: {yes}',
@@ -146,8 +149,8 @@ export const en: Record<string, string> = {
   'center.lead': 'Choose the assistive device center to borrow from',
   'center.locate': 'Sort by my current location',
   'center.legend': 'Pickup center',
-  'center.nearest': 'Closest to you',
-  'center.matchAddress': 'Matches your address',
+  'center.nearest': 'Nearest',
+  'center.matchAddress': 'Near your address',
   'center.nameTag': '{name} ({tag})',
   'center.distance': 'About {km} km away',
   'center.closed': 'Closed {date}',
@@ -157,8 +160,8 @@ export const en: Record<string, string> = {
   'center.pickup': 'Pickup deadline {deadline}. Open on: {dates}',
   'center.pickupNone':
     'Not open before the pickup deadline ({deadline}), so you cannot pick up here in time',
-  'center.stockLeft': '● {n} left of this model',
-  'center.stockNone': '○ None of this model here right now',
+  'center.stockLeft': '{n} of this model left',
+  'center.stockNone': 'This center has none of this model now',
   'center.allClosed':
     'All three centers are closed for the next few days. Please reserve another day.',
   'center.allClosedWarn':
@@ -166,12 +169,14 @@ export const en: Record<string, string> = {
   'center.allClosedNext':
     'All three centers are closed within the pickup deadline (2 days, including today), so loans cannot be reserved right now. The next opening day is {date}; please come back then.',
   'center.pickRequired': 'Select an assistive device center for pickup',
-  'center.open': '● Open now',
-  'center.closedNow': '○ Closed now',
+  'center.open': 'Open now',
+  'center.closedNow': 'Closed now',
 
   // 到貨通知
   'arrival.registerHeading': 'Registration details',
   'arrival.device': 'Device',
+  'arrival.explain':
+    'You will get a TownPass notification when the device arrives. The notice does not hold the device; please book it after you are notified.',
   'arrival.notFound': 'Device not found',
   'arrival.home': 'Back to Assistive Devices',
   'arrival.failed': 'Could not submit. Check your connection and try again.',
@@ -184,7 +189,7 @@ export const en: Record<string, string> = {
   'arrival.reservations': 'View or cancel reservations',
 
   // 庫存讀取失敗
-  'stock.title': "Can't load stock right now",
+  'stock.title': 'Could not load stock data',
   'stock.hint': 'Check your connection and try again.',
 
   // 休館公告

@@ -188,9 +188,8 @@ export const useAssistiveStore = defineStore('assistive', () => {
 
   const summary = computed(() => {
     if (service.value === 'borrow') {
-      return variants.value.map((v) =>
-        [v.categoryName, v.name, v.spec].filter((x) => x && x !== '---' && x !== '--').join('・')
-      );
+      // 摘要只放品名；分類、規格在畫面上用 AItemCard 分行顯示，不串成「A・B・C」
+      return variants.value.map((v) => v.name);
     }
     return needSummary.value;
   });

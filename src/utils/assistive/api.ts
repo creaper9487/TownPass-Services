@@ -400,8 +400,7 @@ export const arrivalLabel = (variantId: string): string | undefined => {
   for (const c of catalog.value) {
     const v = c.variants.find((x) => x.id === variantId);
     if (v) {
-      const specs = v.specs.filter((x) => x && x !== '---' && x !== '--' && x !== v.name);
-      return [c.name, v.name, ...specs].join('・');
+      return v.name;
     }
   }
   return undefined;

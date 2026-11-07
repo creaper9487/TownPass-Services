@@ -8,7 +8,7 @@ import AErrorText from '@/components/assistive/AErrorText.vue';
 import AIcon from '@/components/assistive/AIcon.vue';
 import AItemCard from '@/components/assistive/AItemCard.vue';
 import { variantInfo } from '@/utils/assistive/catalog';
-import BaseDialog from '@/components/atoms/BaseDialog.vue';
+import ADialog from '@/components/assistive/ADialog.vue';
 import {
   effectiveStatus,
   listArrivals,
@@ -39,7 +39,8 @@ const askRemove = (a: ArrivalNotice) => {
 };
 const doRemove = async () => {
   if (!removing.value) return;
-  const label = removing.value.label;
+  // 彈窗只寫品名，不用「類別・品名・規格」串成的長字串
+  const label = variantInfo(removing.value.variantId)?.name ?? removing.value.label;
   try {
     await unsubscribeArrival(removing.value.variantId);
     arrivals.value = listArrivals();
@@ -52,7 +53,7 @@ const doRemove = async () => {
 const firstItem = (r: Reservation) => (r.itemIds?.[0] ? variantInfo(r.itemIds[0]) : undefined);
 const centerLine = (r: Reservation) => {
   const c = centerById(r.centerId);
-  return t('reservations.centerLine', { center: c ? centerShort(c) : '', id: r.id });
+  return t('reservations.centerLine', { center: c ? centerShort(c) : '' });
 };
 const loaded = ref(false);
 onMounted(async () => {
@@ -98,8 +99,9 @@ onMounted(async () => {
               <span v-else class="mt-1 block text-sm text-grey-700">
                 {{ r.summary.map(trSummary).join(t('reservations.listSep')) || '—' }}
               </span>
-              <span class="mt-1 block text-sm text-grey-700">
-                {{ centerLine(r) }}
+              <span class="mt-1 block text-sm text-grey-700">{{ centerLine(r) }}</span>
+              <span class="block text-sm text-grey-700">
+                {{ t('reservations.number') }} {{ r.id }}
               </span>
               <span
                 class="tp-tag mt-2"
@@ -166,17 +168,15 @@ onMounted(async () => {
       </ul>
     </ASection>
 
-    <BaseDialog
+    <ADialog
       v-model="removedDialog"
       is-check
       :title="t('reservations.removedDialog.title')"
       :content="t('reservations.removedDialog.content', { label: trSummary(removedLabel) })"
     />
-    <BaseDialog
+    <ADialog
       v-model="confirming"
       :title="t('reservations.removeDialog.title')"
-      content=""
-      is-slot
       :negative-text="t('reservations.removeDialog.keep')"
       :positive-text="t('reservations.removeDialog.confirm')"
       @on-positive-click="doRemove"
@@ -186,8 +186,8 @@ onMounted(async () => {
           v-if="removing && variantInfo(removing.variantId)"
           :item="variantInfo(removing.variantId)!"
         />
-        <p v-else class="text-center font-bold">{{ removing?.label }}</p>
+        <p v-else class="text-center text-base">{{ removing?.label }}</p>
       </template>
-    </BaseDialog>
+    </ADialog>
   </AStepPage>
 </template>

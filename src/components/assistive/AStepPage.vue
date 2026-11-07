@@ -25,12 +25,7 @@ const serviceName = computed(() => {
   const id = route.params.service as ServiceId;
   return services[id] ? serviceShortTitle(id) : '';
 });
-const stepLine = computed(() => {
-  const params = { n: props.step ?? 0, m: props.total ?? 0 };
-  return serviceName.value
-    ? t('step.withService', { service: serviceName.value, ...params })
-    : t('step.line', params);
-});
+const stepLine = computed(() => t('step.line', { n: props.step ?? 0, m: props.total ?? 0 }));
 // 進度條從上一步的位置長到這一步
 const ratio = computed(() => (props.step && props.total ? props.step / props.total : 0));
 const shownRatio = ref(props.step && props.total ? Math.max(props.step - 1, 0) / props.total : 0);
@@ -80,8 +75,13 @@ onBeforeUnmount(() => {
     <main class="flex-1" :class="enterClass">
       <header :class="props.hideHeader ? 'sr-only' : 'bg-grey-50 px-4 pb-4 pt-5'">
         <template v-if="props.step && props.total">
-          <p class="text-sm text-grey-700" aria-hidden="true">
-            {{ stepLine }}
+          <!-- 服務名稱與步驟分開放在同一列兩端，不用「A・步驟 n」串在一起 -->
+          <p
+            class="flex flex-wrap justify-between gap-x-3 text-sm text-grey-700"
+            aria-hidden="true"
+          >
+            <span v-if="serviceName">{{ serviceName }}</span>
+            <span class="whitespace-nowrap">{{ stepLine }}</span>
           </p>
           <div class="mt-2 h-1 rounded-full bg-grey-100" aria-hidden="true">
             <div

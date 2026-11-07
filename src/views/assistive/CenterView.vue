@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from 'vue';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AChoice from '@/components/assistive/AChoice.vue';
-import ClosureNotice from '@/components/assistive/ClosureNotice.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { t, tx } from '@/i18n/assistive';
@@ -127,9 +126,7 @@ const next = () => {
     :step="flow.current.value"
     :total="flow.total.value"
   >
-    <ASection v-if="store.closureNotices.length">
-      <ClosureNotice :items="store.closureNotices" />
-    </ASection>
+    <!-- 休館公告不在這裡重複：每家中心的卡片已列出取貨期限內的休館日 -->
     <ASection>
       <div v-if="!store.location" class="mb-4">
         <BaseButton outline class="w-full" :aria-busy="locating" @click="locate">

@@ -21,7 +21,7 @@ const emit = defineEmits<{ (e: 'click'): void }>();
     class="a11y-focus block overflow-hidden rounded-[6px]"
     :class="
       hero
-        ? 'assistive-hero bg-gradient-to-tl from-primary-600 to-primary-700 p-4 text-white'
+        ? 'assistive-hero bg-gradient-to-tl from-primary-700 to-primary-800 p-4 text-white'
         : 'flex min-h-20 items-center gap-3 border border-grey-100 bg-white px-4 py-3'
     "
     @click="emit('click')"

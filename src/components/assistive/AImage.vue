@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { t } from '@/i18n/assistive';
 
 defineProps<{ src: string; alt?: string; hideOnError?: boolean; eager?: boolean }>();
 const failed = ref(false);
@@ -25,7 +26,7 @@ const failed = ref(false);
       class="px-2 text-center text-sm text-grey-600"
       :aria-hidden="alt ? undefined : 'true'"
     >
-      {{ alt || '無照片' }}
+      {{ alt || t('common.noPhoto') }}
     </span>
   </div>
 </template>

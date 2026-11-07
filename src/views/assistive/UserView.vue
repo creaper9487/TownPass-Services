@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { reactive, ref } from 'vue';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AInput from '@/components/assistive/AInput.vue';
@@ -9,7 +9,7 @@ import ErrorSummary from '@/components/assistive/ErrorSummary.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
-import { t, tx } from '@/i18n/assistive';
+import { t } from '@/i18n/assistive';
 import { taipeiDistricts } from '@/utils/assistive/centers';
 import { isEmail, isTwId, toSummary, type SummaryItem } from '@/utils/assistive/validators';
 
@@ -19,10 +19,7 @@ const flow = useAssistiveFlow();
 const u = store.user;
 const f = store.applicant;
 
-// 台北通帳號資料已授權時，先把聯絡人本人的資料帶進來（沒填過才帶）。
-onMounted(() => {
-  if (!u.name) store.fillUserFromContact();
-});
+// 不自動帶入聯絡人資料：照顧者代為預約時，使用者不是聯絡人本人。是本人時按「同聯絡人」。
 
 const errors = reactive({ name: '', idNo: '', registered: '', email: '' });
 const summary = ref<SummaryItem[]>([]);
@@ -55,7 +52,8 @@ const next = () => {
     :total="flow.total.value"
   >
     <ErrorSummary :errors="summary" :trigger="trigger" />
-    <ASection :title="t('user.title')">
+    <!-- 頁面標題已是「輔具使用者資料」，區塊不再重複同一個標題 -->
+    <ASection>
       <div class="flex flex-col gap-5">
         <div>
           <AInput
@@ -85,7 +83,7 @@ const next = () => {
           v-model="u.registeredDistrict"
           :label="t('user.registeredDistrict')"
           required
-          :placeholder="tx('臺北市')"
+          :placeholder="t('form.choose')"
           :options="taipeiDistricts"
           field-id="user-registered"
           :error="errors.registered"
@@ -93,7 +91,7 @@ const next = () => {
         <ASelect
           v-model="u.livingDistrict"
           :label="t('user.livingDistrict')"
-          placeholder="--"
+          :placeholder="t('form.choose')"
           :options="taipeiDistricts"
           field-id="user-livingDistrict"
         />

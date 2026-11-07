@@ -32,7 +32,7 @@ export const zh: Record<string, string> = {
   'contact.fromAccount': '已帶入台北通資料',
   'contact.phoneHint': 'ex:0224597892 (將以此欄位進行預約查詢)',
   'contact.err.mobileRequired': '請輸入手機',
-  'contact.err.mobile': '手機要 10 碼、09 開頭，例如 0912345678',
+  'contact.err.mobile': '手機號碼須為 09 開頭之 10 碼數字，例如 0912345678',
   'contact.err.phoneRequired': '請輸入電話',
   'contact.err.phone': '電話請含區碼，例如 0224597892',
   'contact.err.gender': '請選擇性別',
@@ -43,7 +43,7 @@ export const zh: Record<string, string> = {
   'user.registeredDistrict': '戶籍地行政區',
   'user.livingDistrict': '居住地行政區',
   'user.err.idRequired': '請輸入身分證字號',
-  'user.err.id': '身分證字號格式不正確，請再檢查一次',
+  'user.err.id': '身分證字號格式不正確，請重新確認',
   'user.err.registered': '請選擇戶籍地行政區'
 };
 export const en: Record<string, string> = {

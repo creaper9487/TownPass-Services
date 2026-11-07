@@ -96,6 +96,9 @@ export const zhAttr = computed(() => (lang.value === 'en' ? 'zh-TW' : undefined)
  * 「申請評估：氣墊床」「助行器・無輪・使用者身高150-175cm」。
  */
 export const trSummary = (line: string): string => {
+  // 舊紀錄的借用項目是「類別・品名・規格」串成的一行，讀不出哪段是什麼：只顯示品名
+  const parts = line.split('・');
+  if (parts.length > 1) return parts[1];
   if (lang.value !== 'en') return line;
   const prefixes: Record<string, string> = {
     '申請評估：': 'Assessment: ',
@@ -105,10 +108,7 @@ export const trSummary = (line: string): string => {
   for (const [zh, en] of Object.entries(prefixes)) {
     if (line.startsWith(zh)) return en + trSummary(line.slice(zh.length));
   }
-  return line
-    .split('・')
-    .map((part, i) => (i === 0 ? tx(part) : part))
-    .join(' · ');
+  return tx(line);
 };
 
 export const applyLang = () => {

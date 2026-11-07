@@ -81,11 +81,12 @@ const pickupSentence = computed(() =>
 
     <ASection :title="isBorrow ? t('done.pickupPlace') : t('done.center')">
       <CenterCard :center="center" />
-      <div class="mt-3 grid grid-cols-2 gap-2">
+      <!-- 評估、維修由中心來電聯絡，不必前往，只留撥打電話 -->
+      <div class="mt-3 grid gap-2" :class="isBorrow ? 'grid-cols-2' : 'grid-cols-1'">
         <BaseButton outline @click="native.callPhone(center.phone)">
           {{ t('common.call') }}
         </BaseButton>
-        <BaseButton outline @click="native.openMap(mapUrl(center))">
+        <BaseButton v-if="isBorrow" outline @click="native.openMap(mapUrl(center))">
           {{ t('common.navigate') }}
         </BaseButton>
       </div>

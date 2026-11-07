@@ -13,10 +13,7 @@ const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 
 // 儲存的品名一律是中文；顯示時類別才翻成當下語言
-const label = (v: { categoryName: string; name: string; spec: string }) =>
-  trSummary(
-    [v.categoryName, v.name, v.spec].filter((x) => x && x !== '---' && x !== '--').join('・')
-  );
+const label = (v: { categoryName: string; name: string; spec: string }) => trSummary(v.name);
 </script>
 
 <template>
@@ -27,10 +24,11 @@ const label = (v: { categoryName: string; name: string; spec: string }) =>
         <li
           v-for="v in store.variants"
           :key="v.id"
-          class="a-rise tp-card flex items-center gap-3 p-3"
+          class="a-rise tp-card flex flex-wrap items-center gap-3 p-3"
         >
-          <AItemCard :item="selectedInfo(v)" class="min-w-0 flex-1" />
-          <BaseButton outline class="shrink-0" @click="store.removeVariant(v.id)">
+          <!-- 文字放大後，刪除按鈕換到下一行，不跟品名搶寬度 -->
+          <AItemCard :item="selectedInfo(v)" class="min-w-[12rem] flex-1" />
+          <BaseButton outline class="ml-auto shrink-0" @click="store.removeVariant(v.id)">
             {{ t('borrow.cart.remove')
             }}<span class="sr-only">{{ t('borrow.srItem', { text: label(v) }) }}</span>
           </BaseButton>

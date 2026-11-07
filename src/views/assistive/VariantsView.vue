@@ -147,24 +147,28 @@ const choose = (v: Variant) => {
       </div>
     </ASection>
 
-    <ASection v-if="anyFitData && !failed">
-      <div class="grid grid-cols-2 gap-3">
-        <AInput
-          v-model="store.fit.height"
-          :label="t('borrow.variants.height')"
-          inputmode="numeric"
-          :maxlength="3"
-          field-id="fit-height"
-          :error="height.error"
-        />
-        <AInput
-          v-model="store.fit.weight"
-          :label="t('borrow.variants.weight')"
-          inputmode="numeric"
-          :maxlength="3"
-          field-id="fit-weight"
-          :error="weight.error"
-        />
+    <ASection v-if="anyFitData && !failed" :title="t('borrow.variants.fitTitle')">
+      <div class="a-grid-fit">
+        <div class="grid grid-cols-2 gap-3">
+          <AInput
+            v-model="store.fit.height"
+            :label="t('borrow.variants.height')"
+            no-optional-mark
+            inputmode="numeric"
+            :maxlength="3"
+            field-id="fit-height"
+            :error="height.error"
+          />
+          <AInput
+            v-model="store.fit.weight"
+            :label="t('borrow.variants.weight')"
+            no-optional-mark
+            inputmode="numeric"
+            :maxlength="3"
+            field-id="fit-weight"
+            :error="weight.error"
+          />
+        </div>
       </div>
       <p v-if="fitSummary" role="status" class="mt-3 text-sm text-grey-700">{{ fitSummary }}</p>
       <button
