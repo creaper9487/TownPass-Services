@@ -74,6 +74,8 @@ export const zh: Record<string, string> = {
   'arrival.notFound': '找不到這個輔具',
   'arrival.home': '回輔具預約',
   'arrival.failed': '送出失敗，請檢查網路後再試一次。',
+  'arrival.duplicate': '這一類輔具已經有登記到貨通知，同一類一次只能登記一個。',
+  'arrival.unavailable': '這個品項目前不開放到貨通知。',
   'arrival.number': '登記編號',
   'arrival.sending': '送出中…',
   'arrival.submit': '確認送出',
@@ -165,6 +167,9 @@ export const en: Record<string, string> = {
   'arrival.notFound': 'Device not found',
   'arrival.home': 'Back to Assistive Devices',
   'arrival.failed': 'Could not submit. Check your connection and try again.',
+  'arrival.duplicate':
+    'You already have an arrival notice for this type of device. Only one per type is allowed.',
+  'arrival.unavailable': 'Arrival notices are not available for this item right now.',
   'arrival.number': 'Registration number',
   'arrival.sending': 'Sending…',
   'arrival.submit': 'Confirm and submit',

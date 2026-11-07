@@ -10,6 +10,9 @@ import stockSnapshot from '@/data/assistive-stock.json';
 import { formatDate, pickupWindow, centerById } from './centers';
 import { taipeiNow } from './time';
 import { lang, t } from '@/i18n/assistive';
+import { inApp } from '@/composables/useAssistiveNative';
+import { askApp } from './appBridge';
+import { catalog } from './catalog';
 import { ApiError, getJson, hasBackend, requestJson, useSample } from './remote';
 import type {
   ApplicantForm,
@@ -132,6 +135,37 @@ export const withMailbox = async <T>(
   }
 };
 
+const isUnknownMailbox = (e: unknown) =>
+  e instanceof ApiError &&
+  ((e.status === 422 && e.fields.includes('mailbox_id')) ||
+    (e.status === 401 && e.code === 'BAD_KEY'));
+
+let appMailbox: string | null = null;
+
+/** 在台北通 App 內，信箱與金鑰由 App 保管，網頁只拿到信箱 id；renew 是後端不認得舊信箱時請 App 換新的 */
+const appMailboxId = async (renew = false): Promise<string> => {
+  if (!renew && appMailbox) return appMailbox;
+  const reply = await askApp<{ mailbox_id?: string }>(
+    'assistive_mailbox',
+    renew ? { renew: true } : null
+  );
+  if (!reply || Array.isArray(reply) || typeof reply.mailbox_id !== 'string') {
+    throw new Error('mailbox unavailable');
+  }
+  return (appMailbox = reply.mailbox_id);
+};
+
+/** 只需要信箱 id 的請求（預約）：App 內由 App 提供信箱；瀏覽器開發時用網頁自己的信箱。信箱失效時換新的再試一次 */
+const withMailboxId = async <T>(run: (mailboxId: string) => Promise<T>): Promise<T> => {
+  if (!inApp()) return withMailbox((box) => run(box.id));
+  try {
+    return await run(await appMailboxId());
+  } catch (e) {
+    if (!isUnknownMailbox(e)) throw e;
+    return run(await appMailboxId(true));
+  }
+};
+
 interface ReservationCreatedDto {
   id: string;
   access_key: string;
@@ -162,13 +196,13 @@ const submitToBackend = async (payload: SubmitPayload): Promise<Reservation[]> =
 
   const created: Reservation[] = [];
   for (const r of payload.requests) {
-    const res = await withMailbox((box) =>
+    const res = await withMailboxId((mailboxId) =>
       requestJson<ReservationCreatedDto>(
         'POST',
         '/reservations',
         {
           service: r.backendService,
-          mailbox_id: box.id,
+          mailbox_id: mailboxId,
           center_id: payload.centerId,
           items: r.items,
           other_text: r.otherText || null,
@@ -177,7 +211,7 @@ const submitToBackend = async (payload: SubmitPayload): Promise<Reservation[]> =
           pickup: null
         },
         // 換信箱重送時內容不同，要用另一把 Idempotency-Key，否則後端會回 409
-        { 'Idempotency-Key': `${payload.idempotencyKey}-${r.backendService}-${box.id}` }
+        { 'Idempotency-Key': `${payload.idempotencyKey}-${r.backendService}-${mailboxId}` }
       )
     );
     const reservation: Reservation = {
@@ -301,46 +335,163 @@ export interface ArrivalNotice {
   /** 登記編號（後端的 subscription id） */
   id: string;
   createdAt: string;
+  /** waiting 等待中、arrived 已到貨；沒有後端時只有 waiting */
+  status?: 'waiting' | 'arrived';
+  /** 品項所屬分類：到貨後回到該分類的款式頁預約 */
+  categoryId?: string;
 }
 
+/** 到貨通知失敗的原因：後端錯誤碼（DUPLICATE_WAITLIST 同一類已經有等待中的、INVALID_FIELD 品項不存在…）或 NETWORK */
+export class ArrivalError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+  }
+}
+
+interface SubscriptionDto {
+  id: string;
+  variant_id: string;
+  category_id?: string | null;
+  status: 'waiting' | 'arrived';
+  created_at?: string | null;
+}
+
+/** 這台裝置記得的到貨通知（也是顯示名稱的來源：後端只回品項代碼） */
 export const listArrivals = (): ArrivalNotice[] => read<ArrivalNotice[]>(ARRIVALS_KEY, []);
 
-/** 登記到貨通知。已經登記過就直接回傳原本的登記；失敗會丟出錯誤。 */
+/** 品項代碼對應的顯示名稱，和到貨通知確認頁用同一個寫法 */
+export const arrivalLabel = (variantId: string): string | undefined => {
+  for (const c of catalog.value) {
+    const v = c.variants.find((x) => x.id === variantId);
+    if (v) {
+      const specs = v.specs.filter((x) => x && x !== '---' && x !== '--' && x !== v.name);
+      return [c.name, v.name, ...specs].join('・');
+    }
+  }
+  return undefined;
+};
+
+const toNotice = (s: SubscriptionDto, cached?: ArrivalNotice): ArrivalNotice => ({
+  variantId: s.variant_id,
+  id: s.id,
+  status: s.status,
+  categoryId: s.category_id ?? cached?.categoryId,
+  createdAt: s.created_at ?? cached?.createdAt ?? new Date().toISOString(),
+  label: cached?.label ?? arrivalLabel(s.variant_id) ?? s.variant_id
+});
+
+/** 向後端取得這個信箱的到貨通知（App 內由 App 代為呼叫；瀏覽器開發時直接呼叫）；失敗回傳 null */
+const fetchSubscriptions = async (): Promise<SubscriptionDto[] | null> => {
+  if (inApp()) {
+    const reply = await askApp<SubscriptionDto[]>('assistive_subscriptions');
+    return Array.isArray(reply) ? reply : null;
+  }
+  try {
+    return await withMailbox((box) =>
+      requestJson<SubscriptionDto[]>(
+        'GET',
+        `/subscriptions?mailbox_id=${encodeURIComponent(box.id)}`,
+        undefined,
+        { Authorization: `Bearer ${box.key}` }
+      )
+    );
+  } catch {
+    return null;
+  }
+};
+
+/** 到貨通知清單：先用這台裝置記得的，後端有回應就換成後端的（含到貨狀態） */
+export const loadArrivals = async (): Promise<ArrivalNotice[]> => {
+  const cached = listArrivals();
+  if (!hasBackend) return cached;
+  const remote = await fetchSubscriptions();
+  if (!remote) return cached;
+  const byVariant = new Map(cached.map((a) => [a.variantId, a]));
+  const merged = remote.map((s) => toNotice(s, byVariant.get(s.variant_id)));
+  write(ARRIVALS_KEY, merged);
+  return merged;
+};
+
+const failureCode = (e: unknown) => (e instanceof ApiError ? e.code ?? 'ERROR' : 'NETWORK');
+
+/** 登記到貨通知。這個品項已經在等待中就直接回傳原本的登記；失敗丟出 ArrivalError。 */
 export const subscribeArrival = async (
   variantId: string,
   label: string
 ): Promise<ArrivalNotice> => {
-  const existing = listArrivals().find((a) => a.variantId === variantId);
+  const existing = listArrivals().find((a) => a.variantId === variantId && a.status !== 'arrived');
   if (existing) return existing;
-  let id: string;
+
+  let notice: ArrivalNotice = {
+    variantId,
+    label,
+    id: `N${Date.now().toString(36).toUpperCase()}`,
+    createdAt: new Date().toISOString(),
+    status: 'waiting'
+  };
   if (hasBackend) {
-    const created = await withMailbox((box) =>
-      requestJson<{ id: string }>(
-        'POST',
-        '/subscriptions',
-        { mailbox_id: box.id, variant_id: variantId },
-        { Authorization: `Bearer ${box.key}` }
-      )
+    if (inApp()) {
+      const reply = await askApp<true | { ok: false; code?: string }>('assistive_subscribe', {
+        variant_id: variantId,
+        on: true
+      });
+      if (reply !== true) {
+        throw new ArrivalError(
+          reply && typeof reply === 'object' ? reply.code ?? 'ERROR' : 'NETWORK'
+        );
+      }
+    } else {
+      try {
+        await withMailbox((box) =>
+          requestJson(
+            'POST',
+            '/subscriptions',
+            { mailbox_id: box.id, variant_id: variantId },
+            { Authorization: `Bearer ${box.key}` }
+          )
+        );
+      } catch (e) {
+        throw new ArrivalError(failureCode(e));
+      }
+    }
+    // 取回後端的登記編號與分類
+    const mine = (await fetchSubscriptions())?.find(
+      (s) => s.variant_id === variantId && s.status === 'waiting'
     );
-    id = created.id;
+    notice = mine ? toNotice(mine, notice) : { ...notice, id: '—' };
   } else {
     await delay(600);
-    id = `N${Date.now().toString(36).toUpperCase()}`;
   }
-  const notice = { variantId, label, id, createdAt: new Date().toISOString() };
-  write(ARRIVALS_KEY, [notice, ...listArrivals()]);
+  write(ARRIVALS_KEY, [notice, ...listArrivals().filter((a) => a.variantId !== variantId)]);
   return notice;
 };
 
-/** 取消到貨通知；失敗會丟出錯誤，不會顯示成已取消。 */
+/** 取消到貨通知；失敗丟出 ArrivalError，不會顯示成已取消。 */
 export const unsubscribeArrival = async (variantId: string): Promise<void> => {
   const notice = listArrivals().find((a) => a.variantId === variantId);
   if (!notice) return;
   if (hasBackend) {
-    const box = await webMailbox();
-    await requestJson('DELETE', `/subscriptions/${encodeURIComponent(notice.id)}`, undefined, {
-      Authorization: `Bearer ${box.key}`
-    });
+    if (inApp()) {
+      const reply = await askApp<true | { ok: false; code?: string }>('assistive_subscribe', {
+        variant_id: variantId,
+        on: false
+      });
+      if (reply !== true) {
+        throw new ArrivalError(
+          reply && typeof reply === 'object' ? reply.code ?? 'ERROR' : 'NETWORK'
+        );
+      }
+    } else {
+      try {
+        await withMailbox((box) =>
+          requestJson('DELETE', `/subscriptions/${encodeURIComponent(notice.id)}`, undefined, {
+            Authorization: `Bearer ${box.key}`
+          })
+        );
+      } catch (e) {
+        throw new ArrivalError(failureCode(e));
+      }
+    }
   } else {
     await delay(400);
   }

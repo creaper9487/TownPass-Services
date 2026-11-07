@@ -5,12 +5,11 @@ import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
-import catalogJson from '@/data/assistive-catalog.json';
+import { catalog } from '@/utils/assistive/catalog';
 import { t, trSummary } from '@/i18n/assistive';
-import { subscribeArrival, type ArrivalNotice } from '@/utils/assistive/api';
+import { ArrivalError, subscribeArrival, type ArrivalNotice } from '@/utils/assistive/api';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { ensurePush } from '@/utils/assistive/push';
-import type { Category } from '@/utils/assistive/types';
 
 // 到貨通知：確認 → 送出 → 完成，和預約同樣有最後一次確認與明確的結果。
 const route = useRoute();
@@ -18,7 +17,7 @@ const router = useRouter();
 const native = useAssistiveNative();
 
 const found = computed(() => {
-  for (const c of catalogJson as unknown as Category[]) {
+  for (const c of catalog.value) {
     const v = c.variants.find((x) => x.id === route.params.variantId);
     if (v) {
       const specs = v.specs.filter((s) => s && s !== '---' && s !== '--' && s !== v.name);
@@ -30,6 +29,8 @@ const found = computed(() => {
 
 const sending = ref(false);
 const failed = ref(false);
+// 同一類已經有登記、品項不開放，和連不上要分開說明
+const failureKey = ref('arrival.failed');
 const done = ref<ArrivalNotice | null>(null);
 
 const submit = async () => {
@@ -46,7 +47,14 @@ const submit = async () => {
         ? `已登記「${found.value.label}」到貨通知，到貨時將以推播通知您`
         : `已登記「${found.value.label}」到貨通知`
     );
-  } catch {
+  } catch (e) {
+    const code = e instanceof ArrivalError ? e.code : '';
+    failureKey.value =
+      code === 'DUPLICATE_WAITLIST'
+        ? 'arrival.duplicate'
+        : code === 'INVALID_FIELD'
+          ? 'arrival.unavailable'
+          : 'arrival.failed';
     failed.value = true;
   } finally {
     sending.value = false;
@@ -74,7 +82,7 @@ const submit = async () => {
             <dd class="break-words">{{ trSummary(found.label) }}</dd>
           </div>
         </dl>
-        <AErrorText v-if="failed" class="mt-3">{{ t('arrival.failed') }}</AErrorText>
+        <AErrorText v-if="failed" class="mt-3">{{ t(failureKey) }}</AErrorText>
       </ASection>
     </template>
 

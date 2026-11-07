@@ -13,6 +13,7 @@ import { serviceTitle } from '@/utils/assistive/services';
 import { t, trSummary, tx, zhAttr } from '@/i18n/assistive';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { ensurePush } from '@/utils/assistive/push';
+import { ApiError } from '@/utils/assistive/remote';
 
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
@@ -26,6 +27,8 @@ const u = store.user;
 
 const sending = ref(false);
 const failed = ref(false);
+// 後端的錯誤碼對應不同的說明：沒庫存了、取貨期限內沒開館、欄位資料不符
+const failureKey = ref('review.error');
 
 const win = computed(() => store.windowFor(center.value));
 const datesLabel = computed(() => win.value.openDates.map(formatDate).join(t('review.dateSep')));
@@ -124,7 +127,17 @@ const submit = async () => {
       );
     }
     await router.replace(stepRoute(flow.service.value, 'done'));
-  } catch {
+  } catch (e) {
+    failureKey.value =
+      e instanceof ApiError
+        ? e.code === 'OUT_OF_STOCK'
+          ? 'review.errorStock'
+          : e.code === 'PICKUP_WINDOW_CLOSED'
+            ? 'review.errorWindow'
+            : e.status === 422
+              ? 'review.errorInvalid'
+              : 'review.error'
+        : 'review.error';
     failed.value = true;
   } finally {
     sending.value = false;
@@ -170,7 +183,7 @@ const submit = async () => {
     </ASection>
 
     <ASection v-if="failed">
-      <AErrorText>{{ t('review.error') }}</AErrorText>
+      <AErrorText>{{ t(failureKey) }}</AErrorText>
     </ASection>
 
     <template #footer>

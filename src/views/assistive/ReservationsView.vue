@@ -5,10 +5,12 @@ import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
+import AIcon from '@/components/assistive/AIcon.vue';
 import BaseDialog from '@/components/atoms/BaseDialog.vue';
 import {
   effectiveStatus,
   listArrivals,
+  loadArrivals,
   listReservations,
   statusText,
   unsubscribeArrival,
@@ -49,7 +51,12 @@ const centerLine = (r: Reservation) => {
 };
 const loaded = ref(false);
 onMounted(async () => {
-  list.value = await listReservations();
+  // 預約與到貨通知各自向後端更新；到貨通知先顯示這台裝置記得的，後端回應後換成最新（含已到貨）
+  const [reservations] = await Promise.all([
+    listReservations(),
+    loadArrivals().then((latest) => (arrivals.value = latest))
+  ]);
+  list.value = reservations;
   loaded.value = true;
 });
 </script>
@@ -115,8 +122,34 @@ onMounted(async () => {
             <span class="mt-1 block text-sm text-grey-700">
               {{ t('reservations.registrationNo', { id: a.id }) }}
             </span>
+            <span
+              class="tp-tag mt-2 inline-flex items-center gap-1"
+              :class="{ '!border-grey-300 !text-grey-700': a.status !== 'arrived' }"
+            >
+              <AIcon
+                :name="a.status === 'arrived' ? 'check' : 'hourglass'"
+                class="h-[14px] w-[14px] shrink-0"
+              />
+              {{
+                a.status === 'arrived'
+                  ? t('reservations.arrivalArrived')
+                  : t('reservations.arrivalWaiting')
+              }}
+            </span>
           </span>
-          <BaseButton outline @click="askRemove(a)">{{ t('common.cancel') }}</BaseButton>
+          <div class="flex flex-col gap-2">
+            <BaseButton
+              v-if="a.status === 'arrived' && a.categoryId"
+              link
+              :route-info="{
+                name: 'assistive-variants',
+                params: { service: 'borrow', categoryId: a.categoryId }
+              }"
+            >
+              {{ t('reservations.arrivalReserve') }}
+            </BaseButton>
+            <BaseButton outline @click="askRemove(a)">{{ t('common.cancel') }}</BaseButton>
+          </div>
         </li>
       </ul>
     </ASection>

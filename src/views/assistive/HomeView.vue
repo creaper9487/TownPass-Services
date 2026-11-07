@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import AServiceCard from '@/components/assistive/AServiceCard.vue';
 import ClosureNotice from '@/components/assistive/ClosureNotice.vue';
@@ -10,15 +10,14 @@ import reservationIcon from '@/assets/images/assistive/icon-reservation.svg';
 import { useAssistiveStore } from '@/stores/assistive';
 import { serviceTitle } from '@/utils/assistive/services';
 import { t } from '@/i18n/assistive';
-import catalogJson from '@/data/assistive-catalog.json';
-import type { Category } from '@/utils/assistive/types';
+import { catalog } from '@/utils/assistive/catalog';
 
 const store = useAssistiveStore();
 
 // 借用卡片放官方品項照片（輪椅、助行器、拐杖）
-const photos = (catalogJson as Category[])
-  .filter((c) => ['輪椅', '助行器', '拐杖'].includes(c.name))
-  .map((c) => c.image);
+const photos = computed(() =>
+  catalog.value.filter((c) => ['輪椅', '助行器', '拐杖'].includes(c.name)).map((c) => c.image)
+);
 
 onMounted(() => store.loadCalendars());
 </script>

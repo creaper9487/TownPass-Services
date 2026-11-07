@@ -6,6 +6,7 @@ import { useAssistiveStore } from '@/stores/assistive';
 import { installMotion } from '@/composables/useAssistiveMotion';
 import { applyLang } from '@/i18n/assistive';
 import { ensurePush } from '@/utils/assistive/push';
+import { loadCatalog } from '@/utils/assistive/catalog';
 
 const store = useAssistiveStore();
 const route = useRoute();
@@ -34,6 +35,9 @@ useHandleConnectionData((event) => {
 });
 
 native.requestUserInfo();
+
+// 目錄（分類、款式、款式代碼）以後端為準；連不上時用隨附的官網快照。
+loadCatalog();
 
 // 已經同意推播的話，進入服務時悄悄更新登記（token 換了、使用者撤回授權都會在這裡同步），不會跳視窗。
 ensurePush({ silent: true });

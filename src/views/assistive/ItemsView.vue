@@ -9,13 +9,13 @@ import StockError from '@/components/assistive/StockError.vue';
 import { t, tx } from '@/i18n/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
 import { useAssistiveStore } from '@/stores/assistive';
+import { useAssistiveStockPolling } from '@/composables/useAssistiveStockPolling';
 import { fetchStock } from '@/utils/assistive/api';
-import catalogJson from '@/data/assistive-catalog.json';
-import type { Category, Stock } from '@/utils/assistive/types';
+import { catalog } from '@/utils/assistive/catalog';
+import type { Stock } from '@/utils/assistive/types';
 
 const flow = useAssistiveFlow();
 const store = useAssistiveStore();
-const catalog = catalogJson as Category[];
 const stock = ref<Record<string, Stock>>({});
 const loaded = ref(false);
 const failed = ref(false);
@@ -30,10 +30,13 @@ const load = async () => {
   }
 };
 onMounted(load);
+useAssistiveStockPolling((latest) => {
+  if (loaded.value) stock.value = latest;
+});
 
 const totals = computed(() =>
   Object.fromEntries(
-    catalog.map((c) => [
+    catalog.value.map((c) => [
       c.id,
       c.variants.reduce((sum, v) => sum + (stock.value[v.id]?.stock ?? 0), 0)
     ])

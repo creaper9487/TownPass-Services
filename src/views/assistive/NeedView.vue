@@ -8,8 +8,7 @@ import AInput from '@/components/assistive/AInput.vue';
 import ErrorSummary from '@/components/assistive/ErrorSummary.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import ServiceTabs from '@/components/molecules/ServiceTabs.vue';
-import catalogJson from '@/data/assistive-catalog.json';
-import type { Category } from '@/utils/assistive/types';
+import { catalog } from '@/utils/assistive/catalog';
 import type { SummaryItem } from '@/utils/assistive/validators';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
@@ -34,7 +33,6 @@ const setOther = (g: NeedGroup, v: string) => {
   else store.needOther = v;
 };
 // 官方借用頁已有照片的品項，勾選項目直接帶同一張照片；沒有官方照片的品項（例如電動輪椅）不放，免得配錯圖。
-const catalog = catalogJson as Category[];
 const photoCategory: Record<string, string> = {
   '居家用照顧床(病床)': '居家用照顧床',
   氣墊床: '氣墊床',
@@ -43,7 +41,8 @@ const photoCategory: Record<string, string> = {
   '拐杖/助行器': '助行器',
   便盆椅: '便盆椅'
 };
-const photoOf = (option: string) => catalog.find((c) => c.name === photoCategory[option])?.image;
+const photoOf = (option: string) =>
+  catalog.value.find((c) => c.name === photoCategory[option])?.image;
 
 // 沒有官方照片的品項改放線條圖示：每一列右側都有一塊縮圖，版面整齊；圖示只裝飾，名稱仍是文字。
 const iconOf: Record<string, IconName> = {

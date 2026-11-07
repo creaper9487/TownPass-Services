@@ -10,9 +10,10 @@ import AIcon from '@/components/assistive/AIcon.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { t, tx, zhAttr } from '@/i18n/assistive';
 import { useAssistiveStore } from '@/stores/assistive';
+import { useAssistiveStockPolling } from '@/composables/useAssistiveStockPolling';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
 import { fetchStock, fetchVariantFits, listArrivals } from '@/utils/assistive/api';
-import catalogJson from '@/data/assistive-catalog.json';
+import { catalog } from '@/utils/assistive/catalog';
 import {
   HEIGHT_RANGE,
   WEIGHT_RANGE,
@@ -21,16 +22,14 @@ import {
   matchFit,
   mergeFit
 } from '@/utils/assistive/fit';
-import type { Category, Stock, Variant, VariantFit } from '@/utils/assistive/types';
+import type { Stock, Variant, VariantFit } from '@/utils/assistive/types';
 
 const route = useRoute();
 const router = useRouter();
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 
-const category = computed(() =>
-  (catalogJson as unknown as Category[]).find((c) => c.id === route.params.categoryId)
-);
+const category = computed(() => catalog.value.find((c) => c.id === route.params.categoryId));
 const stock = ref<Record<string, Stock>>({});
 const loaded = ref(false);
 const subscribed = listArrivals().map((a) => a.variantId);
@@ -49,6 +48,9 @@ const load = async () => {
   }
 };
 onMounted(load);
+useAssistiveStockPolling((latest) => {
+  if (loaded.value) stock.value = latest;
+});
 
 const specOf = (v: Variant) =>
   v.specs.filter((s) => s && s !== '---' && s !== '--' && s !== v.name);
