@@ -10,7 +10,9 @@ const KEY = 'assistive.draft';
 export interface Draft {
   service: ServiceId;
   consents: boolean[];
-  variant: { id: string; categoryName: string; name: string; spec: string } | null;
+  variants: { id: string; categoryName: string; name: string; spec: string; image?: string }[];
+  /** 舊版草稿只有單一項目 */
+  variant?: { id: string; categoryName: string; name: string; spec: string } | null;
   needs: string[];
   needOther: string;
   repairNeeds: string[];

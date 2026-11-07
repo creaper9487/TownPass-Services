@@ -35,6 +35,7 @@ export interface SelectedVariant {
   categoryName: string;
   name: string;
   spec: string;
+  image?: string;
 }
 
 const blankApplicant = (): ApplicantForm => ({
@@ -61,7 +62,8 @@ const genderFromId = (idNo: string): ApplicantForm['gender'] => {
 export const useAssistiveStore = defineStore('assistive', () => {
   const service = ref<ServiceId>('borrow');
   const consents = ref<boolean[]>([false, false, false]);
-  const variant = ref<SelectedVariant | null>(null);
+  /** 本次預約項目（可選多件） */
+  const variants = ref<SelectedVariant[]>([]);
   const needs = ref<string[]>([]);
   const needOther = ref('');
   /** 評估、維修合併表單裡「申請維修」的勾選項與其他 */
@@ -78,7 +80,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
   if (draft) {
     service.value = draft.service ?? service.value;
     consents.value = draft.consents ?? consents.value;
-    variant.value = draft.variant ?? null;
+    variants.value = draft.variants ?? (draft.variant ? [draft.variant] : []);
     needs.value = draft.needs ?? [];
     needOther.value = draft.needOther ?? '';
     repairNeeds.value = draft.repairNeeds ?? [];
@@ -91,7 +93,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
     [
       service,
       consents,
-      variant,
+      variants,
       needs,
       needOther,
       repairNeeds,
@@ -105,7 +107,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
       saveDraft({
         service: service.value,
         consents: consents.value,
-        variant: variant.value,
+        variants: variants.value,
         needs: needs.value,
         needOther: needOther.value,
         repairNeeds: repairNeeds.value,
@@ -185,20 +187,32 @@ export const useAssistiveStore = defineStore('assistive', () => {
   });
 
   const summary = computed(() => {
-    if (service.value === 'borrow' && variant.value) {
-      const v = variant.value;
-      return [
-        [v.categoryName, v.name, v.spec].filter((s) => s && s !== '---' && s !== '--').join('・')
-      ];
+    if (service.value === 'borrow') {
+      return variants.value.map((v) =>
+        [v.categoryName, v.name, v.spec].filter((x) => x && x !== '---' && x !== '--').join('・')
+      );
     }
     return needSummary.value;
   });
 
+  const addVariant = (v: SelectedVariant) => {
+    if (!variants.value.some((x) => x.id === v.id)) variants.value = [...variants.value, v];
+  };
+  const removeVariant = (id: string) => {
+    variants.value = variants.value.filter((x) => x.id !== id);
+  };
+
   /** 要送給後端的預約：借用一筆；評估與維修在同一張表單，勾了兩邊就分成兩筆 */
   const requests = computed<SubmitRequest[]>(() => {
     if (service.value === 'borrow') {
-      return variant.value
-        ? [{ backendService: 'borrow', items: [variant.value.id], summary: summary.value }]
+      return variants.value.length
+        ? [
+            {
+              backendService: 'borrow',
+              items: variants.value.map((v) => v.id),
+              summary: summary.value
+            }
+          ]
         : [];
     }
     const out: SubmitRequest[] = [];
@@ -227,7 +241,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
     fit.value = { height: '', weight: '' };
     service.value = id;
     consents.value = [false, false, false];
-    variant.value = null;
+    variants.value = [];
     needs.value = [];
     needOther.value = '';
     repairNeeds.value = [];
@@ -298,7 +312,9 @@ export const useAssistiveStore = defineStore('assistive', () => {
   return {
     service,
     consents,
-    variant,
+    variants,
+    addVariant,
+    removeVariant,
     needs,
     needOther,
     centerId,

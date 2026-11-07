@@ -26,7 +26,8 @@ const isComplete = (step: string, s: Store) => {
     case 'rules':
       return s.consents.every(Boolean);
     case 'items':
-      return !!s.variant;
+    case 'cart':
+      return s.variants.length > 0;
     case 'center':
       return !!s.centerId;
     case 'need':
@@ -143,6 +144,7 @@ export const assistiveRoutes: RouteRecordRaw[] = [
           return isComplete('rules', store) ? true : { name: 'assistive-rules', params: to.params };
         }
       },
+      step('cart', 'cart', () => import('@/views/assistive/CartView.vue'), 'borrow'),
       step('center', 'center', () => import('@/views/assistive/CenterView.vue'), 'borrow'),
       step('need', 'need', () => import('@/views/assistive/NeedView.vue'), 'assess'),
       step('contact', 'contact', () => import('@/views/assistive/ContactView.vue')),

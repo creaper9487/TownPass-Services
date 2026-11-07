@@ -5,12 +5,14 @@ import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AImage from '@/components/assistive/AImage.vue';
 import StockError from '@/components/assistive/StockError.vue';
-import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
+import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
+import { useAssistiveStore } from '@/stores/assistive';
 import { fetchStock } from '@/utils/assistive/api';
 import catalogJson from '@/data/assistive-catalog.json';
 import type { Category, Stock } from '@/utils/assistive/types';
 
 const flow = useAssistiveFlow();
+const store = useAssistiveStore();
 const catalog = catalogJson as Category[];
 const stock = ref<Record<string, Stock>>({});
 const loaded = ref(false);
@@ -48,6 +50,14 @@ const totals = computed(() =>
       <StockError @retry="load" />
     </ASection>
     <ASection v-else grey>
+      <RouterLink
+        v-if="store.variants.length"
+        :to="stepRoute('borrow', 'cart')"
+        class="a11y-focus mb-3 flex min-h-12 items-center justify-between rounded-lg border border-primary-700 bg-white px-4 text-base font-semibold text-primary-700"
+      >
+        <span>回本次預約項目</span>
+        <span>{{ store.variants.length }} 件</span>
+      </RouterLink>
       <ul class="grid grid-cols-2 gap-3">
         <li v-for="c in catalog" :key="c.id" class="tp-card flex flex-col overflow-hidden">
           <AImage :src="c.image" hide-on-error class="h-32 p-2" />

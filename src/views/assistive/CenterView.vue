@@ -30,7 +30,7 @@ const now = useTaipeiNow();
 const centerStock = ref<CenterStockMap | null>(null);
 onMounted(async () => {
   store.loadCalendars();
-  if (store.variant) centerStock.value = await fetchCenterStock(store.variant.id);
+  if (store.variants.length === 1) centerStock.value = await fetchCenterStock(store.variants[0].id);
 });
 const rows = computed(() => {
   const loc = store.location;

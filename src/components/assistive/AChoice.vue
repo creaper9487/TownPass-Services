@@ -53,6 +53,7 @@ const onChange = (value: string, checked: boolean) => {
   <!-- 單選用 radiogroup（aria-required／aria-invalid 只對它有效）；複選只用 aria-describedby 串到錯誤訊息 -->
   <fieldset
     :id="fieldId"
+    class="min-w-0"
     :role="multiple ? undefined : 'radiogroup'"
     :aria-describedby="describedby"
     :aria-required="!multiple && required ? 'true' : undefined"
@@ -128,14 +129,19 @@ const onChange = (value: string, checked: boolean) => {
             {{ o.description }}
           </span>
         </span>
-        <AImage v-if="o.image" :src="o.image" hide-on-error class="h-16 w-16 shrink-0 rounded" />
+        <AImage
+          v-if="o.image"
+          :src="o.image"
+          hide-on-error
+          class="a-choice-tile h-[64px] w-[64px] shrink-0 rounded"
+        />
         <span
           v-else-if="o.icon"
-          class="flex h-16 w-16 shrink-0 items-center justify-center rounded text-primary-700"
+          class="a-choice-tile flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded text-primary-700"
           :class="isChecked(o.value) ? 'bg-primary-100' : 'bg-primary-50'"
           aria-hidden="true"
         >
-          <AIcon :name="o.icon" class="h-8 w-8" />
+          <AIcon :name="o.icon" class="h-[32px] w-[32px]" />
         </span>
       </label>
     </div>

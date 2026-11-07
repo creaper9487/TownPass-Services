@@ -56,7 +56,7 @@ const onKeydown = (event: KeyboardEvent) => {
       :aria-controls="idPrefix ? `${idPrefix}-panel` : undefined"
       :aria-label="item.label"
       :tabindex="index === activeTab ? 0 : -1"
-      class="tab-label"
+      class="tab-label a11y-focus"
       :class="{
         'tab-label--active': index === activeTab && !props.contentType,
         'tab-label__content-type': props.contentType,

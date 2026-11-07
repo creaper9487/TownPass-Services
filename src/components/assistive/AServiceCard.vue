@@ -21,27 +21,27 @@ const emit = defineEmits<{ (e: 'click'): void }>();
     class="a11y-focus block overflow-hidden rounded-[6px]"
     :class="
       hero
-        ? 'bg-gradient-to-tl from-primary-600 to-primary-700 p-4 text-white'
+        ? 'assistive-hero bg-gradient-to-tl from-primary-600 to-primary-700 p-4 text-white'
         : 'flex min-h-20 items-center gap-3 border border-grey-100 bg-white px-4 py-3'
     "
     @click="emit('click')"
   >
     <template v-if="hero">
       <span class="tp-h3-semibold block">{{ title }}</span>
-      <span v-if="photos?.length" class="mt-3 flex gap-2" aria-hidden="true">
+      <span v-if="photos?.length" class="assistive-hero-photos mt-3 flex gap-2" aria-hidden="true">
         <AImage
           v-for="p in photos"
           :key="p"
           :src="p"
           eager
           hide-on-error
-          class="h-20 min-w-0 flex-1 rounded-[3px] p-1"
+          class="h-[80px] min-w-0 flex-1 rounded-[3px] p-1"
         />
       </span>
     </template>
     <template v-else>
       <span class="tp-h3-semibold flex-1 text-primary-700">{{ title }}</span>
-      <img v-if="icon" :src="icon" alt="" class="h-12 w-12 shrink-0" />
+      <img v-if="icon" :src="icon" alt="" class="h-[48px] w-[48px] shrink-0" />
     </template>
   </RouterLink>
 </template>

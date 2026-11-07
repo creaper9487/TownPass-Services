@@ -98,14 +98,18 @@ const clearFit = () => {
   store.fit = { height: '', weight: '' };
 };
 
+const inCart = (v: Variant) => store.variants.some((x) => x.id === v.id);
+
+// 加入本次預約項目後到清單頁，可以繼續選別的輔具，或往下選中心。
 const choose = (v: Variant) => {
-  store.variant = {
+  store.addVariant({
     id: v.id,
     categoryName: category.value!.name,
     name: v.name,
-    spec: specOf(v).join('、')
-  };
-  router.push(stepRoute('borrow', 'center'));
+    spec: specOf(v).join('、'),
+    image: v.image
+  });
+  router.push(stepRoute('borrow', 'cart'));
 };
 </script>
 
@@ -197,7 +201,8 @@ const choose = (v: Variant) => {
               等待人數：{{ waiting(v) }}
             </p>
             <BaseButton v-if="loaded && left(v) > 0" class="mt-3 w-full" @click="choose(v)">
-              預約<span class="sr-only">：{{ category.name }}，{{ v.name }}</span>
+              {{ inCart(v) ? '已加入，前往本次預約項目' : '預約'
+              }}<span class="sr-only">：{{ category.name }}，{{ v.name }}</span>
             </BaseButton>
             <BaseButton
               v-else-if="loaded"

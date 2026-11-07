@@ -86,7 +86,7 @@ export const serviceOrder: ServiceId[] = ['borrow', 'assess'];
 
 /** 各服務的頁面順序，用來顯示「第 n 步，共 m 步」與決定上一步／下一步 */
 export const flows: Record<ServiceId, string[]> = {
-  borrow: ['rules', 'items', 'center', 'contact', 'review', 'done'],
+  borrow: ['rules', 'items', 'cart', 'center', 'contact', 'review', 'done'],
   assess: ['need', 'contact', 'user', 'review', 'done']
 };
 

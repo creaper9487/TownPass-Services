@@ -34,7 +34,7 @@ const genderText = (g: string) => (g === 'M' ? '男' : g === 'F' ? '女' : '');
 type Row = [string, string];
 const sections = computed<{ title: string; step: string; rows: Row[] }[]>(() => {
   const list: { title: string; step: string; rows: Row[] }[] = [];
-  const first = isBorrow.value ? 'items' : 'need';
+  const first = isBorrow.value ? 'cart' : 'need';
   list.push({
     title: isBorrow.value ? '本次預約項目' : '服務內容',
     step: first,
