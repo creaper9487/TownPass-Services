@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import CenterCard from '@/components/assistive/CenterCard.vue';
+import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseDialog from '@/components/atoms/BaseDialog.vue';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
@@ -26,12 +27,15 @@ const reservation = ref<Reservation>();
 const loaded = ref(false);
 const confirming = ref(false);
 const cancelling = ref(false);
+const cancelFailed = ref(false);
 
 const center = computed(() =>
   reservation.value ? centerById(reservation.value.centerId) : undefined
 );
 const canCancel = computed(
-  () => reservation.value && ['booked', 'pending'].includes(effectiveStatus(reservation.value))
+  () =>
+    reservation.value &&
+    ['booked', 'submitted', 'confirmed'].includes(effectiveStatus(reservation.value))
 );
 
 const load = async () => {
@@ -46,9 +50,15 @@ watch(() => route.params.id, load);
 const doCancel = async () => {
   if (!reservation.value) return;
   cancelling.value = true;
-  await cancelReservation(reservation.value.id);
-  reservation.value = { ...reservation.value, status: 'cancelled' };
-  cancelling.value = false;
+  cancelFailed.value = false;
+  try {
+    await cancelReservation(reservation.value.id);
+    reservation.value = { ...reservation.value, status: 'cancelled' };
+  } catch {
+    cancelFailed.value = true;
+  } finally {
+    cancelling.value = false;
+  }
 };
 </script>
 
@@ -60,7 +70,7 @@ const doCancel = async () => {
     <ASection v-else-if="!reservation">
       <p class="tp-h3-semibold">找不到這筆預約</p>
       <BaseButton class="mt-4 w-full" link :route-info="{ name: 'assistive-reservations' }">
-        回我的預約
+        回服務預約查詢與取消
       </BaseButton>
     </ASection>
     <template v-else>
@@ -88,7 +98,7 @@ const doCancel = async () => {
           <div
             v-if="
               reservation.pickupDeadline &&
-              ['booked', 'pending'].includes(effectiveStatus(reservation))
+              ['booked', 'submitted', 'confirmed'].includes(effectiveStatus(reservation))
             "
             class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base"
           >
@@ -118,6 +128,7 @@ const doCancel = async () => {
     </template>
 
     <template v-if="canCancel" #footer>
+      <AErrorText v-if="cancelFailed" class="mb-2">取消失敗，請檢查網路後再試一次。</AErrorText>
       <BaseButton outline class="w-full !py-4" :aria-busy="cancelling" @click="confirming = true">
         取消這筆預約
       </BaseButton>

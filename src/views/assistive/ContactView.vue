@@ -8,7 +8,6 @@ import ErrorSummary from '@/components/assistive/ErrorSummary.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
-import { inApp } from '@/composables/useAssistiveNative';
 import {
   isEmail,
   isLandline,
@@ -65,20 +64,18 @@ const next = () => {
 </script>
 
 <template>
-  <AStepPage title="聯絡人資料" lead="*表示為必填欄位" :step="flow.current.value" :total="flow.total.value">
+  <AStepPage
+    title="聯絡人資料"
+    lead="*表示為必填欄位"
+    :step="flow.current.value"
+    :total="flow.total.value"
+  >
     <p
       v-if="fromAccount"
       role="status"
       class="mx-4 mt-4 rounded-lg bg-primary-50 p-3 text-sm text-primary-800"
     >
-      已從台北通帶入你的資料，請確認是否正確。
-    </p>
-    <p
-      v-else-if="inApp() && !store.account"
-      role="status"
-      class="mx-4 mt-4 rounded-lg bg-grey-50 p-3 text-sm text-grey-700"
-    >
-      沒有取得台北通資料，請自行填寫。想讓 App 幫你帶入，可以到「歷程與授權管理」重新授權。
+      已帶入台北通資料
     </p>
     <ErrorSummary :errors="summary" :trigger="trigger" />
 

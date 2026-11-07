@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import CenterCard from '@/components/assistive/CenterCard.vue';
@@ -18,18 +18,6 @@ const isBorrow = r.service === 'borrow';
 const deadline = deadlineText(r);
 const dates = pickupDatesText(r);
 const pickupSentence = `請在 ${dates} 到中心取貨。取貨期限是 ${deadline}，逾期預約會自動取消。`;
-
-// 在 App 內發出系統通知，讓取貨期限留在通知中心。
-onMounted(() => {
-  if (isBorrow) {
-    native.notify(
-      '輔具預約成功',
-      `請在${dates}攜帶身分證正本到${center.value.shortName}輔具中心取貨`
-    );
-  } else {
-    native.notify('輔具申請已送出', `${center.value.shortName}輔具中心會在開館時間回電確認`);
-  }
-});
 </script>
 
 <template>
@@ -75,7 +63,7 @@ onMounted(() => {
     <template #footer>
       <div class="grid grid-cols-2 gap-2">
         <BaseButton outline link :route-info="{ name: 'assistive-reservations' }">
-          我的預約
+          服務預約查詢與取消
         </BaseButton>
         <BaseButton link :route-info="{ name: 'assistive-home' }">回輔具預約</BaseButton>
       </div>

@@ -8,7 +8,6 @@ import StockError from '@/components/assistive/StockError.vue';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
 import { fetchStock } from '@/utils/assistive/api';
 import catalogJson from '@/data/assistive-catalog.json';
-import stockMeta from '@/data/assistive-stock.json';
 import type { Category, Stock } from '@/utils/assistive/types';
 
 const flow = useAssistiveFlow();
@@ -36,13 +35,12 @@ const totals = computed(() =>
     ])
   )
 );
-const asOf = computed(() => stockMeta.asOf.slice(5).replace('-', '/'));
 </script>
 
 <template>
   <AStepPage
-    title="你想借哪一類輔具？"
-    lead="先選類別，下一頁再挑尺寸與款式。"
+    title="選擇輔具"
+    lead="請選擇你要的輔具，並於一小時內完成借用程序"
     :step="flow.current.value"
     :total="flow.total.value"
   >
@@ -51,28 +49,30 @@ const asOf = computed(() => stockMeta.asOf.slice(5).replace('-', '/'));
     </ASection>
     <ASection v-else grey>
       <ul class="grid grid-cols-2 gap-3">
-        <li v-for="c in catalog" :key="c.id">
-          <RouterLink
-            :to="{ name: 'assistive-variants', params: { service: 'borrow', categoryId: c.id } }"
-            class="a11y-focus tp-card flex h-full flex-col overflow-hidden"
-          >
-            <AImage :src="c.image" class="h-32 p-2" />
-            <span class="flex flex-1 flex-col border-t border-grey-100 p-3">
-              <span class="text-base font-semibold">{{ c.name }}</span>
-              <span
-                class="mt-1 text-sm"
-                :class="totals[c.id] > 0 ? 'text-primary-800' : 'text-grey-700'"
-              >
-                <template v-if="!loaded">&nbsp;</template>
-                <template v-else-if="totals[c.id] > 0">● 剩餘 {{ totals[c.id] }} 件</template>
-                <template v-else>○ 目前無庫存</template>
-              </span>
-              <span class="mt-0.5 text-sm text-grey-700">{{ c.variants.length }} 種款式</span>
-            </span>
-          </RouterLink>
+        <li v-for="c in catalog" :key="c.id" class="tp-card flex flex-col overflow-hidden">
+          <AImage :src="c.image" hide-on-error class="h-32 p-2" />
+          <div class="flex flex-1 flex-col p-3">
+            <h2 class="text-base font-semibold">{{ c.name }}</h2>
+            <p class="mt-1 text-base" :class="loaded && totals[c.id] === 0 ? 'text-grey-700' : ''">
+              <template v-if="!loaded">&nbsp;</template>
+              <template v-else>剩餘: {{ totals[c.id] }}</template>
+            </p>
+            <RouterLink
+              v-if="loaded"
+              :to="{ name: 'assistive-variants', params: { service: 'borrow', categoryId: c.id } }"
+              class="a11y-focus mt-3 flex min-h-12 items-center justify-center rounded-lg px-3 text-base font-semibold"
+              :class="
+                totals[c.id] > 0
+                  ? 'bg-primary-700 text-white'
+                  : 'border border-primary-700 text-primary-700'
+              "
+            >
+              {{ totals[c.id] > 0 ? '預約' : '到貨通知'
+              }}<span class="sr-only">：{{ c.name }}</span>
+            </RouterLink>
+          </div>
         </li>
       </ul>
-      <p class="mt-4 text-sm text-grey-700">庫存為 {{ asOf }} 的資料，實際以預約當下為準。</p>
     </ASection>
   </AStepPage>
 </template>

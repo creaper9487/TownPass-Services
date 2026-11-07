@@ -7,7 +7,7 @@ import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
-import { submitReservation } from '@/utils/assistive/api';
+import { newIdempotencyKey, submitReservation } from '@/utils/assistive/api';
 import { formatDate, hoursText, openDaysText } from '@/utils/assistive/centers';
 import { services } from '@/utils/assistive/services';
 
@@ -20,7 +20,6 @@ const isBorrow = computed(() => flow.service.value === 'borrow');
 const center = computed(() => store.center!);
 const a = store.applicant;
 const u = store.user;
-const p = store.pickup;
 
 const sending = ref(false);
 const failed = ref(false);
@@ -29,9 +28,6 @@ const win = computed(() => store.windowFor(center.value));
 const deadlineLabel = computed(() => `${formatDate(win.value.deadline)}前`);
 const datesLabel = computed(() => win.value.openDates.map(formatDate).join('、'));
 const pickupText = computed(() => `${deadlineLabel.value}，可前往 ${datesLabel.value}`);
-const pickupSentence = computed(
-  () => `取貨期限 ${deadlineLabel.value}，可前往 ${datesLabel.value}。`
-);
 const mask = (id: string) => (id.length === 10 ? `${id.slice(0, 3)}****${id.slice(7)}` : id);
 const genderText = (g: string) => (g === 'M' ? '男' : g === 'F' ? '女' : '');
 
@@ -40,7 +36,7 @@ const sections = computed<{ title: string; step: string; rows: Row[] }[]>(() => 
   const list: { title: string; step: string; rows: Row[] }[] = [];
   const first = isBorrow.value ? 'items' : 'need';
   list.push({
-    title: '服務內容',
+    title: isBorrow.value ? '本次預約項目' : '服務內容',
     step: first,
     rows: [
       ['服務', info.value.title],
@@ -53,60 +49,51 @@ const sections = computed<{ title: string; step: string; rows: Row[] }[]>(() => 
     ]
   });
   list.push({
-    title: '聯絡人',
+    title: '聯絡人資料',
     step: 'contact',
     rows: [
       ['姓名', a.name],
+      ...(a.phone ? ([['電話', a.phone]] as Row[]) : []),
       ['手機', a.mobile],
-      ...(a.phone ? ([['市話', a.phone]] as Row[]) : []),
       ...(a.gender && !isBorrow.value ? ([['性別', genderText(a.gender)]] as Row[]) : []),
-      ...(a.email ? ([['E-mail', a.email]] as Row[]) : [])
+      ...(isBorrow.value && a.email ? ([['E-mail', a.email]] as Row[]) : [])
     ]
   });
-  if (flow.service.value === 'assess' || flow.service.value === 'repair') {
+  if (flow.service.value === 'assess') {
     list.push({
-      title: '輔具使用者',
+      title: '輔具使用者資料',
       step: 'user',
       rows: [
-        ['使用者', a.isSelf ? `${u.name}（本人）` : u.name],
+        ['姓名', u.name],
         ['身分證字號', mask(u.idNo)],
-        ['戶籍地', u.registeredDistrict],
-        ['居住地', `${u.livingCounty}${u.livingDistrict}`],
-        ...(u.remark
-          ? ([[flow.service.value === 'repair' ? '維修需求' : '備註', u.remark]] as Row[])
-          : [])
-      ]
-    });
-  }
-  if (flow.service.value === 'recycle') {
-    list.push({
-      title: '收取地點',
-      step: 'pickup',
-      rows: [
-        ['地址', `臺北市${p.district}${p.address}`],
-        ['電梯', p.hasElevator === 'yes' ? '有' : '沒有'],
-        ['回收證明', p.needCertificate ? '需要' : '不需要'],
-        ...(p.remark ? ([['備註', p.remark]] as Row[]) : [])
+        ['戶籍地行政區', u.registeredDistrict],
+        ...(u.livingDistrict ? ([['居住地行政區', `臺北市${u.livingDistrict}`]] as Row[]) : []),
+        ...(a.email ? ([['E-mail', a.email]] as Row[]) : []),
+        ...(u.remark ? ([['備註', u.remark]] as Row[]) : [])
       ]
     });
   }
   return list;
 });
 
+// 同一次送出（含失敗重試）共用同一把金鑰，後端才不會重複建立預約。
+const idempotencyKey = newIdempotencyKey();
+
 const submit = async () => {
   if (sending.value) return;
   sending.value = true;
   failed.value = false;
   try {
-    const reservation = await submitReservation({
+    const created = await submitReservation({
       service: flow.service.value,
       centerId: center.value.id,
-      summary: store.summary,
-      contactName: a.name,
-      mobile: a.mobile,
-      pickup: isBorrow.value ? win.value : undefined
+      requests: store.requests,
+      contact: a,
+      subject: flow.service.value === 'assess' ? u : undefined,
+      pickup: isBorrow.value ? win.value : undefined,
+      idempotencyKey
     });
-    store.finishSubmit(reservation);
+    store.finishSubmit(created[0]);
     await router.replace(stepRoute(flow.service.value, 'done'));
   } catch {
     failed.value = true;
@@ -117,12 +104,7 @@ const submit = async () => {
 </script>
 
 <template>
-  <AStepPage
-    title="確認資料"
-    lead="確認無誤再送出。"
-    :step="flow.current.value"
-    :total="flow.total.value"
-  >
+  <AStepPage title="確認資料" :step="flow.current.value" :total="flow.total.value">
     <ASection v-for="s in sections" :key="s.title">
       <div class="flex items-center justify-between">
         <h2 class="tp-h3-semibold text-primary-700">{{ s.title }}</h2>
@@ -137,7 +119,7 @@ const submit = async () => {
         <div
           v-for="[k, v] in s.rows"
           :key="k"
-          class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base first:pt-1"
+          class="grid grid-cols-[7rem_1fr] gap-3 py-3 text-base first:pt-1"
         >
           <dt class="text-grey-700">{{ k }}</dt>
           <dd class="whitespace-pre-line break-words">{{ v }}</dd>
@@ -145,22 +127,11 @@ const submit = async () => {
       </dl>
     </ASection>
 
-    <ASection>
-      <p class="text-base">
-        <template v-if="isBorrow">
-          預約成功後，請攜帶身分證正本到中心取貨。{{ pickupSentence }}
-        </template>
-        <template v-else>
-          送出後，中心會在開館時間回電確認，<strong>確認後才算申請完成</strong>。
-        </template>
-      </p>
-      <AErrorText v-if="failed">送出失敗，請檢查網路後再試一次。</AErrorText>
+    <ASection v-if="failed">
+      <AErrorText>送出失敗，請檢查網路後再試一次。</AErrorText>
     </ASection>
 
     <template #footer>
-      <p class="mb-3 text-center text-sm text-grey-700">
-        送出即表示同意提供上述資料給{{ center.name }}，用於辦理本次服務。
-      </p>
       <div class="grid grid-cols-2 gap-2">
         <BaseButton outline @click="flow.goPrev()">上一步</BaseButton>
         <BaseButton :aria-busy="sending" @click="submit">

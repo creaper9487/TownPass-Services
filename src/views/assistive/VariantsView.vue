@@ -1,24 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AImage from '@/components/assistive/AImage.vue';
 import StockError from '@/components/assistive/StockError.vue';
 import AInput from '@/components/assistive/AInput.vue';
-import RentalStoreList from '@/components/assistive/RentalStoreList.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
-import { useAssistiveNative } from '@/composables/useAssistiveNative';
-import {
-  arrivalSubscriptions,
-  fetchRentalStores,
-  fetchStock,
-  fetchVariantFits,
-  subscribeArrival,
-  unsubscribeArrival
-} from '@/utils/assistive/api';
+import { fetchStock, fetchVariantFits, listArrivals } from '@/utils/assistive/api';
 import catalogJson from '@/data/assistive-catalog.json';
 import {
   HEIGHT_RANGE,
@@ -28,32 +19,27 @@ import {
   matchFit,
   mergeFit
 } from '@/utils/assistive/fit';
-import type { Category, RentalStore, Stock, Variant, VariantFit } from '@/utils/assistive/types';
+import type { Category, Stock, Variant, VariantFit } from '@/utils/assistive/types';
 
 const route = useRoute();
 const router = useRouter();
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
-const native = useAssistiveNative();
 
 const category = computed(() =>
   (catalogJson as unknown as Category[]).find((c) => c.id === route.params.categoryId)
 );
 const stock = ref<Record<string, Stock>>({});
-const subscribed = ref<string[]>([]);
 const loaded = ref(false);
-const status = ref<Record<string, string>>({});
+const subscribed = listArrivals().map((a) => a.variantId);
 
 const failed = ref(false);
 const remoteFits = ref<Record<string, VariantFit> | null>(null);
-const rentalStores = ref<RentalStore[] | null>(null);
-let rentalRequested = false;
 
 const load = async () => {
   failed.value = false;
   try {
     stock.value = await fetchStock();
-    subscribed.value = arrivalSubscriptions();
     remoteFits.value = await fetchVariantFits();
     loaded.value = true;
   } catch {
@@ -75,17 +61,6 @@ const variants = computed(() =>
   })
 );
 const noStockAtAll = computed(() => loaded.value && variants.value.every((v) => left(v) === 0));
-
-// 全部缺貨時，嘗試取得附近的民間租賃特約門市；沒資料就維持原本的「輔具哪裡找」連結。
-watch(
-  noStockAtAll,
-  async (empty) => {
-    if (!empty || rentalRequested || !category.value) return;
-    rentalRequested = true;
-    rentalStores.value = await fetchRentalStores(category.value.id);
-  },
-  { immediate: true }
-);
 
 // ---- 依身高與體重篩選款式 ----
 const fitOf = (v: Variant) => mergeFit(v, remoteFits.value?.[v.id]);
@@ -116,8 +91,8 @@ const fitSummary = computed(() => {
   if (!filterActive.value) return '';
   const yes = shown.value.filter((x) => x.match === 'yes').length;
   const unknown = shown.value.filter((x) => x.match === 'unknown').length;
-  if (!shown.value.length) return '沒有符合的款式，可以調整身高或體重，或清除篩選。';
-  return `符合 ${yes} 款${unknown ? `；另有 ${unknown} 款沒有標示適用身高體重，也一併列出` : ''}。`;
+  if (!shown.value.length) return '沒有符合的款式';
+  return `符合 ${yes} 款${unknown ? `，${unknown} 款未標示` : ''}`;
 });
 const clearFit = () => {
   store.fit = { height: '', weight: '' };
@@ -132,72 +107,34 @@ const choose = (v: Variant) => {
   };
   router.push(stepRoute('borrow', 'center'));
 };
-
-const arrivalName = (v: Variant) => [category.value!.name, v.name, ...specOf(v)].join('・');
-
-const toggleArrival = async (v: Variant) => {
-  const on = subscribed.value.includes(v.id);
-  if (on) {
-    await unsubscribeArrival(v.id);
-    subscribed.value = subscribed.value.filter((id) => id !== v.id);
-    native.notify('訂閱通知', `已取消訂閱${arrivalName(v)}到貨通知`);
-    status.value = { ...status.value, [v.id]: '已取消到貨通知。' };
-  } else {
-    await subscribeArrival(v.id);
-    subscribed.value = [...subscribed.value, v.id];
-    native.notify('訂閱通知', `已訂閱${arrivalName(v)}到貨通知`);
-    status.value = { ...status.value, [v.id]: '已登記，有庫存時會通知你。' };
-  }
-};
-
-const FIND_URL = 'https://tpap.gov.taipei/app37/whereVehicleView/index';
 </script>
 
 <template>
   <AStepPage
     v-if="category"
-    :title="`${category.name}要選哪一種？`"
-    lead="看照片、尺寸與適用對象，挑最接近需求的款式。"
+    title="選擇種類"
+    lead="「圖片僅供參考，請以現場提供之輔具為主。若您所預約的輔具尺寸不合用，因輔具數量有限，若現場已無其他合適尺寸輔具則須另行預約借用。」"
     :step="flow.current.value"
     :total="flow.total.value"
   >
     <ASection v-if="noStockAtAll">
       <div class="rounded-lg border border-secondary-200 bg-secondary-50 p-4">
         <h2 class="tp-h3-semibold">目前二手{{ category.name }}都沒有庫存</h2>
-        <p class="mt-1 text-sm">如果需要得急，可以考慮：</p>
-        <ul class="mt-2 flex flex-col gap-2 text-sm">
-          <li class="rounded-lg bg-white p-3">先登記想要款式的到貨通知，有庫存會通知你。</li>
+        <ul class="mt-3 flex flex-col gap-2 text-sm">
           <li>
             <RouterLink
-              :to="{ name: 'assistive-qualify', params: { service: 'assess' } }"
+              :to="{ name: 'assistive-need', params: { service: 'assess' } }"
               class="a11y-focus block min-h-12 rounded-lg bg-white p-3 font-semibold text-primary-700 underline"
               @click="store.begin('assess')"
             >
               預約輔具評估，了解購買或租賃補助
             </RouterLink>
           </li>
-          <li v-if="rentalStores" class="rounded-lg bg-white p-3">
-            向民間廠商租賃：下方是附近的特約門市。
-          </li>
-          <li v-else>
-            <button
-              type="button"
-              class="a11y-focus block min-h-12 w-full rounded-lg bg-white p-3 text-left font-semibold text-primary-700 underline"
-              @click="native.openLink(FIND_URL)"
-            >
-              向民間廠商租賃：到「輔具哪裡找」看廠商
-            </button>
-          </li>
         </ul>
-        <RentalStoreList v-if="rentalStores" :stores="rentalStores" class="mt-4" />
       </div>
     </ASection>
 
-    <ASection
-      v-if="anyFitData && !failed"
-      title="照身高體重找適用款"
-      hint="輸入身高與體重，只顯示適用的款式；沒有標示的款式也會一併列出。"
-    >
+    <ASection v-if="anyFitData && !failed">
       <div class="grid grid-cols-2 gap-3">
         <AInput
           v-model="store.fit.height"
@@ -251,30 +188,32 @@ const FIND_URL = 'https://tpap.gov.taipei/app37/whereVehicleView/index';
             </p>
             <p
               class="mt-3 text-base font-semibold"
-              :class="left(v) > 0 ? 'text-primary-800' : 'text-grey-700'"
+              :class="{ 'text-grey-700': loaded && !left(v) }"
             >
               <template v-if="!loaded">&nbsp;</template>
-              <template v-else-if="left(v) > 0">● 剩餘 {{ left(v) }} 件</template>
-              <template v-else>
-                ○ 目前無庫存<span v-if="waiting(v)" class="font-normal">
-                  ，{{ waiting(v) }} 人等待中
-                </span>
-              </template>
+              <template v-else>剩餘: {{ left(v) }}</template>
+            </p>
+            <p v-if="loaded && !left(v) && waiting(v)" class="text-base">
+              等待人數：{{ waiting(v) }}
             </p>
             <BaseButton v-if="loaded && left(v) > 0" class="mt-3 w-full" @click="choose(v)">
-              預約這個<span class="sr-only">：{{ category.name }}，{{ v.name }}</span>
+              預約<span class="sr-only">：{{ category.name }}，{{ v.name }}</span>
             </BaseButton>
-            <BaseButton v-else-if="loaded" outline class="mt-3 w-full" @click="toggleArrival(v)">
-              {{ subscribed.includes(v.id) ? '✓ 已登記到貨通知（點一下取消）' : '到貨時通知我' }}
-              <span class="sr-only">：{{ category.name }}，{{ v.name }}</span>
-            </BaseButton>
-            <p
-              v-if="status[v.id]"
-              role="status"
-              class="mt-2 text-sm font-semibold text-primary-800"
+            <BaseButton
+              v-else-if="loaded"
+              outline
+              class="mt-3 w-full"
+              @click="
+                router.push(
+                  subscribed.includes(v.id)
+                    ? { name: 'assistive-reservations' }
+                    : { name: 'assistive-arrival', params: { variantId: v.id } }
+                )
+              "
             >
-              {{ status[v.id] }}
-            </p>
+              {{ subscribed.includes(v.id) ? '已登記到貨通知' : '到貨通知'
+              }}<span class="sr-only">：{{ category.name }}，{{ v.name }}</span>
+            </BaseButton>
           </div>
         </li>
       </ul>

@@ -43,7 +43,11 @@ const agree = () => {
 
     <ASection title="中心名稱、開放時間、中心地址、中心電話">
       <ul class="flex flex-col gap-3">
-        <li v-for="c in officialCenterRows" :key="c.name" class="rounded-lg border border-grey-200 p-3 text-base">
+        <li
+          v-for="c in officialCenterRows"
+          :key="c.name"
+          class="rounded-lg border border-grey-200 p-3 text-base"
+        >
           <p class="font-semibold">{{ c.name }}</p>
           <p class="mt-1">{{ c.hours }}</p>
           <p>{{ c.address }}</p>

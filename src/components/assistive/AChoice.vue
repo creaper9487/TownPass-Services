@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { uid } from '@/utils/assistive/uid';
 import AErrorText from './AErrorText.vue';
 import AImage from './AImage.vue';
+import AIcon, { type IconName } from './AIcon.vue';
 
 export interface ChoiceOption {
   value: string;
@@ -10,6 +11,8 @@ export interface ChoiceOption {
   description?: string;
   /** 縮圖（照片）網址；載入失敗就不顯示 */
   image?: string;
+  /** 沒有官方照片時的線條圖示，只裝飾，文字仍是主要資訊 */
+  icon?: IconName;
   disabled?: boolean;
 }
 
@@ -65,8 +68,9 @@ const onChange = (value: string, checked: boolean) => {
       <label
         v-for="o in options"
         :key="o.value"
-        class="relative flex min-h-14 cursor-pointer items-start gap-3 rounded-lg border bg-white px-4 py-3"
+        class="relative flex min-h-14 cursor-pointer gap-3 rounded-lg border bg-white px-4 py-3"
         :class="[
+          o.image || o.icon ? 'items-center' : 'items-start',
           o.disabled
             ? 'cursor-not-allowed border-grey-100 bg-grey-50'
             : isChecked(o.value)
@@ -93,7 +97,7 @@ const onChange = (value: string, checked: boolean) => {
               ? 'border-grey-300 bg-grey-100'
               : isChecked(o.value)
                 ? 'border-primary-600 bg-primary-600'
-                : 'border-grey-400 bg-white'
+                : 'border-grey-500 bg-white'
           ]"
           aria-hidden="true"
         >
@@ -125,6 +129,14 @@ const onChange = (value: string, checked: boolean) => {
           </span>
         </span>
         <AImage v-if="o.image" :src="o.image" hide-on-error class="h-16 w-16 shrink-0 rounded" />
+        <span
+          v-else-if="o.icon"
+          class="flex h-16 w-16 shrink-0 items-center justify-center rounded text-primary-700"
+          :class="isChecked(o.value) ? 'bg-primary-100' : 'bg-primary-50'"
+          aria-hidden="true"
+        >
+          <AIcon :name="o.icon" class="h-8 w-8" />
+        </span>
       </label>
     </div>
     <AErrorText v-if="error" :id="errorId">{{ error }}</AErrorText>

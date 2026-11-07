@@ -3,7 +3,7 @@ import { useConnectionMessage } from '@/composables/useConnectionMessage';
 /**
  * 台北通 App 提供的原生能力；在一般瀏覽器開發時自動退回網頁行為。
  * 訊息名稱對應 TownPass 的 tp_web_message_handler：
- * userinfo / location / phone_call / launch_map / open_link / notify。
+ * userinfo / location / phone_call / launch_map / open_link。
  */
 export const inApp = () =>
   typeof (window as unknown as { flutterObject?: unknown }).flutterObject !== 'undefined';
@@ -23,15 +23,11 @@ export const useAssistiveNative = () => {
     else window.open(url, '_blank', 'noopener');
   };
 
+  /** App 內走台北通的 WebView（不會離開台北通）；一般瀏覽器開新分頁 */
   const openLink = (url: string) => {
     if (inApp()) useConnectionMessage('open_link', url);
     else window.open(url, '_blank', 'noopener');
   };
 
-  /** 在 App 內跳出系統通知；一般瀏覽器沒有對應能力，直接略過 */
-  const notify = (title: string, content: string) => {
-    if (inApp()) useConnectionMessage('notify', { title, content });
-  };
-
-  return { requestUserInfo, requestLocation, callPhone, openMap, openLink, notify };
+  return { requestUserInfo, requestLocation, callPhone, openMap, openLink };
 };

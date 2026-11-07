@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-defineProps<{ src: string; alt?: string; hideOnError?: boolean }>();
+defineProps<{ src: string; alt?: string; hideOnError?: boolean; eager?: boolean }>();
 const failed = ref(false);
 </script>
 
@@ -14,9 +14,9 @@ const failed = ref(false);
       v-if="!failed"
       :src="src"
       :alt="alt ?? ''"
-      loading="lazy"
+      :loading="eager ? 'eager' : 'lazy'"
       decoding="async"
-      fetchpriority="low"
+      :fetchpriority="eager ? 'high' : 'low'"
       class="h-full w-full object-contain"
       @error="failed = true"
     />

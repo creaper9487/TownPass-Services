@@ -57,34 +57,6 @@ export const centers: Center[] = [
 
 export const taipeiDistricts = centers.flatMap((c) => c.districts);
 
-/** 戶籍地下拉選單：臺北市 12 區，另提供「不在臺北市」 */
-export const NOT_TAIPEI = '戶籍不在臺北市';
-
-export const counties = [
-  '臺北市',
-  '新北市',
-  '基隆市',
-  '桃園市',
-  '新竹市',
-  '新竹縣',
-  '苗栗縣',
-  '臺中市',
-  '彰化縣',
-  '南投縣',
-  '雲林縣',
-  '嘉義市',
-  '嘉義縣',
-  '臺南市',
-  '高雄市',
-  '屏東縣',
-  '宜蘭縣',
-  '花蓮縣',
-  '臺東縣',
-  '澎湖縣',
-  '金門縣',
-  '連江縣'
-];
-
 const weekdayLabel = ['日', '一', '二', '三', '四', '五', '六'];
 
 export const centerById = (id: string) => centers.find((c) => c.id === id);
@@ -205,23 +177,24 @@ export const mapUrl = (c: Center) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address.replace(/\s/g, ''))}`;
 
 /** 官方網站「借用須知」裡的中心資料表（原文） */
-export const officialCenterRows: { name: string; hours: string; address: string; phone: string }[] = [
-  {
-    name: '臺北市合宜輔具中心',
-    hours: '周二至周六 9:00-12:00, 13:30-17:00',
-    address: '臺北市中山區玉門街1號',
-    phone: '02-77137760'
-  },
-  {
-    name: '臺北市南區輔具中心',
-    hours: '周一至周五 9:00-12:00, 13:30-17:00',
-    address: '臺北市信義區大道路116號3F-2(廣慈衛福大樓 -從西2門B電梯廳進入)',
-    phone: '02-27207364'
-  },
-  {
-    name: '臺北市西區輔具中心',
-    hours: '周二至周六 9:00-12:00, 13:30-17:00',
-    address: '臺北市中山區長安西路5巷2號1、2樓(臺北市政府衛生局舊址後方)',
-    phone: '02-2523-7902'
-  }
-];
+export const officialCenterRows: { name: string; hours: string; address: string; phone: string }[] =
+  [
+    {
+      name: '臺北市合宜輔具中心',
+      hours: '周二至周六 9:00-12:00, 13:30-17:00',
+      address: '臺北市中山區玉門街1號',
+      phone: '02-77137760'
+    },
+    {
+      name: '臺北市南區輔具中心',
+      hours: '周一至周五 9:00-12:00, 13:30-17:00',
+      address: '臺北市信義區大道路116號3F-2(廣慈衛福大樓 -從西2門B電梯廳進入)',
+      phone: '02-27207364'
+    },
+    {
+      name: '臺北市西區輔具中心',
+      hours: '周二至周六 9:00-12:00, 13:30-17:00',
+      address: '臺北市中山區長安西路5巷2號1、2樓(臺北市政府衛生局舊址後方)',
+      phone: '02-2523-7902'
+    }
+  ];

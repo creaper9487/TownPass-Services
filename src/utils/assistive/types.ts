@@ -1,4 +1,4 @@
-export type ServiceId = 'borrow' | 'assess' | 'recycle';
+export type ServiceId = 'borrow' | 'assess';
 
 export interface Center {
   id: 'heyi' | 'south' | 'west';
@@ -36,18 +36,6 @@ export interface Variant extends VariantFit {
   specs: string[];
   description: string;
   source: string;
-}
-
-/** 北市輔具租賃特約門市（民間） */
-export interface RentalStore {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  /** 可提供的輔具類別 id（對應 Category.id） */
-  categories: string[];
-  lat?: number;
-  lng?: number;
 }
 
 /** 中心逐日行事曆：含國定假日與臨時休館 */
@@ -89,17 +77,8 @@ export interface UserForm {
   gender: '' | 'M' | 'F';
   /** 戶籍地行政區（臺北市） */
   registeredDistrict: string;
-  /** 居住地：縣市與行政區 */
-  livingCounty: string;
+  /** 居住地行政區（臺北市） */
   livingDistrict: string;
-  remark: string;
-}
-
-export interface PickupForm {
-  district: string;
-  address: string;
-  hasElevator: '' | 'yes' | 'no';
-  needCertificate: boolean;
   remark: string;
 }
 
@@ -107,7 +86,10 @@ export interface Reservation {
   id: string;
   service: ServiceId;
   createdAt: string;
-  status: 'pending' | 'booked' | 'cancelled';
+  /** 與後端相同：booked 已預約、submitted 已送出、confirmed 中心已確認、completed 已完成、cancelled 已取消、expired 已逾期 */
+  status: 'booked' | 'submitted' | 'confirmed' | 'completed' | 'cancelled' | 'expired';
+  /** 後端回傳的查詢與取消密鑰（只存在這台裝置） */
+  accessKey?: string;
   centerId: Center['id'];
   /** 輔具／服務項目摘要 */
   summary: string[];

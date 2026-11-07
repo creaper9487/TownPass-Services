@@ -17,6 +17,8 @@ const props = defineProps<{
   required?: boolean;
   maxlength?: number;
   uppercase?: boolean;
+  /** 欄位上方已有同樣的標題時，只留給讀屏使用 */
+  hideLabel?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [string]; blur: [] }>();
 
@@ -35,10 +37,10 @@ const onInput = (e: Event) => {
 
 <template>
   <div>
-    <label :for="id" class="tp-h3-semibold mb-1 block">
+    <label :for="id" :class="hideLabel ? 'sr-only' : 'tp-h3-semibold mb-1 block'">
       {{ label }}
       <span v-if="required" class="text-red-500" aria-hidden="true">*</span>
-      <span v-else class="ml-1 text-sm font-normal text-grey-700">（選填）</span>
+      <span v-else-if="!hideLabel" class="ml-1 text-sm font-normal text-grey-700">（選填）</span>
     </label>
     <p v-if="hint" :id="hintId" class="mb-2 text-sm text-grey-700">{{ hint }}</p>
     <input

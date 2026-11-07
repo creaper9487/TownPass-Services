@@ -9,16 +9,14 @@ import {
   pickupWindow,
   upcomingClosures
 } from '@/utils/assistive/centers';
-import { fetchCenterCalendar } from '@/utils/assistive/api';
+import { fetchCenterCalendar, type SubmitRequest } from '@/utils/assistive/api';
 import { taipeiNow } from '@/utils/assistive/time';
 import { districtFromAddress, isTwId } from '@/utils/assistive/validators';
-import { services } from '@/utils/assistive/services';
 import { clearDraft, loadDraft, saveDraft } from '@/utils/assistive/draft';
 import type {
   ApplicantForm,
   CalendarDay,
   Center,
-  PickupForm,
   Reservation,
   ServiceId,
   UserForm
@@ -51,15 +49,7 @@ const blankUser = (): UserForm => ({
   idNo: '',
   gender: '',
   registeredDistrict: '',
-  livingCounty: '臺北市',
   livingDistrict: '',
-  remark: ''
-});
-const blankPickup = (): PickupForm => ({
-  district: '',
-  address: '',
-  hasElevator: '',
-  needCertificate: false,
   remark: ''
 });
 
@@ -70,7 +60,6 @@ const genderFromId = (idNo: string): ApplicantForm['gender'] => {
 
 export const useAssistiveStore = defineStore('assistive', () => {
   const service = ref<ServiceId>('borrow');
-  const qualified = ref<boolean | null>(null);
   const consents = ref<boolean[]>([false, false, false]);
   const variant = ref<SelectedVariant | null>(null);
   const needs = ref<string[]>([]);
@@ -81,7 +70,6 @@ export const useAssistiveStore = defineStore('assistive', () => {
   const centerId = ref('');
   const applicant = ref<ApplicantForm>(blankApplicant());
   const user = ref<UserForm>(blankUser());
-  const pickup = ref<PickupForm>(blankPickup());
   const submitted = ref<Reservation | null>(null);
 
   // 還原重新整理前的草稿；從首頁重新開始時 begin() 會清掉。
@@ -89,7 +77,6 @@ export const useAssistiveStore = defineStore('assistive', () => {
   const draft = loadDraft();
   if (draft) {
     service.value = draft.service ?? service.value;
-    qualified.value = draft.qualified ?? null;
     consents.value = draft.consents ?? consents.value;
     variant.value = draft.variant ?? null;
     needs.value = draft.needs ?? [];
@@ -99,12 +86,10 @@ export const useAssistiveStore = defineStore('assistive', () => {
     centerId.value = draft.centerId ?? '';
     applicant.value = { ...applicant.value, ...draft.applicant };
     user.value = { ...user.value, ...draft.user };
-    pickup.value = { ...pickup.value, ...draft.pickup };
   }
   watch(
     [
       service,
-      qualified,
       consents,
       variant,
       needs,
@@ -113,14 +98,12 @@ export const useAssistiveStore = defineStore('assistive', () => {
       repairOther,
       centerId,
       applicant,
-      user,
-      pickup
+      user
     ],
     () => {
       if (!draftActive) return;
       saveDraft({
         service: service.value,
-        qualified: qualified.value,
         consents: consents.value,
         variant: variant.value,
         needs: needs.value,
@@ -129,8 +112,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
         repairOther: repairOther.value,
         centerId: centerId.value,
         applicant: applicant.value,
-        user: user.value,
-        pickup: pickup.value
+        user: user.value
       });
     },
     { deep: true }
@@ -150,13 +132,11 @@ export const useAssistiveStore = defineStore('assistive', () => {
   /** 各中心的逐日行事曆；null 代表沒有資料，畫面退回依星期判斷 */
   const calendars = ref<Record<string, CalendarDay[] | null>>({});
   const loadCalendars = async () => {
-    const now = taipeiNow();
-    const from = dateKey(now);
-    const to = dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14));
+    const from = dateKey(taipeiNow());
     await Promise.all(
       centers.map(async (c) => {
         if (c.id in calendars.value) return;
-        calendars.value[c.id] = await fetchCenterCalendar(c.id, from, to);
+        calendars.value[c.id] = await fetchCenterCalendar(c.id, from, 15);
       })
     );
   };
@@ -184,14 +164,8 @@ export const useAssistiveStore = defineStore('assistive', () => {
       case 'borrow':
         return centerById(centerId.value);
       case 'assess': {
-        const district =
-          user.value.livingCounty === '臺北市' && user.value.livingDistrict
-            ? user.value.livingDistrict
-            : user.value.registeredDistrict;
-        return centerByDistrict(district);
+        return centerByDistrict(user.value.livingDistrict || user.value.registeredDistrict);
       }
-      case 'recycle':
-        return centerByDistrict(pickup.value.district);
       default:
         return undefined;
     }
@@ -220,12 +194,38 @@ export const useAssistiveStore = defineStore('assistive', () => {
     return needSummary.value;
   });
 
+  /** 要送給後端的預約：借用一筆；評估與維修在同一張表單，勾了兩邊就分成兩筆 */
+  const requests = computed<SubmitRequest[]>(() => {
+    if (service.value === 'borrow') {
+      return variant.value
+        ? [{ backendService: 'borrow', items: [variant.value.id], summary: summary.value }]
+        : [];
+    }
+    const out: SubmitRequest[] = [];
+    if (needs.value.length) {
+      out.push({
+        backendService: 'assess',
+        items: needs.value,
+        otherText: needs.value.includes('其他') ? needOther.value.trim() : undefined,
+        summary: withOther(needs.value, needOther.value).map((i) => `申請評估：${i}`)
+      });
+    }
+    if (repairNeeds.value.length) {
+      out.push({
+        backendService: 'repair',
+        items: repairNeeds.value,
+        otherText: repairNeeds.value.includes('其他') ? repairOther.value.trim() : undefined,
+        summary: withOther(repairNeeds.value, repairOther.value).map((i) => `申請維修：${i}`)
+      });
+    }
+    return out;
+  });
+
   /** 開始一次新的申請：保留帳號與位置，其餘清空 */
   const begin = (id: ServiceId) => {
     draftActive = true;
     fit.value = { height: '', weight: '' };
     service.value = id;
-    qualified.value = null;
     consents.value = [false, false, false];
     variant.value = null;
     needs.value = [];
@@ -235,7 +235,6 @@ export const useAssistiveStore = defineStore('assistive', () => {
     centerId.value = '';
     applicant.value = blankApplicant();
     user.value = blankUser();
-    pickup.value = blankPickup();
     submitted.value = null;
     applyAccount();
   };
@@ -277,7 +276,6 @@ export const useAssistiveStore = defineStore('assistive', () => {
     if (!f.gender) f.gender = genderFromId(a.idNo);
     if (!user.value.registeredDistrict && a.district) user.value.registeredDistrict = a.district;
     if (!user.value.livingDistrict && a.district) user.value.livingDistrict = a.district;
-    if (!pickup.value.district && a.district) pickup.value.district = a.district;
   };
 
   /**
@@ -299,7 +297,6 @@ export const useAssistiveStore = defineStore('assistive', () => {
 
   return {
     service,
-    qualified,
     consents,
     variant,
     needs,
@@ -307,7 +304,6 @@ export const useAssistiveStore = defineStore('assistive', () => {
     centerId,
     applicant,
     user,
-    pickup,
     submitted,
     account,
     location,
@@ -320,6 +316,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
     repairNeeds,
     repairOther,
     summary,
+    requests,
     fit,
     calendars,
     loadCalendars,

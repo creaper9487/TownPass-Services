@@ -1,4 +1,4 @@
-import type { ApplicantForm, PickupForm, ServiceId, UserForm } from './types';
+import type { ApplicantForm, ServiceId, UserForm } from './types';
 
 /**
  * 申請草稿暫存在 sessionStorage：重新整理或網頁被重新載入時不用從頭填；
@@ -9,7 +9,6 @@ const KEY = 'assistive.draft';
 
 export interface Draft {
   service: ServiceId;
-  qualified: boolean | null;
   consents: boolean[];
   variant: { id: string; categoryName: string; name: string; spec: string } | null;
   needs: string[];
@@ -19,7 +18,6 @@ export interface Draft {
   centerId: string;
   applicant: ApplicantForm;
   user: UserForm;
-  pickup: PickupForm;
 }
 
 export const loadDraft = (): Draft | null => {

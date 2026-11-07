@@ -64,3 +64,17 @@
     font-weight: 700;
   }
 }
+
+/* 輔具預約的分頁（共用 ServiceTabs）：Primary/500 字在白底只有 2.4:1，作用中分頁改用 Primary/700 */
+@layer components {
+  .assistive-scope .tab-label--active {
+    @apply text-primary-700;
+  }
+  .assistive-scope .slider {
+    @apply bg-primary-700;
+  }
+  /* 分頁高度達 44px 以上：撐高按鈕本身，不留在按鈕下方的死空間 */
+  .assistive-scope .tab-label {
+    @apply mb-0 py-3;
+  }
+}

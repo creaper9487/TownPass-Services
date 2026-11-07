@@ -10,12 +10,14 @@ const props = defineProps<{
   /** 目前步驟與總步數；首頁等非流程頁不傳 */
   step?: number;
   total?: number;
+  /** 首頁：App 標題列已經寫了服務名稱，頁內不再畫一條標題，只留給讀屏與焦點用 */
+  hideHeader?: boolean;
 }>();
 
 const heading = ref<HTMLElement>();
 // 流程頁的步驟列前面帶上服務名稱（例如「輔具評估・步驟 1／5」），不用從標題猜現在在辦什麼。
 const route = useRoute();
-const serviceName = computed(() => services[route.params.service as ServiceId]?.title ?? '');
+const serviceName = computed(() => services[route.params.service as ServiceId]?.shortTitle ?? '');
 const footerEl = ref<HTMLElement>();
 const isAndroid = /Android/i.test(navigator.userAgent);
 
@@ -58,7 +60,7 @@ onBeforeUnmount(() => {
     :class="{ 'assistive-android': isAndroid }"
   >
     <main class="flex-1">
-      <header class="bg-grey-50 px-4 pb-4 pt-5">
+      <header :class="props.hideHeader ? 'sr-only' : 'bg-grey-50 px-4 pb-4 pt-5'">
         <template v-if="props.step && props.total">
           <p class="text-sm text-grey-700" aria-hidden="true">
             {{ serviceName ? `${serviceName}・` : '' }}步驟 {{ props.step }}／{{ props.total }}
@@ -71,7 +73,7 @@ onBeforeUnmount(() => {
           </div>
         </template>
         <h1 ref="heading" tabindex="-1" class="tp-h2 outline-none" :class="{ 'mt-3': props.step }">
-          <span v-if="props.step && props.total" class="sr-only">
+          <span v-if="props.step && props.total && serviceName !== props.title" class="sr-only">
             {{ serviceName }}，第 {{ props.step }} 步，共 {{ props.total }} 步：
           </span>
           {{ props.title }}

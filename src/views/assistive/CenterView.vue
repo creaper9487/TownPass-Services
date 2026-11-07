@@ -111,8 +111,8 @@ const next = () => {
 
 <template>
   <AStepPage
-    title="選擇取貨的輔具中心"
-    lead="預約後 2 天內（含今天）要到中心取貨，逾期會自動取消。"
+    title="選擇中心"
+    lead="請選擇借用輔具中心"
     :step="flow.current.value"
     :total="flow.total.value"
   >

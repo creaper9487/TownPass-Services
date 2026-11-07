@@ -9,7 +9,7 @@ import ErrorSummary from '@/components/assistive/ErrorSummary.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
-import { counties, taipeiDistricts } from '@/utils/assistive/centers';
+import { taipeiDistricts } from '@/utils/assistive/centers';
 import { isEmail, isTwId, toSummary, type SummaryItem } from '@/utils/assistive/validators';
 
 // 官方表單「輔具使用者資料」：姓名（同聯絡人）、身分證字號、戶籍地行政區、居住地行政區、E-mail、備註。
@@ -51,7 +51,12 @@ const next = () => {
 </script>
 
 <template>
-  <AStepPage title="輔具使用者資料" lead="*表示為必填欄位" :step="flow.current.value" :total="flow.total.value">
+  <AStepPage
+    title="輔具使用者資料"
+    lead="*表示為必填欄位"
+    :step="flow.current.value"
+    :total="flow.total.value"
+  >
     <ErrorSummary :errors="summary" :trigger="trigger" />
     <ASection title="輔具使用者資料">
       <div class="flex flex-col gap-5">
@@ -64,7 +69,9 @@ const next = () => {
             field-id="user-name"
             :error="errors.name"
           />
-          <BaseButton outline class="mt-2" @click="store.fillUserFromContact()">同聯絡人</BaseButton>
+          <BaseButton outline class="mt-2" @click="store.fillUserFromContact()">
+            同聯絡人
+          </BaseButton>
         </div>
         <AInput
           v-model="u.idNo"
@@ -86,11 +93,9 @@ const next = () => {
           field-id="user-registered"
           :error="errors.registered"
         />
-        <ASelect v-model="u.livingCounty" label="居住地行政區" :options="counties" field-id="user-livingCounty" />
         <ASelect
-          v-if="u.livingCounty === '臺北市'"
           v-model="u.livingDistrict"
-          label="居住地行政區（區）"
+          label="居住地行政區"
           placeholder="--"
           :options="taipeiDistricts"
           field-id="user-livingDistrict"
