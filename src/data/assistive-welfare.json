@@ -1,0 +1,1362 @@
+{
+ "intro": {
+  "title": "友善提醒",
+  "text": "您好，以下請您針對輔具需求者的狀況進行問答(共有5~10題)，將根據問答結果，提供您相關之福利資訊。",
+  "button": "開始填答"
+ },
+ "questions": {
+  "1": {
+   "text": "請問輔具需求者的年齡？",
+   "type": "number",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [],
+   "rules": [
+    {
+     "when": {},
+     "next": "2"
+    }
+   ]
+  },
+  "2": {
+   "text": "是否領有身心障礙手冊或證明？",
+   "type": "radio",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [
+    {
+     "value": "1",
+     "label": "是"
+    },
+    {
+     "value": "2",
+     "label": "否"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "answer": "1"
+     },
+     "next": "3"
+    },
+    {
+     "when": {
+      "answer": "2",
+      "age": {
+       "min": 0,
+       "max": 0
+      }
+     },
+     "next": "8"
+    },
+    {
+     "when": {
+      "answer": "2"
+     },
+     "next": "7"
+    }
+   ]
+  },
+  "3": {
+   "text": "是否有聽覺機能障礙？",
+   "type": "radio",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [
+    {
+     "value": "1",
+     "label": "是"
+    },
+    {
+     "value": "2",
+     "label": "否"
+    }
+   ],
+   "rules": [
+    {
+     "when": {},
+     "next": "4"
+    }
+   ]
+  },
+  "4": {
+   "text": "是否有聲音或語言機能障礙？",
+   "type": "radio",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [
+    {
+     "value": "1",
+     "label": "是"
+    },
+    {
+     "value": "2",
+     "label": "否"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "age": {
+       "min": 0,
+       "max": 0
+      }
+     },
+     "next": "8"
+    },
+    {
+     "when": {
+      "age": {
+       "min": 15,
+       "max": 65
+      }
+     },
+     "next": "5"
+    },
+    {
+     "when": {},
+     "next": "7"
+    }
+   ]
+  },
+  "5": {
+   "text": "拿到身心障礙手冊或證明的原因是因為職業災害嗎？",
+   "type": "radio",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [
+    {
+     "value": "1",
+     "label": "是"
+    },
+    {
+     "value": "2",
+     "label": "否"
+    }
+   ],
+   "rules": [
+    {
+     "when": {},
+     "next": "6"
+    }
+   ]
+  },
+  "6": {
+   "text": "目前是否就業中(包含自營工作者或受雇於公、民營事業機構、政府機 關、學校及團體)？",
+   "type": "radio",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [
+    {
+     "value": "1",
+     "label": "是"
+    },
+    {
+     "value": "2",
+     "label": "否"
+    }
+   ],
+   "rules": [
+    {
+     "when": {},
+     "next": "7"
+    }
+   ]
+  },
+  "7": {
+   "text": "目前是否就學中(具有幼兒園至研究所之正式學籍)？",
+   "type": "radio",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [
+    {
+     "value": "1",
+     "label": "是"
+    },
+    {
+     "value": "2",
+     "label": "否"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "age": {
+       "min": 65,
+       "max": null
+      }
+     },
+     "next": "8"
+    },
+    {
+     "when": {},
+     "next": "result"
+    }
+   ]
+  },
+  "8": {
+   "text": "目前是否住在自有房屋或租屋處？",
+   "type": "radio",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [
+    {
+     "value": "1",
+     "label": "是"
+    },
+    {
+     "value": "2",
+     "label": "否"
+    }
+   ],
+   "rules": [
+    {
+     "when": {
+      "answers": {
+       "2": "2"
+      }
+     },
+     "next": "result"
+    },
+    {
+     "when": {
+      "answers": {
+       "2": "1"
+      },
+      "answer": "1"
+     },
+     "next": "9"
+    },
+    {
+     "when": {
+      "answers": {
+       "2": "1"
+      },
+      "answer": "2"
+     },
+     "next": "ERROR_500"
+    }
+   ]
+  },
+  "9": {
+   "text": "目前是否居住在臺北市？",
+   "type": "radio",
+   "image": "/app37/wez/img/main/1.png",
+   "options": [
+    {
+     "value": "1",
+     "label": "是"
+    },
+    {
+     "value": "2",
+     "label": "否"
+    }
+   ],
+   "rules": [
+    {
+     "when": {},
+     "next": "result"
+    }
+   ]
+  }
+ },
+ "result": {
+  "title": "問答結果",
+  "text": "您可能符合以下補助項目，請點選各項目名稱以獲得更多資訊：",
+  "items": [
+   {
+    "title": "身障證明申請",
+    "href": "https://dosw.gov.taipei/cp.aspx?n=26BB4C5F2992FAFB"
+   },
+   {
+    "title": "失能者生活輔助器具補助與無障礙環境改善補助",
+    "href": "https://1966.gov.tw/LTC/cp-6453-69940-207.html"
+   },
+   {
+    "title": "職災器具補助",
+    "href": "https://newrepat.sfaa.gov.tw/home/gov-repat-service/jobIntro3"
+   },
+   {
+    "title": "特殊教育的輔具服務",
+    "page": "otherdetail3"
+   },
+   {
+    "title": "人工電子耳及耗材補助",
+    "href": "https://tpap.taipei/app37/downloadView/download/213"
+   },
+   {
+    "title": "手語翻譯服務",
+    "page": "otherdetail9"
+   },
+   {
+    "title": "身障者職務再設計",
+    "page": "otherdetail4"
+   },
+   {
+    "title": "身心障礙者醫療費用及醫療輔具補助服務(不含限居家照顧使用輔具)",
+    "page": "otherdetail5"
+   },
+   {
+    "title": "居家身障者維生器材及必要生活輔具用電優惠",
+    "href": "https://dosw.gov.taipei/cp.aspx?n=925E969F27F24C0B&s=CD8361E1F112C6D4"
+   },
+   {
+    "title": "身障輔具補助(不含居家環境改善)",
+    "page": "otherdetail6"
+   },
+   {
+    "title": "身障輔具補助(含居家環境改善)",
+    "page": "otherdetail6"
+   },
+   {
+    "title": "身障輔具補助(不含居家環境改善、不含限居家使用輔具)",
+    "page": "otherdetail6"
+   },
+   {
+    "title": "身心障礙者醫療費用及醫療輔具補助服務",
+    "page": "otherdetail5"
+   }
+  ]
+ },
+ "pages": {
+  "otherdetail3": {
+   "title": "臺北市高級中等以下學校及幼兒園特殊教育教具輔具",
+   "blocks": [
+    {
+     "type": "h",
+     "level": 2,
+     "text": "臺北市政府教育局"
+    },
+    {
+     "type": "p",
+     "text": "臺北市高級中等以下學校及幼兒園特殊教育教具輔具"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "服務內容"
+    },
+    {
+     "type": "p",
+     "text": "教育局提供各教育階段教育輔具如下："
+    },
+    {
+     "type": "li",
+     "text": "南區特教資源中心：站立架、輪椅、擺位椅、改良式椅子、助行器、步態訓練器、特製課桌椅、可調高度桌子、拉筋板、副木、吸盤握把、重力背心。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "北區特教資源中心：輪椅、電動輪椅、助行器、前臂拐、步態訓練器、特製課桌椅、擺位椅、斜面桌、站立架、拉筋板、副木、減壓坐墊。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "視障教育資源中心：點字機、導盲鼠、擴視機、閱讀遮蔽器、放大鏡、望遠鏡、點字觸摸顯示器、閱讀架、點字印表機、立體熱印機。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "聽障教育資源中心：微電腦語音溝通板(攜帶型)、微電腦語音溝通板(掃描型)、互動式學習評量測驗系統U4、可程式化輸入系統-U2i、電腦溝通系統PC-UAAC、掌上型電腦溝通系統PPC-UAAC、合作學習系統T33、AAC溝通系統普及版、AAC溝通系統專業版、圖文大師蘋果派PMLS、圖文大師蘋果派PMLS-播放器、有聲墨水、有聲墨水-播放器、平板電腦、溝通筆R PEN、單句話可錄音溝通器、調頻系統等。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "服務對象"
+    },
+    {
+     "type": "li",
+     "text": "就讀本市高級中等以下學校及幼兒園之特殊教育學生。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "應備文件"
+    },
+    {
+     "type": "li",
+     "text": "幼兒輔具：由幼兒園提出輔具建議單。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "國小、國中及高中職學生教輔具：由學校提出輔具建議單。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "視障輔具：經視障巡迴輔導老師評估後，繳交借據及申請表。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "聽障輔具：經聽力師及特教教師共同填寫評估結果及申請表。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "洽辦單位"
+    },
+    {
+     "type": "p",
+     "text": "南區特教資源中心：學前教育階段輔具。"
+    },
+    {
+     "type": "p",
+     "text": "北區特教資源中心：國小、國中及高中職教育階段輔具。"
+    },
+    {
+     "type": "p",
+     "text": "視障教育資源中心：各教育階段視障輔具。"
+    },
+    {
+     "type": "p",
+     "text": "聽障教育資源中心：各教育階段聽障輔具。"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "聯絡資訊"
+    },
+    {
+     "type": "p",
+     "text": "臺北市南區特教資源中心：02-86615183轉707"
+    },
+    {
+     "type": "p",
+     "text": "臺北市北區特教資源中心：02-28749117轉1602"
+    },
+    {
+     "type": "p",
+     "text": "臺北市視障教育資源中心：02-28740670轉1602"
+    },
+    {
+     "type": "p",
+     "text": "臺北市聽障教育資源中心：02-25924446轉602"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "網站連結"
+    },
+    {
+     "type": "p",
+     "text": "臺北市南區特教資源中心"
+    },
+    {
+     "type": "link",
+     "text": "臺北市南區特教資源中心",
+     "href": "https://www.wsses.tp.edu.tw/nss/s/websser/index"
+    },
+    {
+     "type": "p",
+     "text": "臺北市北區特教資源中心"
+    },
+    {
+     "type": "link",
+     "text": "臺北市北區特教資源中心",
+     "href": "https://tnsrc.tp.edu.tw/"
+    },
+    {
+     "type": "p",
+     "text": "臺北市視障教育資源中心"
+    },
+    {
+     "type": "link",
+     "text": "臺北市視障教育資源中心",
+     "href": "https://www.tmsb.tp.edu.tw/nss/s/trcvi/index"
+    },
+    {
+     "type": "p",
+     "text": "臺北市聽障教育資源中心"
+    },
+    {
+     "type": "link",
+     "text": "臺北市聽障教育資源中心",
+     "href": "https://www.tmd.tp.edu.tw/nss/s/rchi/index"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "交通方式"
+    },
+    {
+     "type": "p",
+     "text": "臺北市南區特教資源中心："
+    },
+    {
+     "type": "p",
+     "text": "至捷運公館站搭乘公車251、252，於萬壽橋頭站下車；至捷運木柵站搭乘公車236、530，於木柵站下車。"
+    },
+    {
+     "type": "p",
+     "text": "臺北市北區特教資源中心："
+    },
+    {
+     "type": "p",
+     "text": "搭乘公車606、285、685、279、645、紅12、203、224、616、602、268及中山幹線等，於啟智學校站下車。"
+    },
+    {
+     "type": "p",
+     "text": "臺北市視障教育資源中心："
+    },
+    {
+     "type": "p",
+     "text": "搭乘公車606、285、685、279、645、紅12、203、224、616、602、268及中山幹線等，於啟智學校站下車。"
+    },
+    {
+     "type": "p",
+     "text": "臺北市聽障教育資源中心："
+    },
+    {
+     "type": "p",
+     "text": "搭乘公車47、223、246、302、304、601等，於啟聰學校站下車。"
+    }
+   ]
+  },
+  "otherdetail9": {
+   "title": "臺北市聽語障溝通服務方案(手語翻譯及同步聽打服務)",
+   "blocks": [
+    {
+     "type": "h",
+     "level": 2,
+     "text": "臺北市政府社會局輔具資源簡介"
+    },
+    {
+     "type": "p",
+     "text": "臺北市聽語障溝通服務方案(手語翻譯及同步聽打服務)"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "服務內容"
+    },
+    {
+     "type": "p",
+     "text": "聽語障溝通服務方案"
+    },
+    {
+     "type": "link",
+     "text": "【手語版】請點選此連結",
+     "href": "https://youtu.be/cTU3QwaLHXI"
+    },
+    {
+     "type": "p",
+     "text": "一、受理申請時間：週一至週五8：00～20：00(國定假日及例假日除外)。"
+    },
+    {
+     "type": "p",
+     "text": "二、服務時間：手語翻譯服務為24小時；聽打服務原則以8：00～22：00，單位可依人力調度情況，以實際狀況來提供服務。"
+    },
+    {
+     "type": "p",
+     "text": "三、服務內容"
+    },
+    {
+     "type": "p",
+     "text": "(一) 政府機關之會議、洽辦事務或陳情、申訴等。"
+    },
+    {
+     "type": "p",
+     "text": "(二) 組織召開之會議。"
+    },
+    {
+     "type": "p",
+     "text": "(三) 偵訊或司法訴訟、警政訊問（含報案）等。"
+    },
+    {
+     "type": "p",
+     "text": "(四) 法律諮詢服務。"
+    },
+    {
+     "type": "p",
+     "text": "(五) 醫療服務，如：手術、生產、門診、化療、復健、療育、一般健康檢查等。"
+    },
+    {
+     "type": "p",
+     "text": "(六) 就學相關活動，如：親師座談會、家長會或學校日活動等。"
+    },
+    {
+     "type": "p",
+     "text": "(七) 社工員訪視、輔導案件、ICF需求評估及心理諮商輔導。"
+    },
+    {
+     "type": "p",
+     "text": "(八) 社會參與活動，如：展覽、活動參訪（配有導覽）、演講及社區大學課程。"
+    },
+    {
+     "type": "p",
+     "text": "(九) 其他由臺北市政府社會局認定之案件。"
+    },
+    {
+     "type": "p",
+     "text": "(十) 每日晚間10點至翌日早上7點間緊急、臨時突發性案件。"
+    },
+    {
+     "type": "p",
+     "text": "（以上服務不包括非營利組織辦理會員大會及理監事會議、內部訓練或休閒活動。）"
+    },
+    {
+     "type": "p",
+     "text": "(十一) 以上項目，願意自編預算，請單位協助媒合人力。"
+    },
+    {
+     "type": "p",
+     "text": "四、服務方式："
+    },
+    {
+     "type": "p",
+     "text": "(一) 申請人得以電話、手機簡訊、傳真、電子郵件、通訊軟體或線上申辦系統，於服務開始3日前提出申請，惟緊急情況者不在此限。"
+    },
+    {
+     "type": "p",
+     "text": "(二) 受理申請後進行審核，並依申請內容及實際需求，派遣合適之手語翻譯員或聽打服務員提供服務，並將審核結果通知申請人。"
+    },
+    {
+     "type": "p",
+     "text": "(三) 夜間、假日等非受理申請時間，逕洽醫療或警政單位受理申請。"
+    },
+    {
+     "type": "p",
+     "text": "五、臺北市聽語障溝通服務線上申辦系統"
+    },
+    {
+     "type": "link",
+     "text": "《線上申辦》請點選此連結",
+     "href": "https://www.theme.gov.taipei/sign2hear/"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "服務對象"
+    },
+    {
+     "type": "li",
+     "text": "領有臺北市核(換)發(或自108年7月1日起非設籍本市)之身心障礙證明(或手冊)，障礙類別為第一或三類且ICD診斷欄位註記為【04】或第二類且ICD診斷欄位註記為【02】)或併聽語障之多重障礙者」。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "臺北市各政府機關、醫療院所、學校或非營利組織，因業務需要與聽語障礙者接洽者。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "設籍（或立案）本市每人（或單位）每月由本局補助30小時，非設籍本市者每月由本局補助１0小時，上述補助時數為手語翻譯服務及聽打服務併計。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "應備文件"
+    },
+    {
+     "type": "p",
+     "text": "1. 臺北市聽語障溝通服務-申請表"
+    },
+    {
+     "type": "p",
+     "text": "2. 申請服務事由之相關檢附文件"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "洽辦單位及聯絡資訊"
+    },
+    {
+     "type": "p",
+     "text": "社團法人中華民國聽障人協會（臺北市士林區承德路四段58巷10弄6號1樓）"
+    },
+    {
+     "type": "p",
+     "text": "（受委託期間:110年1月1日~115年12月31日）"
+    },
+    {
+     "type": "p",
+     "text": "業務聯絡窗口：黃小姐、李小姐"
+    },
+    {
+     "type": "p",
+     "text": "一、免付費電話：0800-365-224；"
+    },
+    {
+     "type": "p",
+     "text": "二、免付費傳真：0800-365-624；"
+    },
+    {
+     "type": "p",
+     "text": "三、手機／簡訊：0963-047-723"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "網站連結"
+    },
+    {
+     "type": "p",
+     "text": "臺北市聽語障溝通服務方案(手語翻譯、聽打)"
+    },
+    {
+     "type": "link",
+     "text": "臺北市聽語障溝通服務方案(手語翻譯、聽打)",
+     "href": "https://dosw.gov.taipei/cp.aspx?n=A1FBE0253EA9B6E1"
+    }
+   ]
+  },
+  "otherdetail6": {
+   "title": "身心障礙者輔具費用補助服務",
+   "blocks": [
+    {
+     "type": "h",
+     "level": 2,
+     "text": "臺北市政府社會局輔具資源簡介"
+    },
+    {
+     "type": "p",
+     "text": "身心障礙者輔具費用補助服務"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "補助內容"
+    },
+    {
+     "type": "p",
+     "text": "一、服務說明："
+    },
+    {
+     "type": "p",
+     "text": "提供戶籍為臺北市之身心障礙者，輔具評估服務及補助核銷服務（身心障礙者輔具費用補助及居家無障礙環境改善補助等服務），使身障者在宅之居家環境更為安全及適宜居住。"
+    },
+    {
+     "type": "p",
+     "text": "二、服務原則："
+    },
+    {
+     "type": "li",
+     "text": "申請補助之輔具項目，按基準表之規定，若需檢附「身障鑑定醫院醫師診斷證明書」及「輔具評估報告書」、「輔具中心評估之輔具評估報告書」、「檢測合格證明書」者，請先經醫師診斷、治療師評估後，需先向社會局身心障礙者福利科提出申請。若已先購買輔具者，將無法獲得補助。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "臺北市社會局委託之輔具中心，可提供開立「輔具評估報告書」之服務（到宅服務則需經輔具中心評估，確有需要者，始予提供）；若已先購買輔具再要求補開評估建議書者，輔具中心得拒絕開立相關證明文件。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "由社會局身心障礙者福利科核定後，始可依其同意核定內容購買，並於購買輔具後，再向社會局身心障礙者福利科核銷請款。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "本補助共計補助242項輔助器具，並就輔助器具項目、補助最高額度、最低使用年限及補助對象核實補助。每人每2年以申請4項輔具補助為限（合併醫療輔具補助項次計算）。詳細內容請參閱詳見衛福部頒訂之「身心障礙者輔具費用補助辦法及其附表」。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "link",
+     "text": "身心障礙者輔具費用補助辦法及其附表",
+     "href": "https://www-ws.gov.taipei/Download.ashx?u=LzAwMS9VcGxvYWQvMzU4L3JlbGZpbGUvMTY0OTUvMTE1ODMwLzdiNTMwNGQzLTZhZjYtNDExYS05MDJjLTNjOTBmYTUwMmU0Ny5wZGY%3d&n=6Lqr5b%2bD6Zqc56SZ6ICF6LyU5YW36LK755So6KOc5Yqp6L6m5rOVMTAxMDcwNjEucGRm&icon=..pdf"
+    },
+    {
+     "type": "p",
+     "text": "三、申請程序："
+    },
+    {
+     "type": "li",
+     "text": "聯繫洽辦單位，申請身障輔具費用補助－評估服務，並完成開立「輔具評估報告書」。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "p",
+     "text": "（部分輔具項目無需開立輔具評估報告書，此部分歡迎致電諮詢，「身心障礙者輔具費用補助辦法及其附表」）",
+     "level": 1
+    },
+    {
+     "type": "link",
+     "text": "身心障礙者輔具費用補助辦法及其附表",
+     "href": "https://www-ws.gov.taipei/Download.ashx?u=LzAwMS9VcGxvYWQvMzU4L3JlbGZpbGUvMTY0OTUvMTE1ODMwLzdiNTMwNGQzLTZhZjYtNDExYS05MDJjLTNjOTBmYTUwMmU0Ny5wZGY%3d&n=6Lqr5b%2bD6Zqc56SZ6ICF6LyU5YW36LK755So6KOc5Yqp6L6m5rOVMTAxMDcwNjEucGRm&icon=..pdf"
+    },
+    {
+     "type": "li",
+     "text": "持報告書向社會局身心障礙者福利科申請身障輔具費用補助－核定服務，取得核定文件。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "p",
+     "text": "（無需開立輔具評估報告書的輔具項目，仍須先經由社會局身心障礙者福利科核定，可於各輔具中心辦理，或下載申請書郵寄至洽辦單位，需開立輔具評估報告書的輔具項目會由評估當下進行代辦與代送件至社會局）",
+     "level": 1
+    },
+    {
+     "type": "li",
+     "text": "持核定文件進行輔具購買、輔具租賃或輔具安裝，請廠商開立發票或收據正本。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "備齊應備文件，送件洽辦單位，申請身障輔具費用補助－核銷服務，並完成後續核銷流程，或由台北市身障特約廠商進行代償墊付。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "補助對象"
+    },
+    {
+     "type": "li",
+     "text": "設籍臺北市，且最近1年居住國內達183日，並領有本市核（換、補）發或註記之身心障礙手冊或證明者。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "申請補助之輔具項目未獲政府其他醫療補助、社會保險給付或其他相同性質（輔助器具）補助者。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "申請補助之輔具項目，若非首次申請，須已達該項輔具之最低使用年限，方得再次申請。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "各項補助之輔具項目，可申請之補助對象略有不同，詳細內容請參閱詳見內政部頒訂之「身心障礙者輔具費用補助辦法及其附表」之相關規定。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "link",
+     "text": "身心障礙者輔具費用補助辦法及其附表",
+     "href": "https://www-ws.gov.taipei/Download.ashx?u=LzAwMS9VcGxvYWQvMzU4L3JlbGZpbGUvMTY0OTUvMTE1ODMwLzdiNTMwNGQzLTZhZjYtNDExYS05MDJjLTNjOTBmYTUwMmU0Ny5wZGY%3d&n=6Lqr5b%2bD6Zqc56SZ6ICF6LyU5YW36LK755So6KOc5Yqp6L6m5rOVMTAxMDcwNjEucGRm&icon=..pdf"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "應備文件"
+    },
+    {
+     "type": "p",
+     "text": "●＜補助核定服務＞應備文件"
+    },
+    {
+     "type": "li",
+     "text": "申請書（可由網站連結前往下載）",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "link",
+     "text": "網站連結",
+     "href": "https://tpap.taipei/app37/downloadView/download/211"
+    },
+    {
+     "type": "li",
+     "text": "三個月內身心障礙鑑定醫院醫師診斷證明書正本。（註明症狀及所須輔具名稱）",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "三個月內輔具評估報告書（非由政府自行設置或委託辦理之輔具服務單位開立者，須由身障鑑定醫院內之治療師開立）正本（申請人應自存影本1份以利購置輔具）。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "居家無障礙環境改善，需檢附自宅證明",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "p",
+     "text": "（1）自宅：房屋所有權狀影本、建物謄本影本或房屋稅單影本擇一",
+     "level": 1
+    },
+    {
+     "type": "p",
+     "text": "（2）租屋：屋主改善同意書及租賃契約影本",
+     "level": 1
+    },
+    {
+     "type": "p",
+     "text": "（3）公有房舍：主管機關開立同意書",
+     "level": 1
+    },
+    {
+     "type": "p",
+     "text": "（4）申請修繕之住屋為未保存登記者，以民國 83 年 12 月 31 日前已存在者為限（可證明文件：房屋所有稅捐證明或繳納水費證明等）",
+     "level": 1
+    },
+    {
+     "type": "li",
+     "text": "其他應附文件（如：委託辦理者須附委託書或切結書）。（應依內政部頒訂之「身心障礙者輔具費用補助辦法修正條文以及附表身心障礙者輔具費用補助基準表」及其他相關規定）",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "link",
+     "text": "身心障礙者輔具費用補助辦法修正條文以及附表身心障礙者輔具費用補助基準表",
+     "href": "https://www-ws.gov.taipei/Download.ashx?u=LzAwMS9VcGxvYWQvMzU4L3JlbGZpbGUvMTY0OTUvMTE1ODMwLzdiNTMwNGQzLTZhZjYtNDExYS05MDJjLTNjOTBmYTUwMmU0Ny5wZGY%3d&n=6Lqr5b%2bD6Zqc56SZ6ICF6LyU5YW36LK755So6KOc5Yqp6L6m5rOVMTAxMDcwNjEucGRm&icon=..pdf"
+    },
+    {
+     "type": "p",
+     "text": "●＜補助核銷服務＞應備文件"
+    },
+    {
+     "type": "li",
+     "text": "核銷請款書（可由網站連結前往下載）",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "link",
+     "text": "網站連結",
+     "href": "https://tpap.taipei/app37/downloadView/download/216"
+    },
+    {
+     "type": "li",
+     "text": "領據（可由網站連結前往下載）及印章",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "link",
+     "text": "網站連結",
+     "href": "https://tpap.taipei/app37/downloadView/download/217"
+    },
+    {
+     "type": "li",
+     "text": "申請人之郵局或銀行存摺影本。（須有戶名及帳號；若非身心障礙者本人帳戶，則需經社會局身心障礙者福利科同意改撥帳戶）。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "社會局身心障礙者福利科審核通過核定公文影本。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "社會局身心障礙者福利科核定公文日期起6個月內之購買憑證，即統一發票或收據正本（出具收據廠商需為國稅局核定免用統一發票者並加蓋免用統一發票章）。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "輔具供應商出具保固書之影本（保固書正本由申請人留存）。保固書應載明產品規格（含身心障礙者輔具費用基準表所定輔具之規格或功能規範內容）、型號、序號、保固年限及起迄日期（含年、月、日）、輔具供應商行號名稱與統一編號及負責人姓名、保固服務聯繫電話，並應標示經中央主管機關醫療器材查驗合格之登記字號及其他必要資訊「身心障礙者輔具費用補助辦法修正條文以及附表身心障礙者輔具費用補助基準表」。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "link",
+     "text": "身心障礙者輔具費用補助辦法修正條文以及附表身心障礙者輔具費用補助基準表",
+     "href": "https://www-ws.gov.taipei/Download.ashx?u=LzAwMS9VcGxvYWQvMzU4L3JlbGZpbGUvMTY0OTUvMTE1ODMwLzdiNTMwNGQzLTZhZjYtNDExYS05MDJjLTNjOTBmYTUwMmU0Ny5wZGY%3d&n=6Lqr5b%2bD6Zqc56SZ6ICF6LyU5YW36LK755So6KOc5Yqp6L6m5rOVMTAxMDcwNjEucGRm&icon=..pdf"
+    },
+    {
+     "type": "li",
+     "text": "其他應備文件（應依內政部頒訂之「身心障礙者輔具費用補助辦法修正條文以及附表身心障礙者輔具費用補助基準表」及其他相關規定）",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "link",
+     "text": "身心障礙者輔具費用補助辦法修正條文以及附表身心障礙者輔具費用補助基準表",
+     "href": "https://www-ws.gov.taipei/Download.ashx?u=LzAwMS9VcGxvYWQvMzU4L3JlbGZpbGUvMTY0OTUvMTE1ODMwLzdiNTMwNGQzLTZhZjYtNDExYS05MDJjLTNjOTBmYTUwMmU0Ny5wZGY%3d&n=6Lqr5b%2bD6Zqc56SZ6ICF6LyU5YW36LK755So6KOc5Yqp6L6m5rOVMTAxMDcwNjEucGRm&icon=..pdf"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "洽辦單位及聯絡資訊"
+    },
+    {
+     "type": "p",
+     "text": "●申請身障輔具費用補助－評估服務："
+    },
+    {
+     "type": "p",
+     "text": "合宜輔具中心（中山區、大同區、士林區、北投區）：02-77137760／傳真：25977957"
+    },
+    {
+     "type": "p",
+     "text": "南區輔具中心（信義區、內湖區、文山區、南港區）：02-27207364／傳真：27239464"
+    },
+    {
+     "type": "p",
+     "text": "西區輔具中心（中正區、萬華區、大安區、松山區）：02-25237902／傳真：25238411"
+    },
+    {
+     "type": "p",
+     "text": "●申請身障輔具費用補助－核定／核銷服務："
+    },
+    {
+     "type": "p",
+     "text": "臺北市政府社會局身心障礙者福利科輔具小組（臺北市信義區市府路1號1樓東北區）"
+    },
+    {
+     "type": "p",
+     "text": "1999（外縣市02-27208889）轉1558、1617"
+    }
+   ]
+  },
+  "otherdetail5": {
+   "title": "身心障礙者醫療費用及輔具補助",
+   "blocks": [
+    {
+     "type": "h",
+     "level": 2,
+     "text": "臺北市政府衛生局"
+    },
+    {
+     "type": "p",
+     "text": "身心障礙者醫療費用及輔具補助"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "服務內容"
+    },
+    {
+     "type": "p",
+     "text": "一、服務說明："
+    },
+    {
+     "type": "p",
+     "text": "為照顧身心障礙者，衛生福利部於110年6月17日修定「身心障礙者醫療復健費用及醫療輔具補助辦法」。提供多元身心障礙者醫療費用及醫療輔具補助，以滿足身心障礙者在輔助器具上的需求，並減輕照顧者之負荷。"
+    },
+    {
+     "type": "p",
+     "text": "二、服務項目："
+    },
+    {
+     "type": "li",
+     "text": "醫療復健費用：人工電子耳植入手術費用、開具診斷證明書費用及開具醫療輔具評估報告費用。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "醫療輔具：電動拍痰器、抽痰機、化痰機（噴霧器）、血氧偵測儀（血氧機）、氧氣製造機、咳嗽（痰）機、單相陽壓呼吸器（C-PAP）、雙相陽壓呼吸器（Bi-PAP）、UPS不斷電系統、壓力衣A~K款與矽膠片。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "p",
+     "text": "三、申請程序："
+    },
+    {
+     "type": "p",
+     "text": "第一階段－申請：備齊文件→送件本局→審核一周後→通知審核結果"
+    },
+    {
+     "type": "p",
+     "text": "第二階段－核銷：請款收到核定函→購置醫療輔具→備齊核銷文件→送件本局→核銷通過1個月→撥款入帳"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "服務對象"
+    },
+    {
+     "type": "li",
+     "text": "領有身心障礙手冊或身心障礙證明。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "最近1年居住國內超過183日。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "尚未納入全民健康保險給付範圍且經醫師診斷或醫事人員評估為醫療復健所需，具有促進恢復身體結構、生理功能或避免併發症之輔助器具。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "li",
+     "text": "僅限居家照護者申請。",
+     "level": 1,
+     "ordered": false
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "應備文件"
+    },
+    {
+     "type": "li",
+     "text": "申請書",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "申請人身分證及身心障礙證明正反面影本",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "三個月內相關專科醫師開立之診斷證明書正本",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "三個月內相關專科醫師開立之醫療輔具評估報告書正本",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "p",
+     "text": "<申請雙相、單相陽壓呼吸器、氧氣製造機、壓力衣、矽膠片才須檢附>",
+     "level": 1
+    },
+    {
+     "type": "li",
+     "text": "委託書（委託辦理者須附委託書及身分證正反面影本）。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "低收或中低收入戶證明影本（低收或中低收入戶申請者須檢附）。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "洽辦單位及聯絡資訊"
+    },
+    {
+     "type": "p",
+     "text": "臺北市政府衛生局長期照護科，諮詢專線：1999（外縣市02-27208889）轉7082 蔡小姐"
+    },
+    {
+     "type": "li",
+     "text": "臨櫃辦理：本府市政大樓1樓北區聯合服務中心",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "郵寄地址：臺北市信義區市府路1號西南區2樓（臺北市政府衛生局長期照護科收）。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "線上申請：台北服務通或輔具線上申辦系統",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "網站連結"
+    },
+    {
+     "type": "p",
+     "text": "臺北市政府衛生局身心障礙者醫療費用及輔具補助"
+    },
+    {
+     "type": "link",
+     "text": "臺北市政府衛生局身心障礙者醫療費用及輔具補助",
+     "href": "https://health.gov.taipei/News_Content.aspx?n=D56D4526BAFD2B49&sms=6E2A097A1533681B&s=6667BFB0C872A380"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "交通方式"
+    },
+    {
+     "type": "p",
+     "text": "臺北市政府衛生局長期照護科（臺北市信義區市府路1號西南區2F）"
+    },
+    {
+     "type": "li",
+     "text": "公車路線：可搭乘 20、28、202、266、266（區間）、270（區間車）、281、311、647、912、915、935、棕6、棕7、綠1至市政府站下車。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "捷運路線：可搭乘板南線至捷運市政府站下車或搭乘淡水信義線至台北101/世貿站下車。",
+     "level": 1,
+     "ordered": true
+    }
+   ]
+  },
+  "otherdetail4": {
+   "title": "身心障礙者職務再設計服務",
+   "blocks": [
+    {
+     "type": "h",
+     "level": 2,
+     "text": "臺北市勞動力重建運用處"
+    },
+    {
+     "type": "p",
+     "text": "身心障礙者職務再設計服務"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "服務內容"
+    },
+    {
+     "type": "p",
+     "text": "「職務再設計」是協助身心障礙者順利進入職場及穩定就業的服務措施，透過專業評估，重新設計或安排身心障礙者的職務流程、提供就業輔具、改善職場環境等，以協助身心障礙者增進工作效率和穩定就業。"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "服務對象"
+    },
+    {
+     "type": "p",
+     "text": "下列人員、機關（構）或團體得申請職務再設計服務及補助（以下簡稱申請者）："
+    },
+    {
+     "type": "p",
+     "text": "一、僱用或擬僱用身心障礙者。"
+    },
+    {
+     "type": "p",
+     "text": "二、身心障礙自營作業者。"
+    },
+    {
+     "type": "p",
+     "text": "三、受僱之身心障礙者。"
+    },
+    {
+     "type": "p",
+     "text": "四、訓練身心障礙者之公、私立職業訓練機構及接受政府委託辦理職業訓練之機構。"
+    },
+    {
+     "type": "p",
+     "text": "五、接受政府委託或補助辦理身心障礙者居家就業服務之機構。"
+    },
+    {
+     "type": "p",
+     "text": "（前項之身心障礙者，其工作或受訓地點應位於臺北市。）"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "應備文件"
+    },
+    {
+     "type": "li",
+     "text": "申請表(公家單位須以正式公文向重建處提出申請)。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "身心障礙手冊正、反面影本。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "公司或單位合法設立之相關證明文件影本。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "身心障礙員工勞保或公保證明文件（擬僱用者得於受僱後補件）。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "若該員工職務涉及其他公家單位之委託或補助方案者，應檢附計畫書、核定公文及相關文件（如契約等）。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "助聽器使用之需求者另應檢附 3 個月內由合格聽力師出具之聽力檢測報告，項目包括：1.純音聽力。2.語音聽力(SRT、SDS)。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "無障礙環境改善需求者應檢附建築物所有權狀影本、建築物所有權人同意書。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "臺北市勞動力重建運用處身心障礙者職務再設計服務申請權利義務說明書。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "li",
+     "text": "其他因申請身分不同所需之相關文件，例如：在職證明、執業證明文件、薪資所得證明影本、同意書、切結書、所從事自營作業職業工會勞工保險投保證明等。",
+     "level": 1,
+     "ordered": true
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "洽辦單位及聯絡資訊"
+    },
+    {
+     "type": "p",
+     "text": "臺北市勞動力重建運用處身障輔助課（臺北市萬華區艋舺大道101號4、5樓）"
+    },
+    {
+     "type": "p",
+     "text": "電話：2338-1600分機5113、5115、5119"
+    },
+    {
+     "type": "p",
+     "text": "國立陽明交通大學ICF暨輔助科技研究中心(台北市北投區石牌路2段322號B1)"
+    },
+    {
+     "type": "p",
+     "text": "電話：(02)2874-3415#227-228"
+    },
+    {
+     "type": "h",
+     "level": 2,
+     "text": "網站連結"
+    },
+    {
+     "type": "p",
+     "text": "臺北市勞動力重建運用處"
+    },
+    {
+     "type": "link",
+     "text": "臺北市勞動力重建運用處",
+     "href": "https://fd.gov.taipei/cp.aspx?n=44A40C74FF25ED19"
+    }
+   ]
+  }
+ }
+}

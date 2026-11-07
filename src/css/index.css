@@ -21,3 +21,296 @@
   overflow: hidden !important;
   height: 100dvh;
 }
+
+@layer components {
+  /* 輔具預約：鍵盤焦點外框，使用品牌深青色以維持對比 */
+  .a11y-focus {
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600;
+  }
+}
+
+/* 城市通 Figma「Foundation & UI kit」規範：字級（H2 24/32、H3 16/22、Body 14/20，只用 regular 與 semibold）與元件外觀 */
+@layer components {
+  .tp-h2 {
+    @apply text-2xl font-semibold;
+    line-height: 2rem;
+  }
+  .tp-h3 {
+    @apply text-base;
+    line-height: 1.375rem;
+  }
+  .tp-h3-semibold {
+    @apply text-base font-semibold;
+    line-height: 1.375rem;
+  }
+  /* Card：白底、圓角 3、柔和陰影，放在 Grey/50 底上 */
+  .tp-card {
+    @apply rounded-[3px] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.04)];
+  }
+  /* Tag：膠囊、主色外框 */
+  .tp-tag {
+    @apply inline-block rounded-full border border-primary-500 px-3 py-0.5 text-sm text-primary-700;
+  }
+}
+
+/* 輔具預約的無障礙補強 */
+@layer components {
+  /* Figma Primary/500 配白字只有 2.4:1，未達 WCAG AA；輔具預約內的按鈕改用 Primary/700（5.9:1）。 */
+  .assistive-scope .base-button:not(.base-button--outline):not(.base-button--disabled) {
+    @apply bg-primary-700;
+  }
+  .assistive-scope .base-button--outline {
+    @apply border-primary-700 text-primary-700;
+  }
+  /* 連結形式的按鈕是 <a>（預設 inline）：不是 flex／grid 的子元素時，w-full、mt-* 都不會生效，
+     內距還會蓋到上一行文字。改成 flex 並置中，旁邊的按鈕換行變高時文字仍在中間，和 <button> 一樣。 */
+  .assistive-scope a.base-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  /* Android 沒有 PingFang，系統字型沒有 600 這一級，半粗會退回一般字重；Android 上改用 700 保留層次。 */
+  .assistive-android .font-semibold,
+  .assistive-android .tp-h2,
+  .assistive-android .tp-h3-semibold {
+    font-weight: 700;
+  }
+}
+
+/* 輔具預約的分頁（共用 ServiceTabs）：Primary/500 字在白底只有 2.4:1，作用中分頁改用 Primary/700 */
+@layer components {
+  .assistive-scope .tab-label--active {
+    @apply text-primary-700;
+  }
+  .assistive-scope .slider {
+    @apply bg-primary-700;
+  }
+  /* 分頁高度達 44px 以上：撐高按鈕本身，不留在按鈕下方的死空間 */
+  .assistive-scope .tab-label {
+    @apply mb-0 py-3;
+  }
+  .assistive-scope .tabs {
+    container-type: inline-size;
+  }
+  /* 文字放大到約 120% 以上，兩個分頁並排會被擠成多行：改成一列一個，作用中用底線標示 */
+  @container (max-width: 18rem) {
+    .assistive-scope .tab-label {
+      grid-column: 1 / -1;
+      box-shadow: inset 0 -1px 0 theme('colors.grey.200');
+    }
+    .assistive-scope .tab-label--active {
+      box-shadow: inset 0 -3px 0 theme('colors.primary.700');
+    }
+    .assistive-scope .slider {
+      display: none;
+    }
+  }
+}
+
+/* 文字放大到約 175% 以上時，勾選列右側的縮圖／圖示讓位給文字（縮圖只是裝飾，名稱仍是文字） */
+@layer components {
+  .assistive-scope fieldset {
+    container-type: inline-size;
+  }
+  @container (max-width: 12rem) {
+    .assistive-scope .a-choice-tile {
+      display: none;
+    }
+  }
+}
+
+/* 文字放大（約 135% 以上）時的版面：寬度用 rem 量，字放大後同樣的螢幕寬度就「變窄」 */
+@layer components {
+  /* 名稱／內容兩欄（確認資料、預約明細）：放大後名稱改放在內容上方，不把預約編號、電話擠成一字一行 */
+  .assistive-scope .a-dl {
+    container-type: inline-size;
+  }
+  .assistive-scope .a-dl-row {
+    display: grid;
+    grid-template-columns: var(--a-dt, 5rem) minmax(0, 1fr);
+    column-gap: 0.75rem;
+  }
+  @container (max-width: 16rem) {
+    .assistive-scope .a-dl-row {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 0.25rem;
+    }
+  }
+  /* 兩欄排列（選擇輔具的卡片、身高體重欄位）：放大後改成一欄 */
+  .assistive-scope .a-grid-fit {
+    container-type: inline-size;
+  }
+  @container (max-width: 18rem) {
+    .assistive-scope .a-grid-fit > * {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  /* 輔具卡片：太窄時收起照片（照片只是輔助，品名與規格仍完整） */
+  .assistive-scope .a-item-card {
+    container-type: inline-size;
+  }
+  @container (max-width: 13rem) {
+    .assistive-scope .a-item-photo {
+      display: none;
+    }
+  }
+}
+
+/* 超大字級（400%）時，電話號碼、長標題這類找不到斷行點的字串也要能換行，不能把版面撐出螢幕 */
+@layer components {
+  .assistive-scope {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* 文字放大到約 230% 以上，首頁大卡的三張照片會被擠成細條：直接收起（照片只是裝飾） */
+@layer components {
+  .assistive-hero {
+    container-type: inline-size;
+  }
+  @container (max-width: 7rem) {
+    .assistive-hero .assistive-hero-photos {
+      display: none;
+    }
+  }
+}
+
+/* Windows 高對比（forced-colors）：背景色與陰影會被系統取消，狀態改用系統色的線條與底線表示 */
+@media (forced-colors: active) {
+  .assistive-scope .slider {
+    forced-color-adjust: none;
+    background-color: Highlight;
+  }
+  .assistive-scope .tab-label--active {
+    text-decoration: underline;
+    border-bottom: 3px solid Highlight;
+  }
+  .assistive-scope label:has(input:checked) {
+    outline: 2px solid Highlight;
+  }
+  .assistive-hero {
+    background-image: none;
+    border: 1px solid ButtonText;
+  }
+}
+
+/* ---- 輔具預約的動態效果：只在使用者沒有開「減少動態效果」時才有 ---- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes a-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* 換頁：往前從右滑入、返回從左滑入（只動內容，底部按鈕列不動） */
+  .a-enter-forward {
+    animation: a-in-right 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .a-enter-back {
+    animation: a-in-left 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  /* 清單與卡片依序浮現（--i 是順序，最多延遲約 0.4 秒） */
+  .a-rise {
+    animation: a-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 50ms);
+  }
+  .a-drop {
+    animation: a-drop 0.24s ease-out both;
+  }
+  .a-pop {
+    animation: a-pop 0.45s cubic-bezier(0.25, 1, 0.5, 1) 0.12s both;
+  }
+  .a-progress {
+    transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* 按下的回饋與選取時的顏色變化 */
+  .assistive-scope a,
+  .assistive-scope button {
+    transition:
+      transform 0.12s ease,
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease;
+  }
+  .assistive-scope a:active,
+  .assistive-scope button:not(:disabled):active {
+    transform: scale(0.98);
+  }
+  .assistive-scope label {
+    transition:
+      border-color 0.18s ease,
+      background-color 0.18s ease;
+  }
+
+  /* 送出中的按鈕前面轉圈圈 */
+  .assistive-scope button[aria-busy='true']::before {
+    content: '';
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    margin-right: 0.5em;
+    vertical-align: -0.15em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 9999px;
+    animation: a-spin 0.7s linear infinite;
+  }
+}
+
+/* 標題換行時讓各行長度接近，避免最後一行只剩一兩個字 */
+.assistive-scope h1,
+.assistive-scope h2 {
+  text-wrap: balance;
+}

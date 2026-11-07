@@ -47,12 +47,15 @@ import FeePaymentStepView from '@/views/FeePaymentStepView.vue';
 import FeePaymentFinishedView from '@/views/FeePaymentFinishedView.vue';
 import SportaView from '@/views/Sport/SportaView.vue';
 import SportaEventDetail from '@/views/SportaEventDetail.vue';
+import { assistiveRoutes } from './assistive';
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior() {
     return { top: 0 };
   },
   routes: [
+    ...assistiveRoutes,
     {
       path: '/',
       name: 'home',
