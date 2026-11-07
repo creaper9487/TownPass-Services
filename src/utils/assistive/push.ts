@@ -9,7 +9,7 @@
 import { inApp } from '@/composables/useAssistiveNative';
 import { useConnectionMessage } from '@/composables/useConnectionMessage';
 import { webMailbox, withMailbox } from './api';
-import { hasBackend, requestJson } from './remote';
+import { ApiError, hasBackend, requestJson } from './remote';
 
 /** 後端的公告主題（service.notice）；App 同意推播後順便訂閱 */
 const TOPICS = ['assistive-notice'];
@@ -70,6 +70,18 @@ const requestToken = (silent: boolean): Promise<string | null> =>
     useConnectionMessage('push_token', { silent, topics: TOPICS });
   });
 
+/** 後端還認得這個信箱嗎？後端資料被清掉（重啟、換環境）時不認得，之前記下的登記就已經失效。連不上時當作還認得，不重複折騰。 */
+const mailboxKnown = async (box: { id: string; key: string }) => {
+  try {
+    await requestJson('GET', `/mailboxes/${encodeURIComponent(box.id)}/events?wait=0`, undefined, {
+      Authorization: `Bearer ${box.key}`
+    });
+    return true;
+  } catch (e) {
+    return !(e instanceof ApiError && [401, 403, 404].includes(e.status));
+  }
+};
+
 let inFlight: Promise<boolean> | null = null;
 
 /**
@@ -94,7 +106,9 @@ const register = async (silent: boolean): Promise<boolean> => {
       return false;
     }
     const box = await webMailbox();
-    if (saved?.mailboxId === box.id && saved.token === token) return true;
+    if (saved?.mailboxId === box.id && saved.token === token && (await mailboxKnown(box))) {
+      return true;
+    }
     // 同一支手機換了 token（重新安裝、換成新的註冊方式）：先請後端移除舊的，不然會收到兩份推播
     if (saved?.mailboxId === box.id) await removeFromBackend(box, saved.token);
     await withMailbox((b) =>
