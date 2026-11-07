@@ -74,6 +74,45 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
 - 事件仍會寫進信箱，App 打開時用 `/mailboxes/{id}/events` 補拉，推播漏掉也不會少資料。
 - 設定 `FCM_PROJECT_ID`、`FCM_CREDENTIALS_FILE`（Firebase 服務帳號金鑰，不要 commit）才會真的發。
 
+## 測試模式（TEST_MODE）
+
+`.env` 設 `TEST_MODE=true` 後啟動 server（`python app/main.py`）：
+
+- 爬蟲**不連官網**，改用 `app/tools/testdata.py` 的固定假資料：12 類 62 款、3 間中心、行事曆（例假日 / 國定假日 /
+  臨時休館 / 補班）、4 則公告。欄位刻意做得變化多（沒圖、規格空、說明很長、名稱很長、庫存 0 / 999…）方便測相容性。
+- 開放 `/assistive/v1/_test/*` 測試 API（正式模式回 404），可以直接觸發各種狀態，不用等時間、不用中心系統。
+- 沒設定 FCM 也會跑完整推播流程，結果記成 `disabled`；設定了就真的送到手機。
+- 每一則推播都記錄在本機 DB（`DB_PATH`，預設 `data/local.db`）的 `push_log`。
+
+**正式環境一定要 `TEST_MODE=false`。**
+
+### CLI 推播 / 狀態測試工具
+
+```bash
+python -m app.cli --help
+```
+
+| 指令 | 需要 server | 做什麼 |
+|---|---|---|
+| `devices` | | 列出 DB 裡登記的手機 |
+| `push --token <token>` / `--mailbox mb_x` / `--all` `[--type ...]` | | 直接推一則通知（預設「預約成功」） |
+| `topic --title "..."` | | 推公告到 topic |
+| `types` | | 列出 8 種通知與文案 |
+| `outbox` / `watch` | | 看推播紀錄 / 即時顯示新推播 |
+| `state` | ✓ | 信箱、預約、裝置、最近推播 |
+| `scenario --token <token>` | ✓ | 建信箱 + 登記手機 + 借用預約（推「預約成功」） |
+| `trigger <預約編號> pickup_reminder\|expired\|confirmed\|completed\|cancelled` | ✓ | 讓預約進入該狀態並推播 |
+| `stock <variant_id> <數量>` | ✓ | 設定庫存；0 → >0 推「到貨通知」 |
+| `notice "標題"` | ✓ | 發公告 |
+| `flow --token <token>` | ✓ | 一次跑完：預約成功 → 取貨提醒 → 逾期 |
+
+用手機測：App 拿到 FCM token 後，`python -m app.cli flow --token <token>`，手機應該依序收到三則通知。
+
+## 本機 DB
+
+`app/tools/db.py`（SQLite，Python 內建，不用另外裝）。目前存 `devices`（推播裝置）與 `push_log`（推播紀錄），
+server 重啟不會不見；server 和 CLI 讀同一個檔案。其他資料（信箱、預約、庫存）仍在記憶體。
+
 ## 開發
 
 ```bash
@@ -86,6 +125,6 @@ pytest
 
 ## 尚未完成（TODO）
 
-- 資料庫：目前全在記憶體，重啟即消失（換 DB 只改各 feature 的 repository.py）
+- 資料庫：裝置與推播紀錄已在 SQLite；信箱、預約、庫存仍在記憶體，重啟即消失（換 DB 只改各 feature 的 repository.py）
 - 送件佇列個資的 KMS 加密
 - Rate limit（每信箱寫入 ≤ 10 次/分、讀取 ≤ 120 次/分）

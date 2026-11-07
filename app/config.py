@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_name: str = "Taipei Codefest 2026 Backend"
+
+    # 測試模式：爬蟲改回傳固定假資料（不連官網），並開放 /_test/* 測試 API。正式環境一定要 false。
+    test_mode: bool = False
+    # 本機 SQLite（推播裝置、推播紀錄）
+    db_path: str = "data/local.db"
     debug: bool = False
     api_prefix: str = "/assistive/v1"
     cors_origins: list[str] = ["*"]

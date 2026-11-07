@@ -5,8 +5,9 @@
 
 from fastapi import APIRouter
 
-from app.routers import catalog, centers, devices, health, hooks, mailboxes, reservations, stock, subscriptions
+from app.routers import (catalog, centers, devices, health, hooks, mailboxes, reservations, stock, subscriptions,
+                         testing)
 
 api_router = APIRouter()
-for r in (health, catalog, centers, stock, mailboxes, devices, reservations, subscriptions, hooks):
+for r in (health, catalog, centers, stock, mailboxes, devices, reservations, subscriptions, hooks, testing):
     api_router.include_router(r.router)

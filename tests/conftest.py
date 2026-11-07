@@ -1,6 +1,8 @@
 import os
 
 os.environ["ENABLE_BACKGROUND_JOBS"] = "false"
+os.environ["DB_PATH"] = ":memory:"  # 測試不寫到 data/local.db
+os.environ["TEST_MODE"] = "false"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

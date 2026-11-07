@@ -23,6 +23,7 @@ from app.config import get_settings
 from app.features import jobs
 from app.routers import api_router
 from app.tools.exceptions import register_exception_handlers
+from app.tools import db
 from app.tools.http_client import close_http_client
 from app.tools.logger import get_logger
 
@@ -32,10 +33,13 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application startup")
+    if get_settings().test_mode:
+        logger.warning("⚠ TEST_MODE=true：爬蟲使用固定假資料，/_test/* 測試 API 已開放。正式環境請關閉！")
     tasks = jobs.start() if get_settings().enable_background_jobs else []
     yield
     await jobs.stop(tasks)
     await close_http_client()
+    db.close()
     logger.info("Application shutdown")
 
 

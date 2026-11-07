@@ -12,14 +12,16 @@ FCM data：{type, event_id, reservation_id?, variant_id?}
 """
 
 import asyncio
+import json
 from dataclasses import dataclass
 
 from app.config import get_settings
 from app.features.devices import service as devices_service
 from app.features.mailbox.schemas import Event
 from app.features.notification import texts
-from app.tools import fcm
+from app.tools import db, fcm
 from app.tools.logger import get_logger
+from app.tools.timeutil import now
 
 logger = get_logger(__name__)
 
@@ -31,6 +33,7 @@ class PendingPush:
     message: dict
     token: str | None  # None = topic
     attempts: int
+    mailbox_id: str | None = None
 
 
 _retry_queue: list[PendingPush] = []
@@ -69,8 +72,21 @@ def _data(event: Event) -> dict:
     }
 
 
+def log_push(push: PendingPush, result: "fcm.SendResult") -> None:
+    """每一則推播都記到本機 DB 的 push_log（CLI `outbox` 可以看）。token 只存前 12 碼。"""
+    m = push.message["message"]
+    target = f"{push.token[:12]}…" if push.token else f"topic:{m.get('topic')}"
+    db.execute(
+        "INSERT INTO push_log(created_at, target, mailbox_id, type, title, body, data, result) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (now().isoformat(), target, push.mailbox_id, m["data"].get("type"), m["notification"]["title"],
+         m["notification"]["body"], json.dumps(m["data"], ensure_ascii=False), result.value),
+    )
+
+
 async def _deliver(push: PendingPush) -> None:
     result = await fcm.send(push.message)
+    log_push(push, result)
     if result == fcm.SendResult.INVALID_TOKEN and push.token:
         devices_service.remove(push.token)
     elif result == fcm.SendResult.RETRY:
@@ -83,17 +99,17 @@ async def _deliver(push: PendingPush) -> None:
 
 def notify_event(mailbox_id: str, event: Event) -> None:
     """mailbox 寫入事件後呼叫。不阻塞呼叫端。"""
-    if not fcm.is_enabled():
-        return
+    if not fcm.is_enabled() and not get_settings().test_mode:
+        return  # 測試模式下沒設定 FCM 也照樣跑流程，結果記成 disabled，方便看推了什麼
     title, body = _event_text(event)
     for token in devices_service.tokens_of(mailbox_id):
         msg = fcm.build_message(title=title, body=body, data=_data(event), token=token)
-        _spawn(_deliver(PendingPush(msg, token, 0)))
+        _spawn(_deliver(PendingPush(msg, token, 0, mailbox_id)))
 
 
 def notify_topic(event: Event) -> None:
     """公告：發一次到 topic，所有訂閱 assistive-notice 的 App 都會收到。"""
-    if not fcm.is_enabled():
+    if not fcm.is_enabled() and not get_settings().test_mode:
         return
     title, body = _event_text(event)
     msg = fcm.build_message(title=title, body=body, data=_data(event), topic=get_settings().fcm_notice_topic)
