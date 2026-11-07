@@ -31,6 +31,7 @@ import time
 
 import httpx
 
+from app import config
 from app.config import get_settings
 
 
@@ -40,7 +41,7 @@ def _print_json(data) -> None:
 
 
 def _api(args) -> str:
-    return args.server.rstrip("/") + get_settings().api_prefix
+    return args.server.rstrip("/") + config.API_PREFIX
 
 
 def _call(args, method: str, path: str, **kw):
@@ -85,10 +86,8 @@ def cmd_types(args) -> None:
 
 def cmd_push(args) -> None:
     from app.features.devices import repository as repo
-    from app.features.notification import texts
-    from app.features.notification.service import PendingPush, log_push
+    from app.features.notification.service import send_direct
     from app.tools import fcm
-    from app.tools.security import new_id
 
     if args.token:
         targets = [(args.token, args.mailbox)]
@@ -101,38 +100,23 @@ def cmd_push(args) -> None:
     if not targets:
         sys.exit("✗ 找不到裝置（python -m app.cli devices 看已登記的）")
 
-    title, body = texts.build(args.type, deadline=args.deadline, center_id=args.center, notice_title=args.title)
-    data = {"type": args.type, "event_id": new_id("ev"), "reservation_id": args.reservation_id,
-            "variant_id": args.variant_id}
     if not fcm.is_enabled():
         print("· 沒設定 Firebase，推播只記錄在本機（[local]），不會送到手機")
-
-    async def run():
-        for token, mailbox_id in targets:
-            push = PendingPush(fcm.build_message(title=title, body=body, data=data, token=token), token, 0, mailbox_id)
-            result = await fcm.send(push.message)
-            log_push(push, result)
-            print(f"{'✓' if result == fcm.SendResult.OK else '·' if result == fcm.SendResult.LOCAL else '✗'} "
-                  f"[{result.value}] {token[:16]}…  {title}｜{body}")
-            if result == fcm.SendResult.INVALID_TOKEN:
-                repo.delete(token)
-                print("  token 已失效，已從 DB 移除")
-
-    asyncio.run(run())
+    results = asyncio.run(send_direct(targets, args.type, reservation_id=args.reservation_id,
+                                      variant_id=args.variant_id, deadline=args.deadline, center_id=args.center,
+                                      notice_title=args.title))
+    for r in results:
+        mark = {"ok": "✓", "local": "·"}.get(r["result"], "✗")
+        print(f"{mark} [{r['result']}] {r['token']}  {r['title']}｜{r['body']}")
+        if r["result"] == "invalid_token":
+            print("  token 已失效，已從 DB 移除")
 
 
 def cmd_topic(args) -> None:
-    from app.features.notification import texts
-    from app.features.notification.service import PendingPush, log_push
-    from app.tools import fcm
-    from app.tools.security import new_id
+    from app.features.notification.service import send_topic
 
-    title, body = texts.build("service.notice", notice_title=args.title)
-    msg = fcm.build_message(title=title, body=body, data={"type": "service.notice", "event_id": new_id("ev")},
-                            topic=get_settings().fcm_notice_topic)
-    result = asyncio.run(fcm.send(msg))
-    log_push(PendingPush(msg, None, 0), result)
-    print(f"[{result.value}] topic:{get_settings().fcm_notice_topic}  {title}｜{body}")
+    r = asyncio.run(send_topic(args.title))
+    print(f"[{r['result']}] {r['target']}  {r['title']}｜{r['body']}")
 
 
 def cmd_outbox(args) -> None:

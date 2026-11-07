@@ -1,5 +1,6 @@
 """入站 webhook（中心 → 我們）：驗 HMAC 簽章、以 event_id 去重、分派到對應 feature。"""
 
+from app import config
 from app.config import get_settings
 from app.features.hooks.schemas import CenterStatusHook, CenterStockHook
 from app.features.reservation import service as reservation_service
@@ -13,7 +14,7 @@ _seen_event_ids: set[str] = set()  # TODO: 正式版放資料庫並設保存期�
 
 def verify(body: bytes, timestamp: str | None, signature: str | None) -> None:
     s = get_settings()
-    if not verify_signature(s.hook_secret, timestamp or "", body, signature or "", s.hook_max_skew_seconds):
+    if not verify_signature(s.hook_secret, timestamp or "", body, signature or "", config.HOOK_MAX_SKEW_SECONDS):
         raise E.AppError("BAD_SIGNATURE", 401, "簽章驗證失敗")
 
 

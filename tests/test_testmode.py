@@ -93,3 +93,52 @@ def test_cli_direct_push_and_outbox(test_mode, capsys):
     assert TOKEN in out
     assert "到貨通知｜你訂閱的輔具已到貨，可以預約了" in out
     assert "topic:assistive-notice" in out and "CLI 公告" in out
+
+
+def test_api_switches_in_config(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app import config
+    from app.main import create_app
+
+    monkeypatch.setitem(config.API_ENABLED, "reservations", False)
+    monkeypatch.setitem(config.API_ENABLED, "devices", False)
+    c = TestClient(create_app())
+    assert c.post(f"{P}/reservations", json={}).status_code == 404
+    assert c.post(f"{P}/devices", json={}).status_code == 404
+    assert c.get(f"{P}/health").status_code == 200
+
+
+def test_test_api_needs_config_and_env(client, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app import config
+    from app.main import create_app
+
+    monkeypatch.setattr(get_settings(), "test_mode", True)
+    assert client.get(f"{P}/_test/panel").status_code == 200
+    monkeypatch.setitem(config.API_ENABLED, "test", False)
+    assert TestClient(create_app()).get(f"{P}/_test/state").status_code == 404
+
+
+def test_panel_endpoints_direct_push_and_events(client, test_mode):
+    html = client.get(f"{P}/_test/panel")
+    assert html.status_code == 200 and "推播測試面板" in html.text
+
+    d = client.post(f"{P}/_test/devices", json={}).json()
+    mb = d["mailbox_id"]
+    assert d["device_token"] == f"local-{mb}" and d["mailbox_key"]
+    d2 = client.post(f"{P}/_test/devices", json={"token": TOKEN, "mailbox_id": mb}).json()
+    assert d2["mailbox_key"] is None and devices_repo.get(TOKEN).mailbox_id == mb
+
+    for t in ("reservation.booked", "stock.arrived", "service.notice"):
+        res = client.post(f"{P}/_test/push", json={"type": t, "mailbox_id": mb, "title": "面板公告"}).json()
+        assert len(res["results"]) == 2 and {r["result"] for r in res["results"]} == {"local"}
+    topic = client.post(f"{P}/_test/push", json={"type": "service.notice", "topic": True, "title": "T"}).json()
+    assert topic["results"][0]["target"] == "topic:assistive-notice"
+    assert client.post(f"{P}/_test/push", json={"type": "stock.arrived"}).status_code == 422
+
+    client.post(f"{P}/_test/notices", json={"title": "寫入信箱"})
+    ev = client.get(f"{P}/_test/events?mailbox_id={mb}").json()["events"]
+    assert [e["type"] for e in ev] == ["service.notice"]
+    assert client.get(f"{P}/_test/events?mailbox_id=nope").status_code == 404

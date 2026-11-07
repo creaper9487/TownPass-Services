@@ -6,21 +6,29 @@
     POST /_test/reservations/{id}/trigger      讓預約進入某個狀態（會推對應通知）
     POST /_test/stock                          設定某款庫存（0 → >0 會推「到貨通知」）
     POST /_test/notices                        發一則公告（推「服務公告」）
-CLI（python -m app.cli）就是在打這些 API。
+    POST /_test/devices                        直接登記一支手機的 FCM token（不用 mailbox_key）
+    POST /_test/push                           不改任何狀態，直接推一則指定類型的通知
+    GET  /_test/events?mailbox_id=             看某信箱收到的事件（= App pull 會拿到的內容）
+    GET  /_test/panel                          測試面板網頁：按按鈕直接推送、看結果
+CLI（python -m app.cli）也是在打這些 API。
+開關：app/config.py 的 API_ENABLED["test"] + .env 的 TEST_MODE=true。
 """
 
 import json
 from datetime import timedelta
+from pathlib import Path
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
-from app.config import get_settings
+from app import config
 from app.features.devices import repository as devices_repo
 from app.features.devices import service as devices_service
 from app.features.mailbox import repository as mailbox_repo
 from app.features.mailbox import service as mailbox_service
+from app.features.notification import service as notification_service
 from app.features.reservation import repository as reservation_repo
 from app.features.reservation import service as reservation_service
 from app.features.reservation.schemas import ReservationCreate
@@ -34,7 +42,7 @@ from app.tools.timeutil import today
 
 
 def require_test_mode() -> None:
-    if not get_settings().test_mode:
+    if not config.test_api_enabled():
         raise HTTPException(status_code=404)
 
 
@@ -43,11 +51,24 @@ router = APIRouter(prefix="/_test", tags=["test mode"], dependencies=[Depends(re
 TEST_CONTACT = {"name": "測試使用者", "mobile": "0900000000", "gender": "X"}
 
 
+PANEL_HTML = Path(__file__).resolve().parent.parent / "static" / "test_panel.html"
+
+EVENT_TYPES = ["reservation.booked", "reservation.pickup_reminder", "reservation.expired", "reservation.confirmed",
+               "reservation.completed", "reservation.cancelled", "stock.arrived", "service.notice"]
+
+
+@router.get("/panel", response_class=HTMLResponse, summary="測試面板（瀏覽器打開）")
+async def panel():
+    return HTMLResponse(PANEL_HTML.read_text(encoding="utf-8"))
+
+
 @router.get("/state", summary="狀態總覽")
 async def state(limit: int = 20):
     return {
         "test_mode": True,
         "fcm_enabled": fcm.is_enabled(),
+        "api_enabled": config.API_ENABLED,
+        "intervals": {"stock_sync_seconds": config.STOCK_SYNC_SECONDS, "push_check_minutes": config.PUSH_CHECK_MINUTES},
         "stock_version": stock_repo.current_version(),
         "mailboxes": [{"mailbox_id": m.id, "events": len(m.events), "next_cursor": m.next_cursor,
                        "devices": len(devices_repo.by_mailbox(m.id))} for m in mailbox_repo.mailboxes.values()],
@@ -139,3 +160,64 @@ async def notice(body: NoticeIn):
     count = mailbox_service.broadcast("service.notice", {"notice_id": new_id("notice"), "title": body.title,
                                                          "center_ids": body.center_ids})
     return {"mailboxes": count}
+
+
+class DeviceIn(BaseModel):
+    token: str | None = Field(None, description="手機的 FCM token；不給就用本機假裝置")
+    mailbox_id: str | None = Field(None, description="不給就新建一個信箱")
+
+
+@router.post("/devices", summary="直接登記一支手機（測試用，不用 mailbox_key）")
+async def register_device(body: DeviceIn):
+    mailbox_id, key = body.mailbox_id, None
+    if mailbox_id is None:
+        mb = mailbox_service.create()
+        mailbox_id, key = mb.mailbox_id, mb.mailbox_key
+    elif not mailbox_service.exists(mailbox_id):
+        raise E.not_found("信箱")
+    token = body.token or fcm.local_token(mailbox_id)
+    devices_service.register(mailbox_id, "fcm", token)
+    return {"mailbox_id": mailbox_id, "mailbox_key": key, "device_token": token}
+
+
+class PushIn(BaseModel):
+    type: Literal[tuple(EVENT_TYPES)] = "reservation.booked"  # type: ignore[valid-type]
+    token: str | None = Field(None, description="推給這個 token")
+    mailbox_id: str | None = Field(None, description="推給這個信箱所有裝置")
+    all: bool = Field(False, description="推給 DB 裡所有裝置")
+    topic: bool = Field(False, description="service.notice 推到 topic")
+    reservation_id: str | None = "B202611070001"
+    variant_id: str | None = None
+    center_id: Literal["heyi", "south", "west"] = "heyi"
+    deadline: str | None = None
+    title: str | None = Field(None, description="公告標題（service.notice）")
+
+
+@router.post("/push", summary="不改任何狀態，直接推一則通知")
+async def push(body: PushIn):
+    if body.topic:
+        return {"results": [await notification_service.send_topic(body.title or "測試公告")]}
+    if body.token:
+        targets = [(body.token, body.mailbox_id)]
+    elif body.mailbox_id:
+        targets = [(d.token, d.mailbox_id) for d in devices_repo.by_mailbox(body.mailbox_id)]
+    elif body.all:
+        targets = [(d.token, d.mailbox_id) for d in devices_repo.all_devices()]
+    else:
+        raise E.invalid_field(["token|mailbox_id|all|topic"])
+    if not targets:
+        raise E.not_found("裝置")
+    results = await notification_service.send_direct(
+        targets, body.type, reservation_id=body.reservation_id if body.type.startswith("reservation.") else None,
+        variant_id=body.variant_id or ("181" if body.type == "stock.arrived" else None),
+        deadline=body.deadline or (today() + timedelta(days=1)).isoformat(), center_id=body.center_id,
+        notice_title=body.title)
+    return {"results": results}
+
+
+@router.get("/events", summary="某信箱收到的事件（= App pull 會拿到的）")
+async def events(mailbox_id: str, cursor: int = 0):
+    row = mailbox_repo.mailboxes.get(mailbox_id)
+    if row is None:
+        raise E.not_found("信箱")
+    return {"events": [e.model_dump(mode="json") for e in mailbox_service.events_after(row, cursor)]}

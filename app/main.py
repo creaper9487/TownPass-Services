@@ -19,9 +19,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app import config
 from app.config import get_settings
 from app.features import jobs
-from app.routers import api_router
+from app.routers import build_api_router
 from app.tools.exceptions import register_exception_handlers
 from app.tools import db
 from app.tools.http_client import close_http_client
@@ -34,7 +35,10 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("Application startup")
     if get_settings().test_mode:
-        logger.warning("⚠ TEST_MODE=true：爬蟲使用固定假資料，/_test/* 測試 API 已開放。正式環境請關閉！")
+        logger.warning("⚠ TEST_MODE=true：爬蟲使用固定假資料。正式環境請關閉！")
+        if config.test_api_enabled():
+            s = get_settings()
+            logger.warning("⚠ 測試面板：http://%s:%s%s/_test/panel", s.host, s.port, config.API_PREFIX)
     tasks = jobs.start() if get_settings().enable_background_jobs else []
     yield
     await jobs.stop(tasks)
@@ -44,20 +48,18 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    settings = get_settings()
-
-    app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
+    app = FastAPI(title=config.APP_NAME, debug=config.DEBUG, lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=config.CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     register_exception_handlers(app)
-    app.include_router(api_router, prefix=settings.api_prefix)
+    app.include_router(build_api_router(), prefix=config.API_PREFIX)
 
     return app
 

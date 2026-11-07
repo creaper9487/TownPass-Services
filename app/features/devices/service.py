@@ -6,6 +6,7 @@
 - FCM 回報 token 失效時由 notification 呼叫 remove()。
 """
 
+from app import config
 from app.config import get_settings
 from app.features.devices import repository as repo
 from app.tools.timeutil import now
@@ -14,7 +15,7 @@ from app.tools.timeutil import now
 def register(mailbox_id: str, platform: str, token: str) -> None:
     repo.upsert(repo.DeviceRow(token, mailbox_id, platform, now()))
     mine = repo.by_mailbox(mailbox_id)
-    for old in mine[: max(0, len(mine) - get_settings().max_devices_per_mailbox)]:
+    for old in mine[: max(0, len(mine) - config.MAX_DEVICES_PER_MAILBOX)]:
         repo.delete(old.token)
 
 

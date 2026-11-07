@@ -10,7 +10,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 
-from app.config import get_settings
+from app import config
 from app.features.forwarding import service as forwarding_service
 from app.features.mailbox import service as mailbox_service
 from app.features.notification import notice_watch
@@ -51,12 +51,11 @@ async def _push_check() -> None:
 
 
 def start() -> list[asyncio.Task]:
-    s = get_settings()
     return [
-        asyncio.create_task(_loop("stock-sync", s.stock_sync_seconds, stock_service.sync_from_source)),
-        asyncio.create_task(_loop("minutely", s.expire_scan_seconds, _minutely)),
-        asyncio.create_task(_loop("forward", s.forward_retry_seconds, forwarding_service.process_due)),
-        asyncio.create_task(_loop("push-check", s.push_check_minutes * 60, _push_check)),
+        asyncio.create_task(_loop("stock-sync", config.STOCK_SYNC_SECONDS, stock_service.sync_from_source)),
+        asyncio.create_task(_loop("minutely", config.EXPIRE_SCAN_SECONDS, _minutely)),
+        asyncio.create_task(_loop("forward", config.FORWARD_RETRY_SECONDS, forwarding_service.process_due)),
+        asyncio.create_task(_loop("push-check", config.PUSH_CHECK_MINUTES * 60, _push_check)),
     ]
 
 
