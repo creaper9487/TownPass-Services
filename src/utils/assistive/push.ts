@@ -95,6 +95,8 @@ const register = async (silent: boolean): Promise<boolean> => {
     }
     const box = await webMailbox();
     if (saved?.mailboxId === box.id && saved.token === token) return true;
+    // 同一支手機換了 token（重新安裝、換成新的註冊方式）：先請後端移除舊的，不然會收到兩份推播
+    if (saved?.mailboxId === box.id) await removeFromBackend(box, saved.token);
     await withMailbox((b) =>
       requestJson(
         'POST',
@@ -110,19 +112,25 @@ const register = async (silent: boolean): Promise<boolean> => {
   }
 };
 
+const removeFromBackend = async (box: { id: string; key: string }, token: string) => {
+  try {
+    await requestJson(
+      'DELETE',
+      `/devices?mailbox_id=${encodeURIComponent(box.id)}`,
+      { token },
+      { Authorization: `Bearer ${box.key}` }
+    );
+  } catch {
+    /* 後端連不上或舊 token 已失效：後端推播失敗時會自己移除失效的 token */
+  }
+};
+
 const unregister = async (saved: Registered) => {
   try {
     const box = await webMailbox();
-    if (box.id === saved.mailboxId) {
-      await requestJson(
-        'DELETE',
-        `/devices?mailbox_id=${encodeURIComponent(box.id)}`,
-        { token: saved.token },
-        { Authorization: `Bearer ${box.key}` }
-      );
-    }
+    if (box.id === saved.mailboxId) await removeFromBackend(box, saved.token);
   } catch {
-    /* 後端連不上：先清掉這裡的紀錄，推播失敗時後端會自己移除失效的 token */
+    /* 信箱讀不到：只清掉這裡的紀錄 */
   }
   writeRegistered(null);
 };
