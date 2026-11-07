@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS push_log (
     title       TEXT,
     body        TEXT,
     data        TEXT,               -- JSON
-    result      TEXT NOT NULL       -- ok / invalid_token / retry / failed / disabled(=沒設定 FCM，只記錄)
+    result      TEXT NOT NULL       -- ok / invalid_token / retry / failed / local(=只記錄在本機，沒送到手機)
 );
 """
 

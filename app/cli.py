@@ -61,7 +61,7 @@ def _print_pushes(rows) -> None:
     if not rows:
         print("（還沒有推播紀錄）")
     for r in rows:
-        mark = {"ok": "✓", "disabled": "·", "retry": "↻"}.get(r["result"], "✗")
+        mark = {"ok": "✓", "local": "·", "retry": "↻"}.get(r["result"], "✗")
         print(f"{mark} #{r['id']} {r['created_at'][11:19]} [{r['result']}] {r['type']} → {r['target']}")
         print(f"     {r['title']}｜{r['body']}")
 
@@ -105,14 +105,14 @@ def cmd_push(args) -> None:
     data = {"type": args.type, "event_id": new_id("ev"), "reservation_id": args.reservation_id,
             "variant_id": args.variant_id}
     if not fcm.is_enabled():
-        print("· FCM 未設定（FCM_PROJECT_ID / FCM_CREDENTIALS_FILE），只印出並記錄，不會真的送到手機")
+        print("· 沒設定 Firebase，推播只記錄在本機（[local]），不會送到手機")
 
     async def run():
         for token, mailbox_id in targets:
             push = PendingPush(fcm.build_message(title=title, body=body, data=data, token=token), token, 0, mailbox_id)
             result = await fcm.send(push.message)
             log_push(push, result)
-            print(f"{'✓' if result == fcm.SendResult.OK else '·' if result == fcm.SendResult.DISABLED else '✗'} "
+            print(f"{'✓' if result == fcm.SendResult.OK else '·' if result == fcm.SendResult.LOCAL else '✗'} "
                   f"[{result.value}] {token[:16]}…  {title}｜{body}")
             if result == fcm.SendResult.INVALID_TOKEN:
                 repo.delete(token)
@@ -183,7 +183,10 @@ def cmd_scenario(args) -> dict:
     print(f"  mailbox_key {r['mailbox_key']}（App 用這個呼叫 /devices、/subscriptions）")
     print(f"✓ 預約 {res['id']}  狀態 {res['status']}  中心 {r['center_id']}  取貨期限 {res['pickup']['deadline']}")
     print(f"  access_key {res['access_key']}")
-    print("✓ 已登記裝置，應該會收到「預約成功」" if r["device_registered"] else "· 沒給 --token，不會推到手機")
+    if r["device_token"].startswith("local-"):
+        print("· 沒給 --token：已登記本機假裝置，推播只記錄在本機（outbox / watch 看得到），不會送到手機")
+    else:
+        print("✓ 已登記手機，應該會收到「預約成功」")
     return r
 
 

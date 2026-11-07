@@ -100,7 +100,7 @@ async def _deliver(push: PendingPush) -> None:
 def notify_event(mailbox_id: str, event: Event) -> None:
     """mailbox 寫入事件後呼叫。不阻塞呼叫端。"""
     if not fcm.is_enabled() and not get_settings().test_mode:
-        return  # 測試模式下沒設定 FCM 也照樣跑流程，結果記成 disabled，方便看推了什麼
+        return  # 測試模式下沒設定 FCM 也照樣跑流程，結果記成 local，方便看推了什麼
     title, body = _event_text(event)
     for token in devices_service.tokens_of(mailbox_id):
         msg = fcm.build_message(title=title, body=body, data=_data(event), token=token)
