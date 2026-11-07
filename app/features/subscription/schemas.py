@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -8,3 +11,14 @@ class SubscriptionCreate(BaseModel):
 
 class SubscriptionCreated(BaseModel):
     id: str
+
+
+class SubscriptionOut(BaseModel):
+    """GET /subscriptions 每一筆。"""
+
+    id: str
+    variant_id: str
+    category_id: str | None
+    status: Literal["waiting", "arrived"]  # waiting = 等待中；arrived = 已到貨（已推播通知）
+    created_at: datetime
+    arrived_at: datetime | None

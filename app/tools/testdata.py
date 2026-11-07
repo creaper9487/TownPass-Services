@@ -8,7 +8,7 @@
     - 行事曆：例假日、國定假日、臨時休館、補班、午休兩段
     - 公告：全部中心、單一中心、已結束（不該出現）、尚未開始
 基本資料是固定的；config.TEST_SIMULATE_CHANGES = True 時，每次 fetch_stock 會「模擬官網資料變化」：
-    - 有人訂閱、目前缺貨的品項 → 變成有貨（觸發到貨通知推播），每次最多 TEST_SIM_ARRIVALS_PER_SYNC 個
+    - 有人訂閱（等待中）、目前缺貨的品項 → 變成有貨（觸發到貨通知推播），TEST_SIM_ARRIVALS_PER_SYNC = None 表示全部
     - 另外挑 2 個有貨的品項 → 變成 0（之後可以再訂閱）
     - 每 TEST_SIM_NOTICE_EVERY 次 → fetch_notices 多一則新公告（觸發公告推播）
 """
@@ -94,11 +94,13 @@ def _simulate() -> None:
     _sim["tick"] += 1
     tick, overrides = _sim["tick"], _sim["overrides"]
     current = {r["variant_id"]: r["stock"] for r in db.query("SELECT variant_id, stock FROM stock")}
-    subscribed = [r["variant_id"] for r in db.query("SELECT DISTINCT variant_id FROM subscriptions ORDER BY seq")]
-    arrivals = [v for v in subscribed if current.get(v, 0) == 0][: config.TEST_SIM_ARRIVALS_PER_SYNC]
+    subscribed = [r["variant_id"] for r in db.query(
+        "SELECT variant_id FROM subscriptions WHERE status = 'waiting' GROUP BY variant_id ORDER BY MIN(seq)")]
+    # 等待中的訂閱品項：不管現在庫存多少，這次都模擬成有貨（避免被假資料原本的 0 蓋回去）
+    arrivals = subscribed[: config.TEST_SIM_ARRIVALS_PER_SYNC]
     for v in arrivals:
         overrides[v] = (2, 1)
-    in_stock = sorted(v for v, n in current.items() if n > 0 and v not in arrivals)
+    in_stock = sorted(v for v, n in current.items() if n > 0 and v not in arrivals and v not in subscribed)
     for v in in_stock[(tick * 7) % max(len(in_stock), 1):][:2]:
         overrides[v] = (0, 1 + tick % 5)
     if tick % config.TEST_SIM_NOTICE_EVERY == 0:

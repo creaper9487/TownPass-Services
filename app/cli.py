@@ -154,10 +154,11 @@ def cmd_state(args) -> None:
     for r in s["reservations"]:
         print(f"  {r['id']}  {r['service']:<7} {r['status']:<10} {r['center_id']:<6} 期限 {r['pickup_deadline']}  "
               f"送件 {r['forward_state']}  信箱 {r['mailbox_id']}")
-    print(f"\n到貨訂閱（{len(s['subscriptions'])}）— 到貨通知後訂閱就會刪除")
+    print(f"\n到貨訂閱（{len(s['subscriptions'])}）")
     for x in s["subscriptions"]:
+        status = f"已到貨 {x['arrived_at'][11:19]}" if x["status"] == "arrived" else "等待中"
         warn = "" if x["devices"] else "  ⚠ 信箱沒有裝置，到貨時只寫進信箱、不會推播"
-        print(f"  品項 {x['variant_id']}  目前庫存 {x['stock']}  信箱 {x['mailbox_id']}{warn}")
+        print(f"  {x['id']}  品項 {x['variant_id']}  {status}  目前庫存 {x['stock']}  信箱 {x['mailbox_id']}{warn}")
     print(f"\n裝置（{len(s['devices'])}）")
     for d in s["devices"]:
         print(f"  {d['token']}  → {d['mailbox_id']}")
@@ -210,7 +211,7 @@ def cmd_sync(args) -> None:
     if notices:
         print(f"  service.notice  寫進 {notices} 個信箱 → 推播走 topic")
     if not r["events"]:
-        print("· 沒有新事件（沒有人訂閱缺貨品項？先用面板或 /subscriptions 訂閱一個庫存 0 的品項）")
+        print("· 沒有新事件（沒有「等待中」的到貨訂閱；python -m app.cli state 看訂閱狀態）")
     for p in r["pushes"]:
         print(f"  推播 [{p['result']}] {p['type']}")
 

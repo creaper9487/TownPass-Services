@@ -150,7 +150,7 @@ HOOK_MAX_SKEW_SECONDS = 300  # X-Timestamp 允許誤差 5 分鐘
 # ---- 測試模式：模擬資料變化 ----
 # True = 測試模式下每次抓資料，假資料都會有變化（缺貨 → 有貨、出現新公告），讓「抓到變化就推播」真的會發生
 TEST_SIMULATE_CHANGES = True
-TEST_SIM_ARRIVALS_PER_SYNC = 2  # 每次抓取讓幾個「有人訂閱的缺貨品項」變成有貨
+TEST_SIM_ARRIVALS_PER_SYNC: int | None = None  # 每次抓取讓幾個「有人訂閱的缺貨品項」到貨；None = 全部
 TEST_SIM_NOTICE_EVERY = 3  # 每抓幾次出現一則新公告
 
 

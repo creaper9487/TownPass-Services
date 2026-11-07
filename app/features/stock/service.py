@@ -29,19 +29,15 @@ async def apply_items(items: list[StockItem]) -> list[str]:
     from app.features.subscription import service as subscription_service
 
     changed: list[str] = []
-    arrived: list[tuple[str, int]] = []
     for item in items:
         row = repo.get(item.variant_id)
         if row and row.stock == item.stock and row.waiting == item.waiting:
             continue
-        before = row.stock if row else 0
         repo.put(item.variant_id, item.stock, item.waiting)
         changed.append(item.variant_id)
-        if before == 0 and item.stock > 0:
-            arrived.append((item.variant_id, item.stock))
 
-    for variant_id, count in arrived:
-        await subscription_service.on_arrival(variant_id, count)
+    # 每次更新都檢查：等待中且有貨的訂閱 → 已到貨 + 推給訂閱人
+    await subscription_service.check_arrivals()
     return changed
 
 
@@ -73,5 +69,4 @@ async def release(variant_ids: list[str]) -> None:
         row = repo.get(vid)
         if row:
             repo.put(vid, row.stock + 1, row.waiting)
-            if row.stock == 0:
-                await subscription_service.on_arrival(vid, 1)
+    await subscription_service.check_arrivals()
