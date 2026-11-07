@@ -129,7 +129,7 @@ const choose = (v: Variant) => {
     categoryName: category.value!.name,
     name: v.name,
     spec: specOf(v).join('、'),
-    image: v.image
+    image: v.image ?? undefined
   });
 };
 

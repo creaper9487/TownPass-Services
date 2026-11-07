@@ -46,7 +46,7 @@ const photoCategory: Record<string, string> = {
   便盆椅: '便盆椅'
 };
 const photoOf = (option: string) =>
-  catalog.value.find((c) => c.name === photoCategory[option])?.image;
+  catalog.value.find((c) => c.name === photoCategory[option])?.image ?? undefined;
 
 // 沒有官方照片的品項改放線條圖示：每一列右側都有一塊縮圖，版面整齊；圖示只裝飾，名稱仍是文字。
 const iconOf: Record<string, IconName> = {
