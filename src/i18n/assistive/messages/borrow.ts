@@ -12,6 +12,11 @@ export const zh: Record<string, string> = {
 
   // 借用須知
   'borrow.rules.title': '二手輔具借用須知',
+  'borrow.rules.checkingAccount': '正在確認帳號資料…',
+  'borrow.rules.scrollHint': '請將須知內容滑至底部，再確認注意事項。',
+  'borrow.rules.progress': '注意事項 {n}／{m}',
+  'borrow.rules.complete': '已確認全部注意事項',
+  'borrow.rules.reviewAgain': '重新檢查',
   'borrow.rules.centersHeading': '中心名稱、開放時間、中心地址、中心電話',
   'borrow.rules.consentIntro': '以下三點注意事項，閱畢請完成勾選，並點選下方「我同意」：',
   'borrow.rules.consentNote':
@@ -28,6 +33,7 @@ export const zh: Record<string, string> = {
 
   // 選擇種類（款式）
   'borrow.variants.title': '選擇種類',
+  'borrow.variants.noticeSummary': '圖片與尺寸僅供參考，查看預約提醒',
   'borrow.variants.noStock': '目前二手{name}均無庫存',
   'borrow.variants.assessLink': '預約輔具評估，了解購買或租賃補助',
   'borrow.variants.height': '身高（公分）',
@@ -109,6 +115,11 @@ export const en: Record<string, string> = {
 
   // 借用須知
   'borrow.rules.title': 'Second-hand device loan rules',
+  'borrow.rules.checkingAccount': 'Checking account…',
+  'borrow.rules.scrollHint': 'Scroll to the end of the rules before confirming the notes.',
+  'borrow.rules.progress': 'Note {n} of {m}',
+  'borrow.rules.complete': 'All notes confirmed',
+  'borrow.rules.reviewAgain': 'Review again',
   'borrow.rules.centersHeading': 'Center name, opening hours, address and phone',
   'borrow.rules.consentIntro':
     'Read the three notes below, tick each one, then select "I agree" below:',
@@ -126,6 +137,7 @@ export const en: Record<string, string> = {
 
   // 選擇種類（款式）
   'borrow.variants.title': 'Choose a type',
+  'borrow.variants.noticeSummary': 'Photos and sizes are for reference · Booking note',
   'borrow.variants.noStock': 'Out of stock: second-hand {name}',
   'borrow.variants.assessLink': 'Reserve an assessment to learn about purchase or rental subsidies',
   'borrow.variants.height': 'Height (cm)',

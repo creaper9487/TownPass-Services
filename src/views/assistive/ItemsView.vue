@@ -4,7 +4,6 @@ import { RouterLink } from 'vue-router';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AIcon from '@/components/assistive/AIcon.vue';
-import AImage from '@/components/assistive/AImage.vue';
 import StockError from '@/components/assistive/StockError.vue';
 import { t, tx } from '@/i18n/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
@@ -62,43 +61,43 @@ const totals = computed(() =>
           <li
             v-for="(c, i) in catalog"
             :key="c.id"
-            class="a-rise tp-card flex flex-col overflow-hidden"
+            class="a-rise tp-card overflow-hidden"
             :style="{ '--i': Math.min(i, 8) }"
           >
-            <AImage :src="c.image" hide-on-error class="h-[128px] p-2" />
-            <div class="flex flex-1 flex-col p-3">
-              <h2 class="text-base font-semibold">{{ tx(c.name) }}</h2>
-              <p
-                class="mt-1 flex items-center gap-1.5 text-base"
-                :class="loaded && totals[c.id] === 0 ? 'text-grey-700' : ''"
-              >
-                <template v-if="!loaded">&nbsp;</template>
-                <template v-else>
-                  <AIcon
-                    :name="totals[c.id] ? 'check' : 'hourglass'"
-                    class="h-[20px] w-[20px] shrink-0"
-                    :class="totals[c.id] ? 'text-primary-700' : ''"
-                  />
-                  {{ t('borrow.stockLeft', { n: totals[c.id] }) }}
-                </template>
-              </p>
-              <RouterLink
-                v-if="loaded"
-                :to="{
-                  name: 'assistive-variants',
-                  params: { service: 'borrow', categoryId: c.id }
-                }"
-                class="a11y-focus mt-3 flex min-h-12 items-center justify-center rounded-lg px-3 text-base font-semibold"
-                :class="
-                  totals[c.id] > 0
-                    ? 'bg-primary-700 text-white'
-                    : 'border border-primary-700 text-primary-700'
-                "
-              >
-                {{ totals[c.id] > 0 ? t('borrow.reserve') : t('borrow.arrivalNotice')
-                }}<span class="sr-only">{{ t('borrow.srItem', { text: tx(c.name) }) }}</span>
-              </RouterLink>
-            </div>
+            <RouterLink
+              :to="{ name: 'assistive-variants', params: { service: 'borrow', categoryId: c.id } }"
+              class="a11y-focus flex h-full flex-col"
+            >
+              <div class="flex flex-1 flex-col p-3">
+                <h2 class="text-base font-semibold">{{ tx(c.name) }}</h2>
+                <p
+                  class="mt-1 flex items-center gap-1.5 text-base"
+                  :class="loaded && totals[c.id] === 0 ? 'text-grey-700' : ''"
+                >
+                  <template v-if="!loaded">&nbsp;</template>
+                  <template v-else>
+                    <AIcon
+                      :name="totals[c.id] ? 'check' : 'hourglass'"
+                      class="h-[20px] w-[20px] shrink-0"
+                      :class="totals[c.id] ? 'text-primary-700' : ''"
+                    />
+                    {{ t('borrow.stockLeft', { n: totals[c.id] }) }}
+                  </template>
+                </p>
+                <span
+                  class="mt-3 flex min-h-12 items-center justify-center rounded-lg px-3 text-base font-semibold"
+                  :class="
+                    !loaded || totals[c.id] > 0
+                      ? 'bg-primary-700 text-white'
+                      : 'border border-primary-700 text-primary-700'
+                  "
+                >
+                  {{
+                    !loaded || totals[c.id] > 0 ? t('borrow.reserve') : t('borrow.arrivalNotice')
+                  }}
+                </span>
+              </div>
+            </RouterLink>
           </li>
         </ul>
       </div>

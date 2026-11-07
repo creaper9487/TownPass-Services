@@ -183,12 +183,20 @@ const undoArrival = async () => {
 <template>
   <AStepPage
     v-if="category"
-    :title="t('borrow.variants.title')"
-    lead="「圖片僅供參考，請以現場提供之輔具為主。若您所預約的輔具尺寸不合用，因輔具數量有限，若現場已無其他合適尺寸輔具則須另行預約借用。」"
-    :lead-lang="zhAttr"
+    :title="tx(category.name)"
     :step="flow.current.value"
     :total="flow.total.value"
   >
+    <ASection>
+      <details class="text-sm text-grey-700">
+        <summary class="a11y-focus cursor-pointer font-semibold text-primary-700">
+          {{ t('borrow.variants.noticeSummary') }}
+        </summary>
+        <p :lang="zhAttr" class="mt-2 leading-relaxed">
+          圖片僅供參考，請以現場提供之輔具為主。若您所預約的輔具尺寸不合用，因輔具數量有限，若現場已無其他合適尺寸輔具則須另行預約借用。
+        </p>
+      </details>
+    </ASection>
     <ASection v-if="noStockAtAll">
       <div class="rounded-lg border border-secondary-200 bg-secondary-50 p-4">
         <h2 class="tp-h3-semibold">

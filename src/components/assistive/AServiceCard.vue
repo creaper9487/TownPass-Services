@@ -5,6 +5,7 @@ import AImage from './AImage.vue';
 // 台北通「服務」頁的卡片：白底細框圓角 6，標題在左、圖示在右；主要功能用青色漸層大卡，下方放官方照片。
 defineProps<{
   title: string;
+  description?: string;
   to: RouteLocationRaw;
   /** 一般卡片右側的圖示 */
   icon?: string;
@@ -40,7 +41,12 @@ const emit = defineEmits<{ (e: 'click'): void }>();
       </span>
     </template>
     <template v-else>
-      <span class="tp-h3-semibold flex-1 text-primary-700">{{ title }}</span>
+      <span class="min-w-0 flex-1">
+        <span class="tp-h3-semibold block text-primary-700">{{ title }}</span>
+        <span v-if="description" class="mt-1 block text-sm leading-relaxed text-grey-700">
+          {{ description }}
+        </span>
+      </span>
       <img v-if="icon" :src="icon" alt="" class="h-[48px] w-[48px] shrink-0" />
     </template>
   </RouterLink>
