@@ -10,7 +10,7 @@ import stockSnapshot from '@/data/assistive-stock.json';
 import { formatDate, pickupWindow, centerById } from './centers';
 import { taipeiNow } from './time';
 import { lang, t } from '@/i18n/assistive';
-import { getJson, hasBackend, requestJson, useSample } from './remote';
+import { ApiError, getJson, hasBackend, requestJson, useSample } from './remote';
 import type {
   ApplicantForm,
   CalendarDay,
@@ -108,8 +108,29 @@ const webMailbox = async (): Promise<{ id: string; key: string }> => {
   return created;
 };
 
-/** 預約要帶信箱 id，預約進度與到貨事件都從這個信箱推送。 */
-const ensureMailbox = async (): Promise<string> => (await webMailbox()).id;
+/**
+ * 用信箱執行一個請求。後端不認得存在這台裝置上的信箱（後端資料被清掉、換了環境）時，
+ * 建立新的信箱再試一次；不然使用者會一直卡在「送出失敗」，只能自己清除瀏覽器資料。
+ */
+const withMailbox = async <T>(
+  run: (box: { id: string; key: string }) => Promise<T>
+): Promise<T> => {
+  try {
+    return await run(await webMailbox());
+  } catch (e) {
+    const unknownMailbox =
+      e instanceof ApiError &&
+      ((e.status === 422 && e.fields.includes('mailbox_id')) ||
+        (e.status === 401 && e.code === 'BAD_KEY'));
+    if (!unknownMailbox) throw e;
+    try {
+      localStorage.removeItem(MAILBOX_KEY);
+    } catch {
+      /* 儲存空間不能用：webMailbox 會直接再建一個 */
+    }
+    return run(await webMailbox());
+  }
+};
 
 interface ReservationCreatedDto {
   id: string;
@@ -119,7 +140,6 @@ interface ReservationCreatedDto {
 }
 
 const submitToBackend = async (payload: SubmitPayload): Promise<Reservation[]> => {
-  const mailboxId = await ensureMailbox();
   const c = payload.contact;
   const contact = {
     name: c.name.trim(),
@@ -142,19 +162,24 @@ const submitToBackend = async (payload: SubmitPayload): Promise<Reservation[]> =
 
   const created: Reservation[] = [];
   for (const r of payload.requests) {
-    const body = {
-      service: r.backendService,
-      mailbox_id: mailboxId,
-      center_id: payload.centerId,
-      items: r.items,
-      other_text: r.otherText || null,
-      contact,
-      subject: r.backendService === 'borrow' ? null : subject,
-      pickup: null
-    };
-    const res = await requestJson<ReservationCreatedDto>('POST', '/reservations', body, {
-      'Idempotency-Key': `${payload.idempotencyKey}-${r.backendService}`
-    });
+    const res = await withMailbox((box) =>
+      requestJson<ReservationCreatedDto>(
+        'POST',
+        '/reservations',
+        {
+          service: r.backendService,
+          mailbox_id: box.id,
+          center_id: payload.centerId,
+          items: r.items,
+          other_text: r.otherText || null,
+          contact,
+          subject: r.backendService === 'borrow' ? null : subject,
+          pickup: null
+        },
+        // 換信箱重送時內容不同，要用另一把 Idempotency-Key，否則後端會回 409
+        { 'Idempotency-Key': `${payload.idempotencyKey}-${r.backendService}-${box.id}` }
+      )
+    );
     const reservation: Reservation = {
       id: res.id,
       service: payload.service,
@@ -289,12 +314,13 @@ export const subscribeArrival = async (
   if (existing) return existing;
   let id: string;
   if (hasBackend) {
-    const box = await webMailbox();
-    const created = await requestJson<{ id: string }>(
-      'POST',
-      '/subscriptions',
-      { mailbox_id: box.id, variant_id: variantId },
-      { Authorization: `Bearer ${box.key}` }
+    const created = await withMailbox((box) =>
+      requestJson<{ id: string }>(
+        'POST',
+        '/subscriptions',
+        { mailbox_id: box.id, variant_id: variantId },
+        { Authorization: `Bearer ${box.key}` }
+      )
     );
     id = created.id;
   } else {

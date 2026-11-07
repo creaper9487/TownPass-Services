@@ -80,7 +80,9 @@ const onChange = (value: string, checked: boolean) => {
             ? 'cursor-not-allowed border-grey-100 bg-grey-50'
             : isChecked(o.value)
               ? 'border-primary-600 bg-primary-50'
-              : 'border-grey-200',
+              : multiple && error
+                ? 'border-red-500'
+                : 'border-grey-200',
           'has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary-600'
         ]"
       >

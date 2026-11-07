@@ -27,6 +27,17 @@ export const getJson = async <T>(path: string): Promise<T | null> => {
   }
 };
 
+/** 後端回的錯誤（problem+json）：status 之外帶 code 與出錯欄位，呼叫端可以判斷能不能補救。 */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code?: string,
+    readonly fields: string[] = []
+  ) {
+    super(`HTTP ${status}${code ? ` ${code}` : ''}`);
+  }
+}
+
 /** 會寫入資料的請求（預約、取消、信箱）。失敗一律丟出錯誤，呼叫端要讓使用者知道，不能假裝成功。 */
 export const requestJson = async <T>(
   method: 'POST' | 'GET' | 'DELETE',
@@ -44,7 +55,13 @@ export const requestJson = async <T>(
     },
     body: body !== undefined ? JSON.stringify(body) : undefined
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const problem = (await res.json().catch(() => null)) as {
+      code?: string;
+      fields?: string[];
+    } | null;
+    throw new ApiError(res.status, problem?.code, problem?.fields);
+  }
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
 };

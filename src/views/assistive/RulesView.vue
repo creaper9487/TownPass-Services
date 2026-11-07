@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AChoice from '@/components/assistive/AChoice.vue';
@@ -18,10 +18,24 @@ const checked = ref(BORROW_RULES.consents.filter((_, i) => store.consents[i]));
 const hasError = ref(false);
 const error = computed(() => (hasError.value ? t('borrow.rules.consentError') : ''));
 
+const CONSENT_ID = 'borrow-consents';
+
+// 還沒勾完就按「我同意」：把畫面帶到三項注意事項，錯誤訊息和還沒勾的那幾項才看得到；
+// 焦點也移到第一個沒勾的選項，讀屏與鍵盤使用者會直接落在要處理的地方。
+const guideToConsents = async () => {
+  await nextTick();
+  const group = document.getElementById(CONSENT_ID);
+  if (!group) return;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  group.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+  group.querySelector<HTMLInputElement>('input:not(:checked)')?.focus({ preventScroll: true });
+};
+
 const agree = () => {
   store.consents = BORROW_RULES.consents.map((a) => checked.value.includes(a));
   if (!store.consents.every(Boolean)) {
     hasError.value = true;
+    guideToConsents();
     return;
   }
   flow.goNext();
@@ -62,6 +76,8 @@ const agree = () => {
     <ASection>
       <AChoice
         v-model="checked"
+        :field-id="CONSENT_ID"
+        class="scroll-mt-4"
         multiple
         required
         :legend="t('borrow.rules.consentIntro')"
