@@ -109,3 +109,20 @@ git push origin crawler
 - 補公告更正、下架、明確取消及單則讀不懂的測試；既有已人工核對的歷史公告仍保留於 `_reviewed_closures()`。
 - `python -m pytest -q`：40 個測試通過；`python -m app.tools.crawlers.check all`：連官網四項皆通過，12 類、62 款。
 - router、schemas、check、runner、匯出介面與庫存排程頻率均未修改；第 3 項仍由後端處理。
+
+### 2026-11-07 13:51 — 複查 commit `affb634` Bundle offline holiday calendars and refresh notices independently
+
+審查結果：✅ **通過，可以開 PR `crawler` → `developer`。** 測試 40 個全過。
+
+確認修好：
+- 第 5 項：政府假日改讀 `data/holidays_2026.csv`、`data/holidays_2027.csv`，執行時不再連 dgpa.gov.tw。
+  審查環境連不到任何外部網站，`GET /centers/heyi/calendar?from=2026-12-28&days=7` 仍回 200，
+  跨年資料正確：12/28（一）合宜例假休館、12/29～12/31 開館、2027/1/1 開國紀念日休館、1/2（六）開館。
+  抽查 2026 年 10 月以後的假日（10/9 補假、10/10 國慶日、10/25、10/26 補假、12/25 行憲紀念日）與 2027 年春節都正確。
+- 第 6 項：休館公告改成依 `newsid` 各自保存，讀取成功的公告直接替換舊日期，只有讀取失敗的那則保留舊結果；
+  公告下架或明確寫「取消／撤銷／撤回休館」會清掉日期。比原本建議的做法更完整。
+- `data/README.md` 寫清楚來源、授權、每年更新步驟，很好。
+
+剩下：
+- 第 3 項（庫存同步頻率）由後端在 `developer` 調整，不影響這次合併。
+- 每年要記得放新一年的假日 CSV（照 `data/README.md` 的步驟）；2028 年的檔案要在 2027 年 12 月中前放進來。
