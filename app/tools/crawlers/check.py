@@ -6,6 +6,7 @@
     python -m app.tools.crawlers.check centers
     python -m app.tools.crawlers.check calendar
     python -m app.tools.crawlers.check notices
+    python -m app.tools.crawlers.check forms     # 對照官網表單的勾選項目與 config.SERVICES（需要連網）
     python -m app.tools.crawlers.check all
 """
 
@@ -15,7 +16,9 @@ from datetime import date
 
 from pydantic import TypeAdapter, ValidationError
 
+from app import config
 from app.tools.crawlers import fetch_catalog, fetch_center_calendar, fetch_centers, fetch_notices, fetch_stock
+from app.tools.crawlers.forms import fetch_form_options
 from app.tools.crawlers.schemas import CalendarDay, CatalogCategory, Center, Notice, StockItem
 
 CHECKS = {
@@ -24,6 +27,7 @@ CHECKS = {
     "centers": (lambda: fetch_centers(), list[Center]),
     "calendar": (lambda: fetch_center_calendar("heyi", date.today(), 14), list[CalendarDay]),
     "notices": (lambda: fetch_notices(), list[Notice]),
+    "forms": (lambda: fetch_form_options(), dict[str, list[str]]),
 }
 
 
@@ -56,6 +60,12 @@ def _extra_checks(name: str, data: list) -> list[str]:
         if len(ids) != len(set(ids)):
             problems.append("公告 id 有重複")
         print(f"  目前有效公告 {len(data)} 則")
+    elif name == "forms":
+        for service, official in data.items():
+            ours = config.SERVICES[service]["item_options"]
+            if ours != official:
+                problems.append(f"{service} 的 item_options 和官網不同：\n    官網 {official}\n    config {ours}")
+        print(f"  官網 申請評估 {len(data.get('assess', []))} 項、申請維修 {len(data.get('repair', []))} 項（不含「其他」）")
     elif name == "calendar":
         if len(data) != 14:
             problems.append(f"要 14 筆，拿到 {len(data)} 筆")
@@ -89,7 +99,7 @@ def run(name: str) -> bool:
     for p in problems:
         print(f"  ✗ {p}")
     if not problems:
-        sample = TypeAdapter(result_type).dump_python(data[:2], mode="json", by_alias=True)
+        sample = TypeAdapter(result_type).dump_python(data if isinstance(data, dict) else data[:2], mode="json", by_alias=True)
         print("  ✓ 格式正確，前兩筆：")
         print("   ", json.dumps(sample, ensure_ascii=False)[:500])
     return not problems

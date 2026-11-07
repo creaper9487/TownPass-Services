@@ -83,18 +83,22 @@ TAIPEI_DISTRICTS = ["中正區", "大同區", "中山區", "松山區", "大安�
 SERVICES = {
     "borrow": {"enabled": True, "label": "二手輔具借用", "groups": ["contact"], "item_options": None,
                "allow_other": False, "max_items": 3},
+    # assess / repair 的項目名稱照官網「申請評估／申請維修」表單的勾選項目（一字不差，含括號與斜線）：
+    # https://tpap.gov.taipei/app37/otherReserveView/index
+    # 官網沒有限制勾選幾項，所以 max_items = 全部項目 + 「其他」。對照官網：python -m app.tools.crawlers.check forms
     "assess": {"enabled": True, "label": "輔具評估", "groups": ["contact", "subject"],
-               "item_options": ["輪椅", "電動輪椅", "助行器", "拐杖", "洗澡椅", "便盆椅", "居家照顧床", "移位輔具",
-                                "擺位輔具", "電動代步車", "輔助溝通", "視覺輔具"],
-               "allow_other": True, "max_items": 5},
+               "item_options": ["居家用照顧床(病床)", "氣墊床", "輪椅座墊", "手動輪椅", "電動輪椅", "居家無障礙",
+                                "矯具/義具", "視障輔具", "溝通輔具", "電腦輔具", "爬梯機借用"],
+               "allow_other": True, "max_items": 12},
     "repair": {"enabled": True, "label": "輔具維修", "groups": ["contact", "subject"],
-               "item_options": ["輪椅", "電動輪椅", "助行器", "居家照顧床", "電動代步車"],
-               "allow_other": True, "max_items": 5},
+               "item_options": ["居家用照顧床(病床)", "氣墊床", "輪椅座墊", "手動輪椅", "電動輪椅", "拐杖/助行器",
+                                "便盆椅"],
+               "allow_other": True, "max_items": 8},
     "recycle": {"enabled": True, "label": "輔具回收", "groups": ["contact", "pickup"],
                 "item_options": ["輪椅", "助行器", "拐杖", "洗澡椅", "便盆椅", "居家照顧床"],
                 "allow_other": True, "max_items": 10},
 }
-# 上面 assess / repair / recycle 的 item_options 是暫定的，要對照官方表單的勾選項目再改
+# 上面 recycle 的 item_options 還是暫定的，要對照官方回收表單的勾選項目再改
 
 # ---- 支援哪些借用品項（GET /catalog、借用、到貨通知都會套用）----
 BORROW_CATEGORIES: list[str] | None = None  # None = 全部分類；例如 ["1", "2"] 只開放這兩類
