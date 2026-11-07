@@ -154,6 +154,10 @@ def cmd_state(args) -> None:
     for r in s["reservations"]:
         print(f"  {r['id']}  {r['service']:<7} {r['status']:<10} {r['center_id']:<6} 期限 {r['pickup_deadline']}  "
               f"送件 {r['forward_state']}  信箱 {r['mailbox_id']}")
+    print(f"\n到貨訂閱（{len(s['subscriptions'])}）— 到貨通知後訂閱就會刪除")
+    for x in s["subscriptions"]:
+        warn = "" if x["devices"] else "  ⚠ 信箱沒有裝置，到貨時只寫進信箱、不會推播"
+        print(f"  品項 {x['variant_id']}  目前庫存 {x['stock']}  信箱 {x['mailbox_id']}{warn}")
     print(f"\n裝置（{len(s['devices'])}）")
     for d in s["devices"]:
         print(f"  {d['token']}  → {d['mailbox_id']}")
@@ -196,8 +200,17 @@ def cmd_sync(args) -> None:
     print(f"✓ 庫存變動 {r['stock_changed']} 個品項、新公告 {r['new_notices']} 則")
     for e in r["errors"]:
         print(f"· {e}")
-    if not r["pushes"]:
-        print("· 這次沒有推播（沒有人訂閱缺貨品項？先用 scenario / 面板訂閱）")
+    events = [e for e in r["events"] if e["type"] != "service.notice"]
+    notices = len(r["events"]) - len(events)
+    if events or notices:
+        print("寫進信箱的事件（App / 網頁用 GET /mailboxes/{id}/events 或 /stream 拿得到）")
+    for e in events:
+        tip = f"→ 推播給 {e['devices']} 台裝置" if e["devices"] else "→ ⚠ 這個信箱沒有登記裝置，不會推播（App 要先 POST /devices）"
+        print(f"  {e['type']}  信箱 {e['mailbox_id']}  {tip}")
+    if notices:
+        print(f"  service.notice  寫進 {notices} 個信箱 → 推播走 topic")
+    if not r["events"]:
+        print("· 沒有新事件（沒有人訂閱缺貨品項？先用面板或 /subscriptions 訂閱一個庫存 0 的品項）")
     for p in r["pushes"]:
         print(f"  推播 [{p['result']}] {p['type']}")
 

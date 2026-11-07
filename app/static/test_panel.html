@@ -237,9 +237,11 @@ async function subscribeOne() {
 async function syncNow() {
   const r = await api("POST", "/_test/sync");
   const pushes = r.pushes.map(p => `${p.type}[${p.result}]`).join("、") || "沒有推播";
+  const noDevice = r.events.filter(e => e.type !== "service.notice" && !e.devices);
+  if (noDevice.length) toast(`⚠ ${noDevice.length} 個事件的信箱沒有登記裝置，只寫進信箱、不會推播`, true);
   document.getElementById("sync-result").textContent =
     `庫存變動 ${r.stock_changed} 個、新公告 ${r.new_notices} 則 → ${pushes}` + (r.errors.length ? `（${r.errors.join("；")}）` : "");
-  toast(`✓ 抓完了：${pushes}`);
+  if (!noDevice.length) toast(`✓ 抓完了：${pushes}`);
 }
 async function notice() {
   const r = await api("POST", "/_test/notices", { title: document.getElementById("notice-title").value });

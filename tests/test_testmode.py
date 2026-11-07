@@ -158,3 +158,17 @@ def test_simulated_changes_trigger_pushes(client, test_mode):
 
     types = [p["type"] for _ in range(3) for p in client.post(f"{P}/_test/sync").json()["pushes"]]
     assert "service.notice" in types  # 每 3 次出現一則新公告
+
+
+def test_sync_reports_events_for_mailbox_without_device(client, test_mode):
+    client.post(f"{P}/_test/sync")
+    mb = client.post(f"{P}/mailboxes").json()  # 跟網頁一樣：沒有 POST /devices
+    auth = {"Authorization": f"Bearer {mb['mailbox_key']}"}
+    zero = [v for v, x in client.get(f"{P}/stock").json()["items"].items() if x["stock"] == 0][0]
+    client.post(f"{P}/subscriptions", json={"mailbox_id": mb["mailbox_id"], "variant_id": zero}, headers=auth)
+    assert client.get(f"{P}/_test/state").json()["subscriptions"][0]["devices"] == 0
+
+    r = client.post(f"{P}/_test/sync").json()
+    arrived = [e for e in r["events"] if e["type"] == "stock.arrived"]
+    assert arrived == [{"type": "stock.arrived", "mailbox_id": mb["mailbox_id"], "devices": 0}]
+    assert not any(p["type"] == "stock.arrived" for p in r["pushes"])
