@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue';
+import { t } from '@/i18n/assistive';
 import type { SummaryItem } from '@/utils/assistive/validators';
 
 const props = defineProps<{ errors: SummaryItem[]; trigger: number }>();
@@ -33,9 +34,11 @@ const goTo = (id: string) => {
     ref="box"
     tabindex="-1"
     role="alert"
-    class="mx-4 mt-4 rounded-lg border border-red-500 bg-red-50 p-4 text-sm text-grey-800 outline-none"
+    class="a-drop mx-4 mt-4 rounded-lg border border-red-500 bg-red-50 p-4 text-sm text-grey-800 outline-none"
   >
-    <p class="font-semibold text-red-700">有 {{ errors.length }} 個欄位需要修正</p>
+    <p class="font-semibold text-red-700">
+      {{ t(errors.length === 1 ? 'form.errorCountOne' : 'form.errorCount', { n: errors.length }) }}
+    </p>
     <ul class="mt-1 list-disc pl-5">
       <li v-for="e in errors" :key="e.target">
         <a

@@ -1,5 +1,6 @@
 import type { CalendarDay, Center } from './types';
 import { taipeiNow } from './time';
+import { lang, tx } from '@/i18n/assistive';
 
 /**
  * 臺北市三家輔具中心。資料來源：臺北市輔具資源整合資訊網（tpap.gov.taipei）。
@@ -58,22 +59,33 @@ export const centers: Center[] = [
 export const taipeiDistricts = centers.flatMap((c) => c.districts);
 
 const weekdayLabel = ['日', '一', '二', '三', '四', '五', '六'];
+const weekdayEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** 畫面上顯示的中心名稱（跟著語言） */
+export const centerName = (c: Center) => tx(c.name);
+export const centerShort = (c: Center) => tx(c.shortName);
 
 export const centerById = (id: string) => centers.find((c) => c.id === id);
 
 export const centerByDistrict = (district: string) =>
   centers.find((c) => c.districts.includes(district));
 
-/** 「週二至週六」這類開館日描述 */
+/** 「週二至週六」這類開館日描述（英文：Tue–Sat） */
 export const openDaysText = (c: Center) => {
   const days = [...c.openDays].sort();
   const contiguous = days.every((d, i) => i === 0 || d === days[i - 1] + 1);
+  if (lang.value === 'en') {
+    return contiguous && days.length > 1
+      ? `${weekdayEn[days[0]]}–${weekdayEn[days[days.length - 1]]}`
+      : days.map((d) => weekdayEn[d]).join(', ');
+  }
   return contiguous && days.length > 1
     ? `週${weekdayLabel[days[0]]}至週${weekdayLabel[days[days.length - 1]]}`
     : days.map((d) => `週${weekdayLabel[d]}`).join('、');
 };
 
-export const hoursText = (c: Center) => c.hours.map((h) => `${h.from}–${h.to}`).join('、');
+export const hoursText = (c: Center) =>
+  c.hours.map((h) => `${h.from}–${h.to}`).join(lang.value === 'en' ? ', ' : '、');
 
 const toMinutes = (hhmm: string) => {
   const [h, m] = hhmm.split(':').map(Number);
@@ -160,7 +172,9 @@ export const upcomingClosures = (
 };
 
 export const formatDate = (d: Date) =>
-  `${d.getMonth() + 1}/${d.getDate()}（週${weekdayLabel[d.getDay()]}）`;
+  lang.value === 'en'
+    ? `${weekdayEn[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`
+    : `${d.getMonth() + 1}/${d.getDate()}（週${weekdayLabel[d.getDay()]}）`;
 
 /** 任兩點間的粗略距離（公里） */
 export const kmBetween = (lat1: number, lng1: number, lat2: number, lng2: number) =>

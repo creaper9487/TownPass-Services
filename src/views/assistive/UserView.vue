@@ -9,6 +9,7 @@ import ErrorSummary from '@/components/assistive/ErrorSummary.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
+import { t, tx } from '@/i18n/assistive';
 import { taipeiDistricts } from '@/utils/assistive/centers';
 import { isEmail, isTwId, toSummary, type SummaryItem } from '@/utils/assistive/validators';
 
@@ -28,18 +29,14 @@ const summary = ref<SummaryItem[]>([]);
 const trigger = ref(0);
 
 const validate = () => {
-  errors.name = u.name.trim() ? '' : '請輸入姓名';
-  errors.idNo = !u.idNo.trim()
-    ? '請輸入身分證字號'
-    : isTwId(u.idNo)
-      ? ''
-      : '身分證字號格式不正確，請再檢查一次';
-  errors.registered = u.registeredDistrict ? '' : '請選擇戶籍地行政區';
-  errors.email = f.email.trim() && !isEmail(f.email) ? 'E-mail 格式不正確' : '';
+  errors.name = u.name.trim() ? '' : t('form.err.name');
+  errors.idNo = !u.idNo.trim() ? t('user.err.idRequired') : isTwId(u.idNo) ? '' : t('user.err.id');
+  errors.registered = u.registeredDistrict ? '' : t('user.err.registered');
+  errors.email = f.email.trim() && !isEmail(f.email) ? t('form.err.email') : '';
   return toSummary(errors, 'user');
 };
 const onIdBlur = () => {
-  if (u.idNo.trim()) errors.idNo = isTwId(u.idNo) ? '' : '身分證字號格式不正確，請再檢查一次';
+  if (u.idNo.trim()) errors.idNo = isTwId(u.idNo) ? '' : t('user.err.id');
 };
 
 const next = () => {
@@ -52,30 +49,30 @@ const next = () => {
 
 <template>
   <AStepPage
-    title="輔具使用者資料"
-    lead="*表示為必填欄位"
+    :title="t('user.title')"
+    :lead="t('common.requiredNote')"
     :step="flow.current.value"
     :total="flow.total.value"
   >
     <ErrorSummary :errors="summary" :trigger="trigger" />
-    <ASection title="輔具使用者資料">
+    <ASection :title="t('user.title')">
       <div class="flex flex-col gap-5">
         <div>
           <AInput
             v-model="u.name"
-            label="姓名"
+            :label="t('form.name')"
             required
             autocomplete="off"
             field-id="user-name"
             :error="errors.name"
           />
           <BaseButton outline class="mt-2" @click="store.fillUserFromContact()">
-            同聯絡人
+            {{ t('user.sameAsContact') }}
           </BaseButton>
         </div>
         <AInput
           v-model="u.idNo"
-          label="身分證字號"
+          :label="t('form.idNo')"
           required
           uppercase
           :maxlength="10"
@@ -86,38 +83,38 @@ const next = () => {
         />
         <ASelect
           v-model="u.registeredDistrict"
-          label="戶籍地行政區"
+          :label="t('user.registeredDistrict')"
           required
-          placeholder="臺北市"
+          :placeholder="tx('臺北市')"
           :options="taipeiDistricts"
           field-id="user-registered"
           :error="errors.registered"
         />
         <ASelect
           v-model="u.livingDistrict"
-          label="居住地行政區"
+          :label="t('user.livingDistrict')"
           placeholder="--"
           :options="taipeiDistricts"
           field-id="user-livingDistrict"
         />
         <AInput
           v-model="f.email"
-          label="E-mail"
+          :label="t('form.email')"
           type="email"
           inputmode="email"
           autocomplete="email"
-          hint="將以此email寄送預約單"
+          :hint="t('form.emailHint')"
           field-id="user-email"
           :error="errors.email"
         />
-        <ATextarea v-model="u.remark" label="備註" field-id="user-remark" />
+        <ATextarea v-model="u.remark" :label="t('form.remark')" field-id="user-remark" />
       </div>
     </ASection>
 
     <template #footer>
       <div class="grid grid-cols-2 gap-2">
-        <BaseButton outline @click="flow.goPrev()">上一步</BaseButton>
-        <BaseButton @click="next">下一步</BaseButton>
+        <BaseButton outline @click="flow.goPrev()">{{ t('common.prev') }}</BaseButton>
+        <BaseButton @click="next">{{ t('common.next') }}</BaseButton>
       </div>
     </template>
   </AStepPage>

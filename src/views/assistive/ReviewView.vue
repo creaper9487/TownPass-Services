@@ -8,14 +8,14 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
 import { newIdempotencyKey, submitReservation } from '@/utils/assistive/api';
-import { formatDate, hoursText, openDaysText } from '@/utils/assistive/centers';
-import { services } from '@/utils/assistive/services';
+import { centerName, formatDate, hoursText, openDaysText } from '@/utils/assistive/centers';
+import { serviceTitle } from '@/utils/assistive/services';
+import { t, trSummary, tx, zhAttr } from '@/i18n/assistive';
 
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 const router = useRouter();
 
-const info = computed(() => services[flow.service.value]);
 const isBorrow = computed(() => flow.service.value === 'borrow');
 const center = computed(() => store.center!);
 const a = store.applicant;
@@ -25,51 +25,67 @@ const sending = ref(false);
 const failed = ref(false);
 
 const win = computed(() => store.windowFor(center.value));
-const deadlineLabel = computed(() => `${formatDate(win.value.deadline)}前`);
-const datesLabel = computed(() => win.value.openDates.map(formatDate).join('、'));
-const pickupText = computed(() => `${deadlineLabel.value}，可前往 ${datesLabel.value}`);
+const datesLabel = computed(() => win.value.openDates.map(formatDate).join(t('review.dateSep')));
+const pickupText = computed(() =>
+  t('review.pickup', { deadline: formatDate(win.value.deadline), dates: datesLabel.value })
+);
 const mask = (id: string) => (id.length === 10 ? `${id.slice(0, 3)}****${id.slice(7)}` : id);
-const genderText = (g: string) => (g === 'M' ? '男' : g === 'F' ? '女' : '');
+const genderText = (g: string) => (g === 'M' ? tx('男') : g === 'F' ? tx('女') : '');
 
-type Row = [string, string];
+// 值可以是一段文字，或逐行的文字（address 這類官方中文要標 lang）。
+type Line = { text: string; zh?: boolean };
+type Row = [string, string | Line[]];
 const sections = computed<{ title: string; step: string; rows: Row[] }[]>(() => {
   const list: { title: string; step: string; rows: Row[] }[] = [];
   const first = isBorrow.value ? 'cart' : 'need';
   list.push({
-    title: isBorrow.value ? '本次預約項目' : '服務內容',
+    title: isBorrow.value ? t('review.section.borrow') : t('review.section.service'),
     step: first,
     rows: [
-      ['服務', info.value.title],
-      [isBorrow.value ? '輔具' : '項目', store.summary.join('\n')],
+      [t('review.row.service'), serviceTitle(flow.service.value)],
       [
-        '辦理中心',
-        `${center.value.name}\n${center.value.address}\n${openDaysText(center.value)} ${hoursText(center.value)}`
+        isBorrow.value ? t('review.row.device') : t('review.row.item'),
+        store.summary.map(trSummary).join('\n')
       ],
-      ...(isBorrow.value ? ([['取貨期限', pickupText.value]] as Row[]) : [])
+      [
+        t('review.row.center'),
+        [
+          { text: centerName(center.value) },
+          { text: center.value.address, zh: true },
+          { text: `${openDaysText(center.value)} ${hoursText(center.value)}` }
+        ]
+      ],
+      ...(isBorrow.value ? ([[t('review.row.pickup'), pickupText.value]] as Row[]) : [])
     ]
   });
   list.push({
-    title: '聯絡人資料',
+    title: t('review.section.contact'),
     step: 'contact',
     rows: [
-      ['姓名', a.name],
-      ...(a.phone ? ([['電話', a.phone]] as Row[]) : []),
-      ['手機', a.mobile],
-      ...(a.gender && !isBorrow.value ? ([['性別', genderText(a.gender)]] as Row[]) : []),
-      ...(isBorrow.value && a.email ? ([['E-mail', a.email]] as Row[]) : [])
+      [t('review.row.name'), a.name],
+      ...(a.phone ? ([[t('review.row.phone'), a.phone]] as Row[]) : []),
+      [t('review.row.mobile'), a.mobile],
+      ...(a.gender && !isBorrow.value
+        ? ([[t('review.row.gender'), genderText(a.gender)]] as Row[])
+        : []),
+      ...(isBorrow.value && a.email ? ([[t('review.row.email'), a.email]] as Row[]) : [])
     ]
   });
   if (flow.service.value === 'assess') {
     list.push({
-      title: '輔具使用者資料',
+      title: t('review.section.user'),
       step: 'user',
       rows: [
-        ['姓名', u.name],
-        ['身分證字號', mask(u.idNo)],
-        ['戶籍地行政區', u.registeredDistrict],
-        ...(u.livingDistrict ? ([['居住地行政區', `臺北市${u.livingDistrict}`]] as Row[]) : []),
-        ...(a.email ? ([['E-mail', a.email]] as Row[]) : []),
-        ...(u.remark ? ([['備註', u.remark]] as Row[]) : [])
+        [t('review.row.name'), u.name],
+        [t('review.row.idNo'), mask(u.idNo)],
+        [t('review.row.registered'), tx(u.registeredDistrict)],
+        ...(u.livingDistrict
+          ? ([
+              [t('review.row.living'), t('review.living', { district: tx(u.livingDistrict) })]
+            ] as Row[])
+          : []),
+        ...(a.email ? ([[t('review.row.email'), a.email]] as Row[]) : []),
+        ...(u.remark ? ([[t('review.row.remark'), u.remark]] as Row[]) : [])
       ]
     });
   }
@@ -104,7 +120,7 @@ const submit = async () => {
 </script>
 
 <template>
-  <AStepPage title="確認資料" :step="flow.current.value" :total="flow.total.value">
+  <AStepPage :title="t('review.title')" :step="flow.current.value" :total="flow.total.value">
     <ASection v-for="s in sections" :key="s.title">
       <div class="flex items-center justify-between">
         <h2 class="tp-h3-semibold text-primary-700">{{ s.title }}</h2>
@@ -112,7 +128,8 @@ const submit = async () => {
           :to="stepRoute(flow.service.value, s.step)"
           class="a11y-focus -mr-2 flex min-h-11 items-center px-2 text-base font-semibold text-primary-700 underline"
         >
-          修改<span class="sr-only">{{ s.title }}</span>
+          <span aria-hidden="true">{{ t('review.edit') }}</span>
+          <span class="sr-only">{{ t('review.editSection', { title: s.title }) }}</span>
         </RouterLink>
       </div>
       <dl class="mt-2 divide-y divide-grey-100">
@@ -122,20 +139,38 @@ const submit = async () => {
           class="grid grid-cols-[7rem_1fr] gap-3 py-3 text-base first:pt-1"
         >
           <dt class="text-grey-700">{{ k }}</dt>
-          <dd class="whitespace-pre-line break-words">{{ v }}</dd>
+          <dd class="whitespace-pre-line break-words">
+            <template v-if="typeof v === 'string'">{{ v }}</template>
+            <template v-else>
+              <span
+                v-for="(line, i) in v"
+                :key="i"
+                class="block"
+                :lang="line.zh ? zhAttr : undefined"
+              >
+                {{ line.text }}
+              </span>
+            </template>
+          </dd>
         </div>
       </dl>
     </ASection>
 
     <ASection v-if="failed">
-      <AErrorText>送出失敗，請檢查網路後再試一次。</AErrorText>
+      <AErrorText>{{ t('review.error') }}</AErrorText>
     </ASection>
 
     <template #footer>
       <div class="grid grid-cols-2 gap-2">
-        <BaseButton outline @click="flow.goPrev()">上一步</BaseButton>
+        <BaseButton outline @click="flow.goPrev()">{{ t('common.prev') }}</BaseButton>
         <BaseButton :aria-busy="sending" @click="submit">
-          {{ sending ? '送出中…' : isBorrow ? '送出預約' : '送出申請' }}
+          {{
+            sending
+              ? t('review.sending')
+              : isBorrow
+                ? t('review.submitBorrow')
+                : t('review.submitAssess')
+          }}
         </BaseButton>
       </div>
     </template>

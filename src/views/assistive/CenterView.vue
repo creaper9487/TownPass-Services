@@ -6,12 +6,14 @@ import AChoice from '@/components/assistive/AChoice.vue';
 import ClosureNotice from '@/components/assistive/ClosureNotice.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
+import { t, tx } from '@/i18n/assistive';
 import { useTaipeiNow } from '@/utils/assistive/time';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
 import { fetchCenterStock } from '@/utils/assistive/api';
 import type { CenterStockMap } from '@/utils/assistive/types';
 import { useAssistiveLocate } from '@/composables/useAssistiveLocate';
 import {
+  centerName,
   centers,
   distanceKm,
   formatDate,
@@ -22,7 +24,8 @@ import {
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 const { locate, locating, message } = useAssistiveLocate();
-const error = ref('');
+const errorKey = ref('');
+const error = computed(() => (errorKey.value ? t(errorKey.value) : ''));
 
 const now = useTaipeiNow();
 
@@ -48,26 +51,39 @@ const rows = computed(() => {
     const win = store.windowFor(c, now.value);
     const stockEntry = centerStock.value?.[c.id];
     const tag =
-      c.id === rec?.id ? (store.recommendedBy === 'location' ? '離你最近' : `符合你的地址`) : '';
-    const reach = loc ? `距離約 ${distanceKm(c, loc.lat, loc.lng).toFixed(1)} 公里` : '';
+      c.id === rec?.id
+        ? store.recommendedBy === 'location'
+          ? t('center.nearest')
+          : t('center.matchAddress')
+        : '';
+    const reach = loc
+      ? t('center.distance', { km: distanceKm(c, loc.lat, loc.lng).toFixed(1) })
+      : '';
     // 休館時取貨期限會不會順延尚未確認，所以只標示「期限內沒有開館日」，不寫會順延。
     const closureText = win.closures
-      .map((x) => `${formatDate(x.date)}休館${x.reason ? `：${x.reason}` : ''}`)
-      .join('；');
+      .map((x) =>
+        x.reason
+          ? t('center.closedReason', { date: formatDate(x.date), reason: tx(x.reason) })
+          : t('center.closed', { date: formatDate(x.date) })
+      )
+      .join(t('center.sepSemi'));
     const pickup = win.openDates.length
-      ? `取貨期限 ${formatDate(win.deadline)}，可前往：${win.openDates.map(formatDate).join('、')}`
-      : `取貨期限 ${formatDate(win.deadline)} 前沒有開館，這家無法在期限內取貨`;
+      ? t('center.pickup', {
+          deadline: formatDate(win.deadline),
+          dates: win.openDates.map(formatDate).join(t('center.sepList'))
+        })
+      : t('center.pickupNone', { deadline: formatDate(win.deadline) });
     const stockText = stockEntry
       ? stockEntry.stock > 0
-        ? `● 這款剩 ${stockEntry.stock} 件`
-        : '○ 這家目前沒有這款'
+        ? t('center.stockLeft', { n: stockEntry.stock })
+        : t('center.stockNone')
       : '';
     return {
       win,
       stock: stockEntry?.stock,
       option: {
         value: c.id,
-        label: tag ? `${c.name}（${tag}）` : c.name,
+        label: tag ? t('center.nameTag', { name: centerName(c), tag }) : centerName(c),
         description: [
           c.address,
           `${openDaysText(c)} ${hoursText(c)}`,
@@ -94,15 +110,13 @@ const selected = computed<string>({
   get: () => store.centerId,
   set: (v) => {
     store.centerId = v;
-    error.value = '';
+    errorKey.value = '';
   }
 });
 
 const next = () => {
   if (!store.centerId) {
-    error.value = allClosed.value
-      ? '這幾天三家中心都休館，請改天再預約。'
-      : '請選擇一家取貨的輔具中心';
+    errorKey.value = allClosed.value ? 'center.allClosed' : 'center.pickRequired';
     return;
   }
   flow.goNext();
@@ -111,8 +125,8 @@ const next = () => {
 
 <template>
   <AStepPage
-    title="選擇中心"
-    lead="請選擇借用輔具中心"
+    :title="t('center.title')"
+    :lead="t('center.lead')"
     :step="flow.current.value"
     :total="flow.total.value"
   >
@@ -122,13 +136,13 @@ const next = () => {
     <ASection>
       <div v-if="!store.location" class="mb-4">
         <BaseButton outline class="w-full" :aria-busy="locating" @click="locate">
-          依目前位置排序
+          {{ t('center.locate') }}
         </BaseButton>
       </div>
       <p v-if="message" role="status" class="mb-3 text-sm text-grey-700">{{ message }}</p>
       <AChoice
         v-model="selected"
-        legend="取貨中心"
+        :legend="t('center.legend')"
         hide-legend
         required
         :error="error"
@@ -136,7 +150,7 @@ const next = () => {
       />
     </ASection>
     <template #footer>
-      <BaseButton class="w-full !py-4" @click="next">下一步</BaseButton>
+      <BaseButton class="w-full !py-4" @click="next">{{ t('common.next') }}</BaseButton>
     </template>
   </AStepPage>
 </template>

@@ -9,6 +9,7 @@
 import stockSnapshot from '@/data/assistive-stock.json';
 import { formatDate, pickupWindow, centerById } from './centers';
 import { taipeiNow } from './time';
+import { lang, t } from '@/i18n/assistive';
 import { getJson, hasBackend, requestJson, useSample } from './remote';
 import type {
   ApplicantForm,
@@ -328,7 +329,7 @@ export const deadlineText = (r: Reservation) =>
 
 /** 期限內可以去取貨的日子，例如「11/7（週六）」 */
 export const pickupDatesText = (r: Reservation) =>
-  (r.pickupDates ?? []).map((d) => formatDate(new Date(d))).join('、');
+  (r.pickupDates ?? []).map((d) => formatDate(new Date(d))).join(lang.value === 'en' ? ', ' : '、');
 
 export type EffectiveStatus = Reservation['status'] | 'expired';
 
@@ -348,17 +349,17 @@ export const effectiveStatus = (r: Reservation, now = taipeiNow()): EffectiveSta
 export const statusText = (r: Reservation) => {
   switch (effectiveStatus(r)) {
     case 'cancelled':
-      return '已取消';
+      return t('reservations.status.cancelled');
     case 'expired':
-      return '已逾期，預約已自動取消';
+      return t('reservations.status.expired');
     case 'completed':
-      return '已完成';
+      return t('reservations.status.completed');
     case 'confirmed':
-      return '中心已確認';
+      return t('reservations.status.confirmed');
     case 'booked':
-      return '已預約，待取貨';
+      return t('reservations.status.booked');
     default:
-      return '已送出，等中心回電';
+      return t('reservations.status.submitted');
   }
 };
 

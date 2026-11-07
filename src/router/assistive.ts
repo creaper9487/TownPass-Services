@@ -3,8 +3,12 @@ import { useAssistiveStore } from '@/stores/assistive';
 import { flows } from '@/utils/assistive/services';
 import type { ServiceId } from '@/utils/assistive/types';
 import { useAssistiveWelfareStore } from '@/stores/assistiveWelfare';
+import { t } from '@/i18n/assistive';
 
-const TITLE = '輔具預約';
+/** 原生 App 的標題列顯示 document.title，要跟著語言走（每次換頁時才讀） */
+const titleMeta = (extra: Record<string, unknown> = {}) =>
+  Object.defineProperty({ ...extra }, 'title', { get: () => t('app.title'), enumerable: true });
+
 const ALL = 'borrow|assess';
 
 type Store = ReturnType<typeof useAssistiveStore>;
@@ -65,7 +69,7 @@ const step = (
   path: `:service(${services})/${path}`,
   name: `assistive-${name}`,
   component,
-  meta: { title: TITLE, step: name },
+  meta: titleMeta({ step: name }),
   beforeEnter: guard(name)
 });
 
@@ -73,31 +77,31 @@ export const assistiveRoutes: RouteRecordRaw[] = [
   {
     path: '/assistive',
     component: () => import('@/views/assistive/AssistiveLayout.vue'),
-    meta: { title: TITLE },
+    meta: titleMeta(),
     children: [
       {
         path: '',
         name: 'assistive-home',
         component: () => import('@/views/assistive/HomeView.vue'),
-        meta: { title: TITLE }
+        meta: titleMeta()
       },
       {
         path: 'reservations',
         name: 'assistive-reservations',
         component: () => import('@/views/assistive/ReservationsView.vue'),
-        meta: { title: TITLE }
+        meta: titleMeta()
       },
       {
         path: 'welfare',
         name: 'assistive-welfare',
         component: () => import('@/views/assistive/WelfareIntroView.vue'),
-        meta: { title: TITLE }
+        meta: titleMeta()
       },
       {
         path: 'welfare/question/:id',
         name: 'assistive-welfare-question',
         component: () => import('@/views/assistive/WelfareQuestionView.vue'),
-        meta: { title: TITLE },
+        meta: titleMeta(),
         // 直接開網址或重新整理時沒有作答進度，回到說明頁重新開始
         beforeEnter: (to) =>
           useAssistiveWelfareStore().trail.includes(String(to.params.id))
@@ -108,7 +112,7 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         path: 'welfare/result',
         name: 'assistive-welfare-result',
         component: () => import('@/views/assistive/WelfareResultView.vue'),
-        meta: { title: TITLE },
+        meta: titleMeta(),
         beforeEnter: () =>
           useAssistiveWelfareStore().finished ? true : { name: 'assistive-welfare' }
       },
@@ -116,19 +120,19 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         path: 'welfare/page/:slug',
         name: 'assistive-welfare-page',
         component: () => import('@/views/assistive/WelfarePageView.vue'),
-        meta: { title: TITLE }
+        meta: titleMeta()
       },
       {
         path: 'arrival/:variantId',
         name: 'assistive-arrival',
         component: () => import('@/views/assistive/ArrivalView.vue'),
-        meta: { title: TITLE }
+        meta: titleMeta()
       },
       {
         path: 'reservations/:id',
         name: 'assistive-reservation',
         component: () => import('@/views/assistive/ReservationDetailView.vue'),
-        meta: { title: TITLE }
+        meta: titleMeta()
       },
       step('rules', 'rules', () => import('@/views/assistive/RulesView.vue'), 'borrow'),
       step('items', 'items', () => import('@/views/assistive/ItemsView.vue'), 'borrow'),
@@ -136,7 +140,7 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         path: ':service(borrow)/items/:categoryId',
         name: 'assistive-variants',
         component: () => import('@/views/assistive/VariantsView.vue'),
-        meta: { title: TITLE, step: 'items' },
+        meta: titleMeta({ step: 'items' }),
         beforeEnter: (to) => {
           // 看種類之前同樣要先同意須知，但還沒選到輔具
           const store = useAssistiveStore();

@@ -6,6 +6,7 @@ import ASection from '@/components/assistive/ASection.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import catalogJson from '@/data/assistive-catalog.json';
+import { t, trSummary } from '@/i18n/assistive';
 import { subscribeArrival, type ArrivalNotice } from '@/utils/assistive/api';
 import type { Category } from '@/utils/assistive/types';
 
@@ -43,42 +44,46 @@ const submit = async () => {
 </script>
 
 <template>
-  <AStepPage :title="done ? '已登記到貨通知' : '到貨通知'">
+  <AStepPage :title="done ? t('borrow.arrivalRegistered') : t('borrow.arrivalNotice')">
     <ASection v-if="!found">
-      <p class="tp-h3-semibold">找不到這個輔具</p>
+      <p class="tp-h3-semibold">{{ t('arrival.notFound') }}</p>
       <BaseButton class="mt-4 w-full" link :route-info="{ name: 'assistive-home' }">
-        回輔具預約
+        {{ t('arrival.home') }}
       </BaseButton>
     </ASection>
 
     <template v-else-if="!done">
       <ASection>
         <div class="flex items-center justify-between">
-          <h2 class="tp-h3-semibold text-primary-700">登記項目</h2>
+          <h2 class="tp-h3-semibold text-primary-700">{{ t('arrival.registerHeading') }}</h2>
         </div>
         <dl class="mt-2 divide-y divide-grey-100">
           <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base first:pt-1">
-            <dt class="text-grey-700">輔具</dt>
-            <dd class="break-words">{{ found.label }}</dd>
+            <dt class="text-grey-700">{{ t('arrival.device') }}</dt>
+            <dd class="break-words">{{ trSummary(found.label) }}</dd>
           </div>
         </dl>
-        <AErrorText v-if="failed" class="mt-3">送出失敗，請檢查網路後再試一次。</AErrorText>
+        <AErrorText v-if="failed" class="mt-3">{{ t('arrival.failed') }}</AErrorText>
       </ASection>
     </template>
 
     <template v-else>
       <ASection>
         <div role="status" class="flex items-center gap-3 rounded-lg bg-primary-50 p-4">
-          <img src="@/assets/images/check-icon-outline.svg" alt="" class="h-10 w-10 shrink-0" />
+          <img
+            src="@/assets/images/check-icon-outline.svg"
+            alt=""
+            class="a-pop h-10 w-10 shrink-0"
+          />
           <div>
-            <p class="text-sm text-grey-700">登記編號</p>
+            <p class="text-sm text-grey-700">{{ t('arrival.number') }}</p>
             <p class="tp-h2 break-all">{{ done.id }}</p>
           </div>
         </div>
         <dl class="mt-3 divide-y divide-grey-100">
           <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base">
-            <dt class="text-grey-700">輔具</dt>
-            <dd class="break-words">{{ done.label }}</dd>
+            <dt class="text-grey-700">{{ t('arrival.device') }}</dt>
+            <dd class="break-words">{{ trSummary(done.label) }}</dd>
           </div>
         </dl>
       </ASection>
@@ -86,16 +91,18 @@ const submit = async () => {
 
     <template v-if="found" #footer>
       <div v-if="!done" class="grid grid-cols-2 gap-2">
-        <BaseButton outline @click="router.back()">上一步</BaseButton>
+        <BaseButton outline @click="router.back()">{{ t('common.prev') }}</BaseButton>
         <BaseButton :aria-busy="sending" @click="submit">
-          {{ sending ? '送出中…' : '確認送出' }}
+          {{ sending ? t('arrival.sending') : t('arrival.submit') }}
         </BaseButton>
       </div>
       <div v-else class="grid grid-cols-2 gap-2">
         <BaseButton outline link :route-info="{ name: 'assistive-reservations' }">
-          服務預約查詢與取消
+          {{ t('arrival.reservations') }}
         </BaseButton>
-        <BaseButton link :route-info="{ name: 'assistive-home' }">回輔具預約</BaseButton>
+        <BaseButton link :route-info="{ name: 'assistive-home' }">
+          {{ t('arrival.home') }}
+        </BaseButton>
       </div>
     </template>
   </AStepPage>

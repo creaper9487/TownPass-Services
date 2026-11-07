@@ -1,4 +1,5 @@
 import type { ServiceId } from './types';
+import { t } from '@/i18n/assistive';
 
 /**
  * 臺北市輔具資源整合資訊網（tpap.gov.taipei）上的服務、名稱與說明文字。
@@ -81,6 +82,10 @@ export const services: Record<ServiceId, ServiceInfo> = {
     ]
   }
 };
+
+/** 畫面上顯示的服務名稱（跟著語言）；services[id].title 是中文原名，不要直接顯示 */
+export const serviceTitle = (id: ServiceId) => t(`service.${id}.title`);
+export const serviceShortTitle = (id: ServiceId) => t(`service.${id}.short`);
 
 export const serviceOrder: ServiceId[] = ['borrow', 'assess'];
 

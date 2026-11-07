@@ -5,6 +5,7 @@ import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { welfare, type WelfareBlock } from '@/utils/assistive/welfare';
+import { t, zhAttr } from '@/i18n/assistive';
 
 const route = useRoute();
 const native = useAssistiveNative();
@@ -29,12 +30,12 @@ const groups = computed(() => {
 </script>
 
 <template>
-  <AStepPage :title="page?.title ?? '輔具福利查詢'">
+  <AStepPage :title="page?.title ?? t('welfare.title')">
     <ASection v-if="!page">
-      <p class="tp-h3-semibold">找不到這個項目</p>
+      <p class="tp-h3-semibold">{{ t('welfare.notFound') }}</p>
     </ASection>
     <ASection v-else>
-      <div class="flex flex-col gap-3 text-base">
+      <div class="flex flex-col gap-3 text-base" :lang="zhAttr">
         <template v-for="(g, i) in groups" :key="i">
           <h2 v-if="g.kind === 'h'" class="tp-h3-semibold mt-3 text-primary-700">
             {{ g.block.text }}

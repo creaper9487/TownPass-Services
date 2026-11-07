@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { uid } from '@/utils/assistive/uid';
+import { t, tx } from '@/i18n/assistive';
 import AErrorText from './AErrorText.vue';
 
 const props = defineProps<{
@@ -30,7 +31,9 @@ const describedby = computed(
     <label :for="id" class="tp-h3-semibold mb-1 block">
       {{ label }}
       <span v-if="required" class="text-red-500" aria-hidden="true">*</span>
-      <span v-else class="ml-1 text-sm font-normal text-grey-700">（選填）</span>
+      <span v-else class="ml-1 text-sm font-normal text-grey-700">
+        {{ t('form.parens', { text: t('common.optional') }) }}
+      </span>
     </label>
     <p v-if="hint" :id="hintId" class="mb-2 text-sm text-grey-700">{{ hint }}</p>
     <div class="relative">
@@ -46,8 +49,8 @@ const describedby = computed(
         :class="{ 'ring-1 ring-red-600': error, 'text-grey-600': !modelValue }"
         @change="emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
       >
-        <option value="">{{ placeholder ?? '請選擇' }}</option>
-        <option v-for="o in options" :key="o" :value="o" class="text-grey-800">{{ o }}</option>
+        <option value="">{{ placeholder ?? t('form.choose') }}</option>
+        <option v-for="o in options" :key="o" :value="o" class="text-grey-800">{{ tx(o) }}</option>
       </select>
       <img
         src="@/assets/images/down-icon.svg"

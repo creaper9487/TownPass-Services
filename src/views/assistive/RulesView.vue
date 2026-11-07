@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import AChoice from '@/components/assistive/AChoice.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
+import { t, zhAttr } from '@/i18n/assistive';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
 import { officialCenterRows } from '@/utils/assistive/centers';
@@ -14,12 +15,13 @@ const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 
 const checked = ref(BORROW_RULES.consents.filter((_, i) => store.consents[i]));
-const error = ref('');
+const hasError = ref(false);
+const error = computed(() => (hasError.value ? t('borrow.rules.consentError') : ''));
 
 const agree = () => {
   store.consents = BORROW_RULES.consents.map((a) => checked.value.includes(a));
   if (!store.consents.every(Boolean)) {
-    error.value = '請勾選以上三項注意事項。';
+    hasError.value = true;
     return;
   }
   flow.goNext();
@@ -27,9 +29,9 @@ const agree = () => {
 </script>
 
 <template>
-  <AStepPage :title="BORROW_RULES.title" :step="flow.current.value" :total="flow.total.value">
+  <AStepPage :title="t('borrow.rules.title')" :step="flow.current.value" :total="flow.total.value">
     <ASection>
-      <dl class="flex flex-col gap-3 text-base">
+      <dl :lang="zhAttr" class="flex flex-col gap-3 text-base">
         <div v-for="[k, v] in BORROW_RULES.items" :key="k">
           <dt v-if="!v" class="tp-h3-semibold mt-2">{{ k }}</dt>
           <template v-else>
@@ -38,14 +40,15 @@ const agree = () => {
           </template>
         </div>
       </dl>
-      <p class="mt-4 text-sm text-grey-700">{{ BORROW_RULES.footnote }}</p>
+      <p :lang="zhAttr" class="mt-4 text-sm text-grey-700">{{ BORROW_RULES.footnote }}</p>
     </ASection>
 
-    <ASection title="中心名稱、開放時間、中心地址、中心電話">
+    <ASection :title="t('borrow.rules.centersHeading')">
       <ul class="flex flex-col gap-3">
         <li
           v-for="c in officialCenterRows"
           :key="c.name"
+          :lang="zhAttr"
           class="rounded-lg border border-grey-200 p-3 text-base"
         >
           <p class="font-semibold">{{ c.name }}</p>
@@ -61,18 +64,20 @@ const agree = () => {
         v-model="checked"
         multiple
         required
-        :legend="BORROW_RULES.consentIntro"
-        :hint="BORROW_RULES.consentNote"
+        :legend="t('borrow.rules.consentIntro')"
+        :hint="t('borrow.rules.consentNote')"
         :error="error"
-        :options="BORROW_RULES.consents.map((a) => ({ value: a, label: a }))"
-        @update:model-value="error = ''"
+        :options="BORROW_RULES.consents.map((a) => ({ value: a, label: a, lang: zhAttr }))"
+        @update:model-value="hasError = false"
       />
     </ASection>
 
     <template #footer>
       <div class="grid grid-cols-2 gap-2">
-        <BaseButton outline link :route-info="{ name: 'assistive-home' }">我不同意</BaseButton>
-        <BaseButton @click="agree">我同意</BaseButton>
+        <BaseButton outline link :route-info="{ name: 'assistive-home' }">
+          {{ t('borrow.rules.disagree') }}
+        </BaseButton>
+        <BaseButton @click="agree">{{ t('borrow.rules.agree') }}</BaseButton>
       </div>
     </template>
   </AStepPage>

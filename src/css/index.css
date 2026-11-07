@@ -144,3 +144,127 @@
     border: 1px solid ButtonText;
   }
 }
+
+/* ---- 輔具預約的動態效果：只在使用者沒有開「減少動態效果」時才有 ---- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes a-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.14);
+    }
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes a-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* 換頁：往前從右滑入、返回從左滑入（只動內容，底部按鈕列不動） */
+  .a-enter-forward {
+    animation: a-in-right 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .a-enter-back {
+    animation: a-in-left 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  /* 清單與卡片依序浮現（--i 是順序，最多延遲約 0.4 秒） */
+  .a-rise {
+    animation: a-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 50ms);
+  }
+  .a-drop {
+    animation: a-drop 0.24s ease-out both;
+  }
+  .a-pop {
+    animation: a-pop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.12s both;
+  }
+  .a-progress {
+    transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* 按下的回饋與選取時的顏色變化 */
+  .assistive-scope a,
+  .assistive-scope button {
+    transition:
+      transform 0.12s ease,
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease;
+  }
+  .assistive-scope a:active,
+  .assistive-scope button:not(:disabled):active {
+    transform: scale(0.98);
+  }
+  .assistive-scope label {
+    transition:
+      border-color 0.18s ease,
+      background-color 0.18s ease;
+  }
+
+  /* 送出中的按鈕前面轉圈圈 */
+  .assistive-scope button[aria-busy='true']::before {
+    content: '';
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    margin-right: 0.5em;
+    vertical-align: -0.15em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 9999px;
+    animation: a-spin 0.7s linear infinite;
+  }
+}
+
+/* 標題換行時讓各行長度接近，避免最後一行只剩一兩個字 */
+.assistive-scope h1,
+.assistive-scope h2 {
+  text-wrap: balance;
+}

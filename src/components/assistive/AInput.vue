@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { uid } from '@/utils/assistive/uid';
+import { t } from '@/i18n/assistive';
 import AErrorText from './AErrorText.vue';
 
 const props = defineProps<{
@@ -40,7 +41,9 @@ const onInput = (e: Event) => {
     <label :for="id" :class="hideLabel ? 'sr-only' : 'tp-h3-semibold mb-1 block'">
       {{ label }}
       <span v-if="required" class="text-red-500" aria-hidden="true">*</span>
-      <span v-else-if="!hideLabel" class="ml-1 text-sm font-normal text-grey-700">（選填）</span>
+      <span v-else-if="!hideLabel" class="ml-1 text-sm font-normal text-grey-700">
+        {{ t('form.parens', { text: t('common.optional') }) }}
+      </span>
     </label>
     <p v-if="hint" :id="hintId" class="mb-2 text-sm text-grey-700">{{ hint }}</p>
     <input

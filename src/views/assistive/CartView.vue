@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t, trSummary } from '@/i18n/assistive';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
 import AStepPage from '@/components/assistive/AStepPage.vue';
@@ -10,20 +11,28 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 
+// 儲存的品名一律是中文；顯示時類別才翻成當下語言
 const label = (v: { categoryName: string; name: string; spec: string }) =>
-  [v.categoryName, v.name, v.spec].filter((x) => x && x !== '---' && x !== '--').join('・');
+  trSummary(
+    [v.categoryName, v.name, v.spec].filter((x) => x && x !== '---' && x !== '--').join('・')
+  );
 </script>
 
 <template>
-  <AStepPage title="本次預約項目" :step="flow.current.value" :total="flow.total.value">
+  <AStepPage :title="t('borrow.cart.title')" :step="flow.current.value" :total="flow.total.value">
     <ASection grey>
-      <p v-if="!store.variants.length" class="text-base">尚未選擇輔具</p>
+      <p v-if="!store.variants.length" class="text-base">{{ t('borrow.cart.empty') }}</p>
       <ul v-else class="flex flex-col gap-3">
-        <li v-for="v in store.variants" :key="v.id" class="tp-card flex items-center gap-3 p-3">
+        <li
+          v-for="v in store.variants"
+          :key="v.id"
+          class="a-rise tp-card flex items-center gap-3 p-3"
+        >
           <AImage v-if="v.image" :src="v.image" hide-on-error class="h-16 w-16 shrink-0" />
           <p class="min-w-0 flex-1 break-words text-base font-semibold">{{ label(v) }}</p>
           <BaseButton outline class="shrink-0" @click="store.removeVariant(v.id)">
-            刪除<span class="sr-only">：{{ label(v) }}</span>
+            {{ t('borrow.cart.remove')
+            }}<span class="sr-only">{{ t('borrow.srItem', { text: label(v) }) }}</span>
           </BaseButton>
         </li>
       </ul>
@@ -32,9 +41,11 @@ const label = (v: { categoryName: string; name: string; spec: string }) =>
     <template #footer>
       <div class="grid grid-cols-2 gap-2">
         <BaseButton outline link :route-info="stepRoute('borrow', 'items')">
-          繼續選擇輔具
+          {{ t('borrow.cart.more') }}
         </BaseButton>
-        <BaseButton :disabled="!store.variants.length" @click="flow.goNext()">下一步</BaseButton>
+        <BaseButton :disabled="!store.variants.length" @click="flow.goNext()">
+          {{ t('common.next') }}
+        </BaseButton>
       </div>
     </template>
   </AStepPage>

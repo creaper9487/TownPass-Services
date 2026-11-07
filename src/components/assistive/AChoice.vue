@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { uid } from '@/utils/assistive/uid';
+import { t } from '@/i18n/assistive';
 import AErrorText from './AErrorText.vue';
 import AImage from './AImage.vue';
 import AIcon, { type IconName } from './AIcon.vue';
@@ -14,6 +15,8 @@ export interface ChoiceOption {
   /** 沒有官方照片時的線條圖示，只裝飾，文字仍是主要資訊 */
   icon?: IconName;
   disabled?: boolean;
+  /** 這個選項的文字是另一種語言（例如英文介面下的官方中文原文）時的 lang 屬性 */
+  lang?: string;
 }
 
 const props = defineProps<{
@@ -62,14 +65,15 @@ const onChange = (value: string, checked: boolean) => {
     <legend class="tp-h3-semibold mb-1" :class="{ 'sr-only': hideLegend }">
       {{ legend }}
       <span v-if="required && !hideLegend" class="text-red-500" aria-hidden="true">*</span>
-      <span v-if="required" class="sr-only">（必填）</span>
+      <span v-if="required" class="sr-only">{{ t('form.required') }}</span>
     </legend>
     <p v-if="hint" :id="hintId" class="mb-2 text-sm text-grey-700">{{ hint }}</p>
     <div class="flex flex-col gap-2" :class="{ 'mt-2': !hint && !hideLegend }">
       <label
-        v-for="o in options"
+        v-for="(o, i) in options"
         :key="o.value"
-        class="relative flex min-h-14 cursor-pointer gap-3 rounded-lg border bg-white px-4 py-3"
+        class="a-rise relative flex min-h-14 cursor-pointer gap-3 rounded-lg border bg-white px-4 py-3"
+        :style="{ '--i': Math.min(i, 8) }"
         :class="[
           o.image || o.icon ? 'items-center' : 'items-start',
           o.disabled
@@ -120,6 +124,7 @@ const onChange = (value: string, checked: boolean) => {
         </span>
         <span class="flex-1">
           <span
+            :lang="o.lang"
             class="block text-base"
             :class="[{ 'font-semibold': isChecked(o.value) }, o.disabled ? 'text-grey-700' : '']"
           >

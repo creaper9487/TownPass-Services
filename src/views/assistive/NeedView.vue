@@ -13,12 +13,15 @@ import type { Category } from '@/utils/assistive/types';
 import type { SummaryItem } from '@/utils/assistive/validators';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
-import { services, type NeedGroup } from '@/utils/assistive/services';
+import { services, serviceShortTitle, type NeedGroup } from '@/utils/assistive/services';
+import { t, tx, zhAttr } from '@/i18n/assistive';
 
 // 官方表單：申請評估、申請維修（同一張表）／申請回收。說明與勾選項名稱照官方原文。
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 const groups = computed(() => services[flow.service.value].groups ?? []);
+// 區塊標題（申請評估、申請維修）是介面文字，跟著語言；g.title 是官方中文原名
+const groupTitle = (g: NeedGroup) => t(`need.group.${g.id}`);
 
 const listOf = (g: NeedGroup) => (g.id === 'repair' ? store.repairNeeds : store.needs);
 const setList = (g: NeedGroup, v: string[]) => {
@@ -54,8 +57,8 @@ const iconOf: Record<string, IconName> = {
 };
 
 const optionsOf = (g: NeedGroup) => [
-  ...g.options.map((o) => ({ value: o, label: o, image: photoOf(o), icon: iconOf[o] })),
-  ...(g.other ? [{ value: '其他', label: '其他', icon: 'more' as IconName }] : [])
+  ...g.options.map((o) => ({ value: o, label: tx(o), image: photoOf(o), icon: iconOf[o] })),
+  ...(g.other ? [{ value: '其他', label: tx('其他'), icon: 'more' as IconName }] : [])
 ];
 
 // 申請評估、申請維修分頁；別頁已勾選的數量顯示在分頁標籤上，不會看不到。
@@ -64,8 +67,8 @@ const tabs = computed(() =>
     const n = listOf(g).length;
     return {
       id: g.id,
-      title: n ? `${g.title}（${n}）` : g.title,
-      label: n ? `${g.title}，已選 ${n} 項` : undefined
+      title: n ? t('need.tabCount', { title: groupTitle(g), n }) : groupTitle(g),
+      label: n ? t('need.tabCountLabel', { title: groupTitle(g), n }) : undefined
     };
   })
 );
@@ -86,12 +89,15 @@ const next = () => {
   const items: SummaryItem[] = [];
   const total = groups.value.reduce((n, g) => n + listOf(g).length, 0);
   if (!total)
-    items.push({ text: '請至少勾選一項', target: `need-choice-${activeGroup.value?.id}` });
+    items.push({ text: t('need.err.pickOne'), target: `need-choice-${activeGroup.value?.id}` });
   otherErrors.value = {};
   for (const g of groups.value) {
     if (listOf(g).includes('其他') && !otherOf(g).trim()) {
-      otherErrors.value[g.id] = '請填寫其他項目';
-      items.push({ text: `${g.title}：請填寫其他項目`, target: `need-other-${g.id}` });
+      otherErrors.value[g.id] = t('need.err.other');
+      items.push({
+        text: t('need.err.otherIn', { title: groupTitle(g) }),
+        target: `need-other-${g.id}`
+      });
     }
   }
   // 錯誤在另一個分頁時切過去，免得按了下一步卻看不到原因
@@ -106,7 +112,7 @@ const next = () => {
 
 <template>
   <AStepPage
-    :title="services[flow.service.value].shortTitle"
+    :title="serviceShortTitle(flow.service.value)"
     :step="flow.current.value"
     :total="flow.total.value"
   >
@@ -116,7 +122,7 @@ const next = () => {
       v-model="activeTab"
       :tab-list="tabs"
       id-prefix="need"
-      list-label="申請項目"
+      :list-label="t('need.tabsLabel')"
     >
       <template #icon="{ item }">
         <AIcon :name="item.id === 'repair' ? 'repair' : 'assess'" class="h-5 w-5" />
@@ -128,23 +134,23 @@ const next = () => {
       id="need-panel"
       role="tabpanel"
       :aria-labelledby="groups.length > 1 ? `need-tab-${activeTab}` : undefined"
-      :aria-label="groups.length > 1 ? undefined : activeGroup.title"
+      :aria-label="groups.length > 1 ? undefined : groupTitle(activeGroup)"
     >
-      <ASection :title="groups.length > 1 ? undefined : activeGroup.title">
-        <p class="text-base">{{ activeGroup.intro }}</p>
+      <ASection :title="groups.length > 1 ? undefined : groupTitle(activeGroup)">
+        <p class="text-base" :lang="zhAttr">{{ activeGroup.intro }}</p>
         <div
           v-if="activeGroup.notice"
           class="mt-3 flex gap-2 rounded-lg bg-red-50 p-3 text-red-700"
         >
           <AIcon name="info" class="mt-0.5 h-5 w-5 shrink-0" />
-          <p class="text-base font-semibold">{{ activeGroup.notice }}</p>
+          <p class="text-base font-semibold" :lang="zhAttr">{{ activeGroup.notice }}</p>
         </div>
         <div class="mt-4">
           <AChoice
             :model-value="listOf(activeGroup)"
             multiple
             :field-id="`need-choice-${activeGroup.id}`"
-            :legend="activeGroup.title"
+            :legend="groupTitle(activeGroup)"
             hide-legend
             :options="optionsOf(activeGroup)"
             @update:model-value="
@@ -157,7 +163,7 @@ const next = () => {
           <div v-if="listOf(activeGroup).includes('其他')" class="mt-4">
             <AInput
               :model-value="otherOf(activeGroup)"
-              label="其他"
+              :label="tx('其他')"
               :field-id="`need-other-${activeGroup.id}`"
               required
               :error="otherErrors[activeGroup.id]"
@@ -169,7 +175,7 @@ const next = () => {
     </div>
 
     <template #footer>
-      <BaseButton class="w-full !py-4" @click="next">下一步</BaseButton>
+      <BaseButton class="w-full !py-4" @click="next">{{ t('common.next') }}</BaseButton>
     </template>
   </AStepPage>
 </template>

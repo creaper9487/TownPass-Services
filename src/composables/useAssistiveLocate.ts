@@ -1,5 +1,6 @@
 import { onBeforeUnmount, ref, watch } from 'vue';
 import { useAssistiveStore } from '@/stores/assistive';
+import { t } from '@/i18n/assistive';
 import { inApp, useAssistiveNative } from './useAssistiveNative';
 
 /**
@@ -13,14 +14,14 @@ export const useAssistiveLocate = () => {
   const message = ref('');
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const fail = (text = '無法取得位置，請確認已開啟定位權限，或改用地址推薦。') => {
+  const fail = (text = t('locate.failed')) => {
     locating.value = false;
     message.value = text;
   };
 
   const locate = () => {
     locating.value = true;
-    message.value = '正在取得位置…';
+    message.value = t('locate.loading');
     clearTimeout(timer);
 
     if (inApp()) {
@@ -28,7 +29,7 @@ export const useAssistiveLocate = () => {
       timer = setTimeout(() => locating.value && fail(), 8000);
       return;
     }
-    if (!navigator.geolocation) return fail('這個裝置不支援定位。');
+    if (!navigator.geolocation) return fail(t('locate.unsupported'));
     navigator.geolocation.getCurrentPosition(
       (p) => {
         store.location = { lat: p.coords.latitude, lng: p.coords.longitude };
@@ -45,7 +46,7 @@ export const useAssistiveLocate = () => {
       if (loc) {
         locating.value = false;
         clearTimeout(timer);
-        message.value = '已依你目前的位置排序。';
+        message.value = t('locate.done');
       }
     }
   );
@@ -55,9 +56,7 @@ export const useAssistiveLocate = () => {
     () => {
       setTimeout(() => {
         if (locating.value && !store.location) {
-          fail(
-            '沒有取得位置。請確認已在「歷程與授權管理」授權、手機定位也有開啟，或改用地址推薦。'
-          );
+          fail(t('locate.denied'));
         }
       }, 2500);
     }

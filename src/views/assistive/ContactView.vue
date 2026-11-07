@@ -8,6 +8,7 @@ import ErrorSummary from '@/components/assistive/ErrorSummary.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
+import { t, tx } from '@/i18n/assistive';
 import {
   isEmail,
   isLandline,
@@ -30,28 +31,32 @@ const fromAccount = computed(
   () => !!store.account && (f.name === store.account.name || f.mobile === store.account.mobile)
 );
 
-const MOBILE_MSG = '手機要 10 碼、09 開頭，例如 0912345678';
-const PHONE_MSG = '電話請含區碼，例如 0224597892';
+const mobileMsg = () => t('contact.err.mobile');
+const phoneMsg = () => t('contact.err.phone');
 
 const validate = () => {
-  errors.name = f.name.trim() ? '' : '請輸入姓名';
-  errors.mobile = !f.mobile.trim() ? '請輸入手機' : isMobile(f.mobile) ? '' : MOBILE_MSG;
+  errors.name = f.name.trim() ? '' : t('form.err.name');
+  errors.mobile = !f.mobile.trim()
+    ? t('contact.err.mobileRequired')
+    : isMobile(f.mobile)
+      ? ''
+      : mobileMsg();
   // 官方：評估、維修、回收的電話是必填；借用只在有填時檢查格式
   errors.phone =
     !f.phone.trim() && !isBorrow.value
-      ? '請輸入電話'
+      ? t('contact.err.phoneRequired')
       : f.phone.trim() && !isLandline(f.phone)
-        ? PHONE_MSG
+        ? phoneMsg()
         : '';
-  errors.gender = !isBorrow.value && !f.gender ? '請選擇性別' : '';
-  errors.email = f.email.trim() && !isEmail(f.email) ? 'E-mail 格式不正確' : '';
+  errors.gender = !isBorrow.value && !f.gender ? t('contact.err.gender') : '';
+  errors.email = f.email.trim() && !isEmail(f.email) ? t('form.err.email') : '';
   return toSummary(errors, 'contact');
 };
 // 離開欄位時只檢查「已經填了但格式不對」的情況；必填的提醒留到按下一步。
 const onBlur = (key: 'mobile' | 'phone' | 'email') => {
-  if (key === 'mobile' && f.mobile.trim()) errors.mobile = isMobile(f.mobile) ? '' : MOBILE_MSG;
-  if (key === 'phone' && f.phone.trim()) errors.phone = isLandline(f.phone) ? '' : PHONE_MSG;
-  if (key === 'email' && f.email.trim()) errors.email = isEmail(f.email) ? '' : 'E-mail 格式不正確';
+  if (key === 'mobile' && f.mobile.trim()) errors.mobile = isMobile(f.mobile) ? '' : mobileMsg();
+  if (key === 'phone' && f.phone.trim()) errors.phone = isLandline(f.phone) ? '' : phoneMsg();
+  if (key === 'email' && f.email.trim()) errors.email = isEmail(f.email) ? '' : t('form.err.email');
 };
 const summary = ref<SummaryItem[]>([]);
 
@@ -65,8 +70,8 @@ const next = () => {
 
 <template>
   <AStepPage
-    title="聯絡人資料"
-    lead="*表示為必填欄位"
+    :title="t('contact.title')"
+    :lead="t('common.requiredNote')"
     :step="flow.current.value"
     :total="flow.total.value"
   >
@@ -75,15 +80,15 @@ const next = () => {
       role="status"
       class="mx-4 mt-4 rounded-lg bg-primary-50 p-3 text-sm text-primary-800"
     >
-      已帶入台北通資料
+      {{ t('contact.fromAccount') }}
     </p>
     <ErrorSummary :errors="summary" :trigger="trigger" />
 
-    <ASection title="聯絡人資料">
+    <ASection :title="t('contact.title')">
       <div class="flex flex-col gap-5">
         <AInput
           v-model="f.name"
-          label="姓名"
+          :label="t('form.name')"
           required
           autocomplete="name"
           field-id="contact-name"
@@ -91,19 +96,19 @@ const next = () => {
         />
         <AInput
           v-model="f.phone"
-          label="電話"
+          :label="t('form.phone')"
           :required="!isBorrow"
           type="tel"
           inputmode="tel"
           autocomplete="tel-national"
-          hint="ex:0224597892 (將以此欄位進行預約查詢)"
+          :hint="t('contact.phoneHint')"
           field-id="contact-phone"
           :error="errors.phone"
           @blur="onBlur('phone')"
         />
         <AInput
           v-model="f.mobile"
-          label="手機"
+          :label="t('form.mobile')"
           required
           type="tel"
           inputmode="tel"
@@ -115,24 +120,24 @@ const next = () => {
         <AChoice
           v-if="!isBorrow"
           :model-value="f.gender"
-          legend="性別"
+          :legend="t('form.gender')"
           required
           field-id="contact-gender"
           :error="errors.gender"
           :options="[
-            { value: 'M', label: '男' },
-            { value: 'F', label: '女' }
+            { value: 'M', label: tx('男') },
+            { value: 'F', label: tx('女') }
           ]"
           @update:model-value="f.gender = $event as 'M' | 'F'"
         />
         <AInput
           v-if="isBorrow"
           v-model="f.email"
-          label="E-mail"
+          :label="t('form.email')"
           type="email"
           inputmode="email"
           autocomplete="email"
-          hint="將以此email寄送預約單"
+          :hint="t('form.emailHint')"
           field-id="contact-email"
           :error="errors.email"
           @blur="onBlur('email')"
@@ -142,8 +147,8 @@ const next = () => {
 
     <template #footer>
       <div class="grid grid-cols-2 gap-2">
-        <BaseButton outline @click="flow.goPrev()">上一步</BaseButton>
-        <BaseButton @click="next">下一步</BaseButton>
+        <BaseButton outline @click="flow.goPrev()">{{ t('common.prev') }}</BaseButton>
+        <BaseButton @click="next">{{ t('common.next') }}</BaseButton>
       </div>
     </template>
   </AStepPage>

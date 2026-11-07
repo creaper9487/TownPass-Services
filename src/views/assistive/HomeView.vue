@@ -3,11 +3,13 @@ import { onMounted } from 'vue';
 import AStepPage from '@/components/assistive/AStepPage.vue';
 import AServiceCard from '@/components/assistive/AServiceCard.vue';
 import ClosureNotice from '@/components/assistive/ClosureNotice.vue';
+import ALanguageSwitch from '@/components/assistive/ALanguageSwitch.vue';
 import welfareIcon from '@/assets/images/assistive/icon-welfare.svg';
 import assessIcon from '@/assets/images/assistive/icon-assess.svg';
 import reservationIcon from '@/assets/images/assistive/icon-reservation.svg';
 import { useAssistiveStore } from '@/stores/assistive';
-import { services } from '@/utils/assistive/services';
+import { serviceTitle } from '@/utils/assistive/services';
+import { t } from '@/i18n/assistive';
 import catalogJson from '@/data/assistive-catalog.json';
 import type { Category } from '@/utils/assistive/types';
 
@@ -22,35 +24,47 @@ onMounted(() => store.loadCalendars());
 </script>
 
 <template>
-  <AStepPage title="輔具預約" hide-header>
+  <AStepPage :title="t('app.title')" hide-header>
     <div class="flex flex-col gap-2 px-4 py-4">
       <ClosureNotice v-if="store.closureNotices.length" :items="store.closureNotices" />
 
-      <nav aria-label="功能選單" class="flex flex-col gap-2">
+      <nav :aria-label="t('home.menu')" class="flex flex-col gap-2">
         <AServiceCard
+          class="a-rise"
+          :style="{ '--i': 0 }"
           hero
-          :title="services.borrow.title"
+          :title="serviceTitle('borrow')"
           :photos="photos"
           :to="{ name: 'assistive-rules', params: { service: 'borrow' } }"
           @click="store.begin('borrow')"
         />
         <AServiceCard
-          title="輔具福利查詢"
+          class="a-rise"
+          :style="{ '--i': 1 }"
+          :title="t('home.welfare')"
           :icon="welfareIcon"
           :to="{ name: 'assistive-welfare' }"
         />
         <AServiceCard
-          :title="services.assess.title"
+          class="a-rise"
+          :style="{ '--i': 2 }"
+          :title="serviceTitle('assess')"
           :icon="assessIcon"
           :to="{ name: 'assistive-need', params: { service: 'assess' } }"
           @click="store.begin('assess')"
         />
         <AServiceCard
-          title="服務預約查詢與取消"
+          class="a-rise"
+          :style="{ '--i': 3 }"
+          :title="t('home.reservations')"
           :icon="reservationIcon"
           :to="{ name: 'assistive-reservations' }"
         />
       </nav>
+
+      <div class="mt-4">
+        <ALanguageSwitch class="a-rise" :style="{ '--i': 4 }" />
+      </div>
     </div>
   </AStepPage>
 </template>

@@ -17,8 +17,9 @@ import {
   statusText
 } from '@/utils/assistive/api';
 import { centerById, mapUrl } from '@/utils/assistive/centers';
-import { services } from '@/utils/assistive/services';
+import { serviceTitle } from '@/utils/assistive/services';
 import type { Reservation } from '@/utils/assistive/types';
+import { t, trSummary } from '@/i18n/assistive';
 
 const route = useRoute();
 const native = useAssistiveNative();
@@ -63,14 +64,16 @@ const doCancel = async () => {
 </script>
 
 <template>
-  <AStepPage :title="reservation ? services[reservation.service].title : '預約明細'">
+  <AStepPage
+    :title="reservation ? serviceTitle(reservation.service) : t('reservations.detailTitle')"
+  >
     <ASection v-if="!loaded">
-      <p class="text-sm text-grey-700">讀取中…</p>
+      <p class="text-sm text-grey-700">{{ t('common.loading') }}</p>
     </ASection>
     <ASection v-else-if="!reservation">
-      <p class="tp-h3-semibold">找不到這筆預約</p>
+      <p class="tp-h3-semibold">{{ t('reservations.notFound') }}</p>
       <BaseButton class="mt-4 w-full" link :route-info="{ name: 'assistive-reservations' }">
-        回服務預約查詢與取消
+        {{ t('reservations.backToList') }}
       </BaseButton>
     </ASection>
     <template v-else>
@@ -88,12 +91,12 @@ const doCancel = async () => {
         </p>
         <dl class="mt-3 divide-y divide-grey-100">
           <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base first:pt-0">
-            <dt class="text-grey-700">預約編號</dt>
+            <dt class="text-grey-700">{{ t('reservations.number') }}</dt>
             <dd>{{ reservation.id }}</dd>
           </div>
           <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base">
-            <dt class="text-grey-700">項目</dt>
-            <dd class="whitespace-pre-line">{{ reservation.summary.join('\n') }}</dd>
+            <dt class="text-grey-700">{{ t('reservations.row.item') }}</dt>
+            <dd class="whitespace-pre-line">{{ reservation.summary.map(trSummary).join('\n') }}</dd>
           </div>
           <div
             v-if="
@@ -102,44 +105,46 @@ const doCancel = async () => {
             "
             class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base"
           >
-            <dt class="text-grey-700">取貨期限</dt>
+            <dt class="text-grey-700">{{ t('reservations.row.pickup') }}</dt>
             <dd>
-              {{ deadlineText(reservation) }}前<span
-                v-if="reservation.pickupDates?.length"
-                class="block text-sm text-grey-700"
-              >
-                可前往：{{ pickupDatesText(reservation) }}
+              {{ t('reservations.pickupBy', { date: deadlineText(reservation) })
+              }}<span v-if="reservation.pickupDates?.length" class="block text-sm text-grey-700">
+                {{ t('reservations.visitOn', { dates: pickupDatesText(reservation) }) }}
               </span>
             </dd>
           </div>
           <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base">
-            <dt class="text-grey-700">聯絡人</dt>
+            <dt class="text-grey-700">{{ t('reservations.row.contact') }}</dt>
             <dd>{{ reservation.contactName }} {{ reservation.mobile }}</dd>
           </div>
         </dl>
       </ASection>
-      <ASection v-if="center" title="辦理中心">
+      <ASection v-if="center" :title="t('reservations.center')">
         <CenterCard :center="center" />
         <div class="mt-3 grid grid-cols-2 gap-2">
-          <BaseButton outline @click="native.callPhone(center.phone)">撥打電話</BaseButton>
-          <BaseButton outline @click="native.openMap(mapUrl(center))">導航前往</BaseButton>
+          <BaseButton outline @click="native.callPhone(center.phone)">
+            {{ t('common.call') }}
+          </BaseButton>
+          <BaseButton outline @click="native.openMap(mapUrl(center))">
+            {{ t('common.navigate') }}
+          </BaseButton>
         </div>
       </ASection>
     </template>
 
     <template v-if="canCancel" #footer>
-      <AErrorText v-if="cancelFailed" class="mb-2">取消失敗，請檢查網路後再試一次。</AErrorText>
+      <AErrorText v-if="cancelFailed" class="mb-2">{{ t('reservations.cancelFailed') }}</AErrorText>
       <BaseButton outline class="w-full !py-4" :aria-busy="cancelling" @click="confirming = true">
-        取消這筆預約
+        {{ t('reservations.cancel') }}
       </BaseButton>
     </template>
 
     <BaseDialog
       v-model="confirming"
-      title="要取消這筆預約嗎？"
-      content="取消後庫存會釋出給其他人，需要時得重新預約。"
-      negative-text="先不要"
-      positive-text="取消預約"
+      :title="t('reservations.cancelDialog.title')"
+      :content="t('reservations.cancelDialog.content')"
+      :negative-text="t('reservations.cancelDialog.keep')"
+      :positive-text="t('reservations.cancelDialog.confirm')"
       @on-positive-click="doCancel"
     />
   </AStepPage>

@@ -1,4 +1,5 @@
 import data from '@/data/assistive-welfare.json';
+import { t } from '@/i18n/assistive';
 
 /**
  * 輔具福利查詢：照官方問答的題目與跳題規則（2026-11-07 取自官方網站）。
@@ -67,7 +68,7 @@ export const nextQuestion = (qid: string, answers: Record<string, string>, age: 
 /** 官方的檢查：Q1 要輸入大於等於 0 的數字 */
 export const checkAge = (raw: string) => {
   const text = raw.trim();
-  if (text === '' || Number.isNaN(Number(text))) return '請輸入數字!';
-  if (Number(text) < 0) return '請輸入大於0的數字!';
+  if (text === '' || Number.isNaN(Number(text))) return t('welfare.error.number');
+  if (Number(text) < 0) return t('welfare.error.positive');
   return '';
 };

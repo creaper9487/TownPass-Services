@@ -9,6 +9,7 @@ import AInput from '@/components/assistive/AInput.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveWelfareStore } from '@/stores/assistiveWelfare';
 import { OFFICIAL_SITE, RESULT, checkAge, nextQuestion, welfare } from '@/utils/assistive/welfare';
+import { t, tx, zhAttr } from '@/i18n/assistive';
 
 const route = useRoute();
 const router = useRouter();
@@ -17,6 +18,8 @@ const store = useAssistiveWelfareStore();
 const id = computed(() => String(route.params.id));
 const question = computed(() => welfare.questions[id.value]);
 const prev = computed(() => store.previous(id.value));
+// 是／否是資料值，只翻顯示的文字；題目本身是官方原文，維持中文
+const options = computed(() => question.value.options.map((o) => ({ ...o, label: tx(o.label) })));
 
 const value = ref('');
 const error = ref('');
@@ -42,7 +45,7 @@ const next = () => {
   if (question.value.type === 'number') {
     error.value = checkAge(value.value);
   } else {
-    error.value = value.value ? '' : '請選擇';
+    error.value = value.value ? '' : t('welfare.error.choose');
   }
   if (error.value) return;
   const target = store.answer(id.value, value.value.trim());
@@ -56,10 +59,10 @@ const back = () => {
 </script>
 
 <template>
-  <AStepPage title="輔具福利查詢">
+  <AStepPage :title="t('welfare.title')">
     <ASection>
-      <p class="text-sm text-grey-700">問題{{ id }}</p>
-      <h2 class="tp-h2 mt-1">{{ question.text }}</h2>
+      <p class="text-sm text-grey-700">{{ t('welfare.question', { n: id }) }}</p>
+      <h2 class="tp-h2 mt-1" :lang="zhAttr">{{ question.text }}</h2>
       <AImage
         v-if="question.image"
         :src="OFFICIAL_SITE + question.image"
@@ -85,14 +88,16 @@ const back = () => {
           hide-legend
           field-id="welfare-answer"
           :error="error"
-          :options="question.options"
+          :options="options"
         />
       </div>
     </ASection>
     <template #footer>
       <div class="grid gap-2" :class="prev ? 'grid-cols-2' : 'grid-cols-1'">
-        <BaseButton v-if="prev" outline @click="back">上一題</BaseButton>
-        <BaseButton @click="next">{{ toResult ? '觀看結果' : '下一題' }}</BaseButton>
+        <BaseButton v-if="prev" outline @click="back">{{ t('welfare.prev') }}</BaseButton>
+        <BaseButton @click="next">
+          {{ toResult ? t('welfare.viewResult') : t('welfare.next') }}
+        </BaseButton>
       </div>
     </template>
   </AStepPage>

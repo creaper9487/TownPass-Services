@@ -7,6 +7,7 @@ import AImage from '@/components/assistive/AImage.vue';
 import StockError from '@/components/assistive/StockError.vue';
 import AInput from '@/components/assistive/AInput.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
+import { t, tx, zhAttr } from '@/i18n/assistive';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
 import { fetchStock, fetchVariantFits, listArrivals } from '@/utils/assistive/api';
@@ -74,7 +75,7 @@ const parseField = (raw: string, range: { min: number; max: number }) => {
   const valid = Number.isInteger(n) && n >= range.min && n <= range.max;
   return {
     value: valid ? n : undefined,
-    error: valid ? '' : `請輸入 ${range.min}–${range.max} 之間的整數`
+    error: valid ? '' : t('borrow.variants.fitRange', { min: range.min, max: range.max })
   };
 };
 const height = computed(() => parseField(store.fit.height, HEIGHT_RANGE));
@@ -91,8 +92,10 @@ const fitSummary = computed(() => {
   if (!filterActive.value) return '';
   const yes = shown.value.filter((x) => x.match === 'yes').length;
   const unknown = shown.value.filter((x) => x.match === 'unknown').length;
-  if (!shown.value.length) return '沒有符合的款式';
-  return `符合 ${yes} 款${unknown ? `，${unknown} 款未標示` : ''}`;
+  if (!shown.value.length) return t('borrow.variants.fitNone');
+  return unknown
+    ? t('borrow.variants.fitMatchUnknown', { yes, unknown })
+    : t('borrow.variants.fitMatch', { yes });
 });
 const clearFit = () => {
   store.fit = { height: '', weight: '' };
@@ -116,14 +119,17 @@ const choose = (v: Variant) => {
 <template>
   <AStepPage
     v-if="category"
-    title="選擇種類"
+    :title="t('borrow.variants.title')"
     lead="「圖片僅供參考，請以現場提供之輔具為主。若您所預約的輔具尺寸不合用，因輔具數量有限，若現場已無其他合適尺寸輔具則須另行預約借用。」"
+    :lead-lang="zhAttr"
     :step="flow.current.value"
     :total="flow.total.value"
   >
     <ASection v-if="noStockAtAll">
       <div class="rounded-lg border border-secondary-200 bg-secondary-50 p-4">
-        <h2 class="tp-h3-semibold">目前二手{{ category.name }}都沒有庫存</h2>
+        <h2 class="tp-h3-semibold">
+          {{ t('borrow.variants.noStock', { name: tx(category.name) }) }}
+        </h2>
         <ul class="mt-3 flex flex-col gap-2 text-sm">
           <li>
             <RouterLink
@@ -131,7 +137,7 @@ const choose = (v: Variant) => {
               class="a11y-focus block min-h-12 rounded-lg bg-white p-3 font-semibold text-primary-700 underline"
               @click="store.begin('assess')"
             >
-              預約輔具評估，了解購買或租賃補助
+              {{ t('borrow.variants.assessLink') }}
             </RouterLink>
           </li>
         </ul>
@@ -142,7 +148,7 @@ const choose = (v: Variant) => {
       <div class="grid grid-cols-2 gap-3">
         <AInput
           v-model="store.fit.height"
-          label="身高（公分）"
+          :label="t('borrow.variants.height')"
           inputmode="numeric"
           :maxlength="3"
           field-id="fit-height"
@@ -150,7 +156,7 @@ const choose = (v: Variant) => {
         />
         <AInput
           v-model="store.fit.weight"
-          label="體重（公斤）"
+          :label="t('borrow.variants.weight')"
           inputmode="numeric"
           :maxlength="3"
           field-id="fit-weight"
@@ -164,7 +170,7 @@ const choose = (v: Variant) => {
         class="a11y-focus mt-2 min-h-11 text-base font-semibold text-primary-700 underline"
         @click="clearFit"
       >
-        清除篩選
+        {{ t('borrow.variants.clearFit') }}
       </button>
     </ASection>
     <ASection v-if="failed">
@@ -172,12 +178,17 @@ const choose = (v: Variant) => {
     </ASection>
     <ASection v-else grey>
       <ul class="flex flex-col gap-4">
-        <li v-for="{ v, match } in shown" :key="v.id" class="tp-card overflow-hidden">
+        <li
+          v-for="({ v, match }, i) in shown"
+          :key="v.id"
+          class="a-rise tp-card overflow-hidden"
+          :style="{ '--i': Math.min(i, 6) }"
+        >
           <AImage :src="v.image" hide-on-error class="h-44 p-3" />
           <div class="p-4" :class="{ 'border-t border-grey-100': true }">
-            <h2 class="tp-h3-semibold">{{ v.name }}</h2>
+            <h2 :lang="zhAttr" class="tp-h3-semibold">{{ v.name }}</h2>
             <ul v-if="specOf(v).length" class="mt-2 flex flex-wrap gap-1.5">
-              <li v-for="s in specOf(v)" :key="s" class="tp-tag">
+              <li v-for="s in specOf(v)" :key="s" :lang="zhAttr" class="tp-tag">
                 {{ s }}
               </li>
             </ul>
@@ -185,9 +196,9 @@ const choose = (v: Variant) => {
               v-if="filterActive && match === 'unknown'"
               class="tp-tag mt-2 !border-grey-300 !text-grey-700"
             >
-              未標示適用身高體重
+              {{ t('borrow.variants.fitUnknown') }}
             </p>
-            <p v-if="v.description" class="mt-3 text-sm text-grey-700">
+            <p v-if="v.description" :lang="zhAttr" class="mt-3 text-sm text-grey-700">
               {{ v.description }}
             </p>
             <p
@@ -195,14 +206,16 @@ const choose = (v: Variant) => {
               :class="{ 'text-grey-700': loaded && !left(v) }"
             >
               <template v-if="!loaded">&nbsp;</template>
-              <template v-else>剩餘: {{ left(v) }}</template>
+              <template v-else>{{ t('borrow.stockLeft', { n: left(v) }) }}</template>
             </p>
             <p v-if="loaded && !left(v) && waiting(v)" class="text-base">
-              等待人數：{{ waiting(v) }}
+              {{ t('borrow.waiting', { n: waiting(v) }) }}
             </p>
             <BaseButton v-if="loaded && left(v) > 0" class="mt-3 w-full" @click="choose(v)">
-              {{ inCart(v) ? '已加入，前往本次預約項目' : '預約'
-              }}<span class="sr-only">：{{ category.name }}，{{ v.name }}</span>
+              {{ inCart(v) ? t('borrow.variants.added') : t('borrow.reserve')
+              }}<span class="sr-only">
+                {{ t('borrow.srVariant', { category: tx(category.name), name: v.name }) }}
+              </span>
             </BaseButton>
             <BaseButton
               v-else-if="loaded"
@@ -216,8 +229,13 @@ const choose = (v: Variant) => {
                 )
               "
             >
-              {{ subscribed.includes(v.id) ? '已登記到貨通知' : '到貨通知'
-              }}<span class="sr-only">：{{ category.name }}，{{ v.name }}</span>
+              {{
+                subscribed.includes(v.id)
+                  ? t('borrow.arrivalRegistered')
+                  : t('borrow.arrivalNotice')
+              }}<span class="sr-only">
+                {{ t('borrow.srVariant', { category: tx(category.name), name: v.name }) }}
+              </span>
             </BaseButton>
           </div>
         </li>

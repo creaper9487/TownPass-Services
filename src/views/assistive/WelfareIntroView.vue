@@ -4,7 +4,8 @@ import AStepPage from '@/components/assistive/AStepPage.vue';
 import ASection from '@/components/assistive/ASection.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveWelfareStore } from '@/stores/assistiveWelfare';
-import { FIRST_QUESTION, welfare } from '@/utils/assistive/welfare';
+import { FIRST_QUESTION } from '@/utils/assistive/welfare';
+import { t } from '@/i18n/assistive';
 
 const router = useRouter();
 const store = useAssistiveWelfareStore();
@@ -16,12 +17,12 @@ const start = () => {
 </script>
 
 <template>
-  <AStepPage title="輔具福利查詢">
-    <ASection :title="welfare.intro.title">
-      <p class="text-base">{{ welfare.intro.text }}</p>
+  <AStepPage :title="t('welfare.title')">
+    <ASection :title="t('welfare.intro.title')">
+      <p class="text-base">{{ t('welfare.introText') }}</p>
     </ASection>
     <template #footer>
-      <BaseButton class="w-full" @click="start">{{ welfare.intro.button }}</BaseButton>
+      <BaseButton class="w-full" @click="start">{{ t('welfare.start') }}</BaseButton>
     </template>
   </AStepPage>
 </template>

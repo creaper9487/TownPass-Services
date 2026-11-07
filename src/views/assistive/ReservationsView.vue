@@ -14,9 +14,10 @@ import {
   unsubscribeArrival,
   type ArrivalNotice
 } from '@/utils/assistive/api';
-import { centerById } from '@/utils/assistive/centers';
-import { services } from '@/utils/assistive/services';
+import { centerById, centerShort } from '@/utils/assistive/centers';
+import { serviceTitle } from '@/utils/assistive/services';
 import type { Reservation } from '@/utils/assistive/types';
+import { t, trSummary } from '@/i18n/assistive';
 
 const list = ref<Reservation[]>([]);
 const arrivals = ref<ArrivalNotice[]>(listArrivals());
@@ -38,6 +39,10 @@ const doRemove = async () => {
     removeFailed.value = true;
   }
 };
+const centerLine = (r: Reservation) => {
+  const c = centerById(r.centerId);
+  return t('reservations.centerLine', { center: c ? centerShort(c) : '', id: r.id });
+};
 const loaded = ref(false);
 onMounted(async () => {
   list.value = await listReservations();
@@ -46,33 +51,33 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AStepPage title="服務預約查詢與取消">
+  <AStepPage :title="t('home.reservations')">
     <ASection grey>
-      <p v-if="!loaded" class="text-sm text-grey-700">讀取中…</p>
+      <p v-if="!loaded" class="text-sm text-grey-700">{{ t('common.loading') }}</p>
       <div
         v-else-if="!list.length && !arrivals.length"
         class="flex flex-col items-center py-10 text-center"
       >
         <img src="@/assets/images/illustrations_no_data.svg" alt="" class="h-32" />
-        <p class="mt-4 tp-h3-semibold">目前沒有預約紀錄</p>
-        <p class="mt-1 text-sm text-grey-700">預約過的輔具服務會顯示在這裡。</p>
+        <p class="mt-4 tp-h3-semibold">{{ t('reservations.empty.title') }}</p>
+        <p class="mt-1 text-sm text-grey-700">{{ t('reservations.empty.hint') }}</p>
         <BaseButton class="mt-6 w-full" link :route-info="{ name: 'assistive-home' }">
-          去預約
+          {{ t('reservations.empty.cta') }}
         </BaseButton>
       </div>
       <ul v-else-if="list.length" class="flex flex-col gap-3">
-        <li v-for="r in list" :key="r.id">
+        <li v-for="(r, i) in list" :key="r.id" class="a-rise" :style="{ '--i': Math.min(i, 8) }">
           <RouterLink
             :to="{ name: 'assistive-reservation', params: { id: r.id } }"
             class="a11y-focus tp-card flex min-h-20 items-center gap-3 p-4"
           >
             <span class="flex-1">
-              <span class="block tp-h3-semibold">{{ services[r.service].title }}</span>
+              <span class="block tp-h3-semibold">{{ serviceTitle(r.service) }}</span>
               <span class="mt-1 block text-sm text-grey-700">
-                {{ r.summary.join('、') || '—' }}
+                {{ r.summary.map(trSummary).join(t('reservations.listSep')) || '—' }}
               </span>
               <span class="mt-1 block text-sm text-grey-700">
-                {{ centerById(r.centerId)?.shortName }}輔具中心 {{ r.id }}
+                {{ centerLine(r) }}
               </span>
               <span
                 class="tp-tag mt-2"
@@ -91,25 +96,33 @@ onMounted(async () => {
       </ul>
     </ASection>
 
-    <ASection v-if="loaded && arrivals.length" title="到貨通知">
-      <AErrorText v-if="removeFailed" class="mb-3">取消失敗，請檢查網路後再試一次。</AErrorText>
+    <ASection v-if="loaded && arrivals.length" :title="t('reservations.arrivals')">
+      <AErrorText v-if="removeFailed" class="mb-3">
+        {{ t('reservations.cancelFailed') }}
+      </AErrorText>
       <ul class="flex flex-col gap-3">
-        <li v-for="a in arrivals" :key="a.variantId" class="tp-card flex items-center gap-3 p-4">
+        <li
+          v-for="a in arrivals"
+          :key="a.variantId"
+          class="a-rise tp-card flex items-center gap-3 p-4"
+        >
           <span class="flex-1">
             <span class="block tp-h3-semibold break-words">{{ a.label }}</span>
-            <span class="mt-1 block text-sm text-grey-700">登記編號 {{ a.id }}</span>
+            <span class="mt-1 block text-sm text-grey-700">
+              {{ t('reservations.registrationNo', { id: a.id }) }}
+            </span>
           </span>
-          <BaseButton outline @click="askRemove(a)">取消</BaseButton>
+          <BaseButton outline @click="askRemove(a)">{{ t('common.cancel') }}</BaseButton>
         </li>
       </ul>
     </ASection>
 
     <BaseDialog
       v-model="confirming"
-      title="要取消到貨通知嗎？"
+      :title="t('reservations.removeDialog.title')"
       :content="removing?.label ?? ''"
-      negative-text="先不要"
-      positive-text="取消通知"
+      :negative-text="t('reservations.removeDialog.keep')"
+      :positive-text="t('reservations.removeDialog.confirm')"
       @on-positive-click="doRemove"
     />
   </AStepPage>

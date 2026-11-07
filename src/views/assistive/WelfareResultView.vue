@@ -5,6 +5,7 @@ import ASection from '@/components/assistive/ASection.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { OFFICIAL_SITE, welfare } from '@/utils/assistive/welfare';
+import { t, zhAttr } from '@/i18n/assistive';
 
 const router = useRouter();
 const native = useAssistiveNative();
@@ -17,17 +18,22 @@ const open = (item: { page?: string; href?: string }) => {
 </script>
 
 <template>
-  <AStepPage :title="welfare.result.title">
+  <AStepPage :title="t('welfare.result.title')">
     <ASection>
-      <p class="text-base">{{ welfare.result.text }}</p>
+      <p class="text-base">{{ t('welfare.result.lead') }}</p>
       <ul class="mt-4 divide-y divide-grey-100">
-        <li v-for="(item, i) in welfare.result.items" :key="i">
+        <li
+          v-for="(item, i) in welfare.result.items"
+          :key="i"
+          class="a-rise"
+          :style="{ '--i': Math.min(i, 10) }"
+        >
           <button
             type="button"
             class="a11y-focus flex min-h-14 w-full items-center justify-between gap-3 py-3 text-left text-base"
             @click="open(item)"
           >
-            <span class="font-semibold">{{ item.title }}</span>
+            <span class="font-semibold" :lang="zhAttr">{{ item.title }}</span>
             <img src="@/assets/images/down-icon.svg" alt="" class="h-6 w-6 shrink-0 -rotate-90" />
           </button>
         </li>
@@ -35,7 +41,7 @@ const open = (item: { page?: string; href?: string }) => {
     </ASection>
     <template #footer>
       <BaseButton outline class="w-full" link :route-info="{ name: 'assistive-welfare' }">
-        重新填答
+        {{ t('welfare.restart') }}
       </BaseButton>
     </template>
   </AStepPage>
