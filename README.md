@@ -103,9 +103,16 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
 - 沒設定 FCM 也會跑完整推播流程，結果記成 `local`（只記錄在本機）；設定了就真的送到手機。
 - `scenario` / `flow` 沒給 `--token` 時會登記本機假裝置（`local-信箱ID`），推播照樣記錄，`outbox` / `watch` 看得到。
 - 每一則推播都記錄在本機 DB（`DB_PATH`，預設 `data/local.db`）的 `push_log`。
-- **模擬資料變化**（`config.TEST_SIMULATE_CHANGES`）：後端每 3 分鐘抓一次資料，測試模式下每次抓，假資料都會變——
-  有人訂閱的缺貨品項會變成有貨（推到貨通知）、每幾次出現一則新公告（推服務公告）。不想等就按面板的「立刻抓一次」
-  或 `python -m app.cli sync`。
+- **模擬資料變化**（`config.TEST_SIMULATE_CHANGES`、`TEST_SIM_NOTICE_EVERY`）：**預設關閉**。
+  打開後測試模式下每次抓資料，有人訂閱的缺貨品項會被模擬成到貨、可設定每幾次產生一則【模擬】公告。
+
+### 立刻更新（正式）
+
+```bash
+python -m app.cli sync
+```
+做的事跟背景排程每 3 分鐘做的一樣：抓一次資料 → 等待中且有貨的到貨訂閱改成 `arrived` → 推播給訂閱人；有新公告就推 topic。
+不需要開 server、不需要測試模式（跟 server 共用同一個 DB）。`TEST_MODE=false` 時抓的是官網真實資料。
 
 **正式環境一定要 `TEST_MODE=false`。**
 
@@ -127,7 +134,7 @@ python -m app.cli --help
 | `trigger <預約編號> pickup_reminder\|expired\|confirmed\|completed\|cancelled` | ✓ | 讓預約進入該狀態並推播 |
 | `stock <variant_id> <數量>` | ✓ | 設定庫存；0 → >0 推「到貨通知」 |
 | `notice "標題"` | ✓ | 發公告 |
-| `sync` | ✓ | 立刻抓一次資料（測試模式會模擬官網變化）→ 有變化就推播 |
+| `sync` | | 立刻抓一次資料 → 更新到貨訂閱 → 推播（正式 / 測試模式都可以） |
 | `flow --token <token>` | ✓ | 一次跑完：預約成功 → 取貨提醒 → 逾期 |
 
 用手機測：App 拿到 FCM token 後，`python -m app.cli flow --token <token>`，手機應該依序收到三則通知。

@@ -63,7 +63,11 @@ async def sync_now() -> dict:
             n = await fn()
             result["stock_changed" if step == "stock" else "new_notices"] += n
         except NotImplementedError as exc:
-            result["errors"].append(f"{step}: {exc}")
+            if f"{step}:" not in " ".join(result["errors"]):
+                result["errors"].append(f"{step}: {exc}")
+        except Exception as exc:  # noqa: BLE001  官網連不到、格式變了…：記下來，其他步驟照跑
+            logger.error("[sync] %s failed: %s", step, type(exc).__name__)
+            result["errors"].append(f"{step}: {type(exc).__name__}")
     await notification_service.drain()
     pushes = db.query("SELECT type, result FROM push_log WHERE id > ? ORDER BY id", (before,))
     result["pushes"] = [dict(p) for p in pushes]

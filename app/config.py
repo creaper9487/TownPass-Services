@@ -151,11 +151,12 @@ MAX_DEVICES_PER_MAILBOX = 10
 HOOK_MAX_SKEW_SECONDS = 300  # X-Timestamp 允許誤差 5 分鐘
 
 
-# ---- 測試模式：模擬資料變化 ----
-# True = 測試模式下每次抓資料，假資料都會有變化（缺貨 → 有貨、出現新公告），讓「抓到變化就推播」真的會發生
-TEST_SIMULATE_CHANGES = True
-TEST_SIM_ARRIVALS_PER_SYNC: int | None = None  # 每次抓取讓幾個「有人訂閱的缺貨品項」到貨；None = 全部
-TEST_SIM_NOTICE_EVERY = 3  # 每抓幾次出現一則新公告
+# ---- 測試模式：模擬資料變化（只在 TEST_MODE=true 時有用）----
+# 預設全部關掉：抓資料就是抓資料，不會假裝到貨、不會產生假公告。
+# 想在沒有真實資料變化時測推播流程，才暫時打開。
+TEST_SIMULATE_CHANGES = False  # True = 每次抓資料，有人訂閱的缺貨品項會被模擬成到貨
+TEST_SIM_ARRIVALS_PER_SYNC: int | None = None  # 每次模擬幾個到貨；None = 全部等待中的訂閱
+TEST_SIM_NOTICE_EVERY = 0  # 每抓幾次產生一則【模擬】公告並推到所有手機；0 = 不產生
 
 
 def test_api_enabled() -> bool:

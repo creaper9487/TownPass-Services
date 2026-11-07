@@ -103,7 +103,7 @@ def _simulate() -> None:
     in_stock = sorted(v for v, n in current.items() if n > 0 and v not in arrivals and v not in subscribed)
     for v in in_stock[(tick * 7) % max(len(in_stock), 1):][:2]:
         overrides[v] = (0, 1 + tick % 5)
-    if tick % config.TEST_SIM_NOTICE_EVERY == 0:
+    if config.TEST_SIM_NOTICE_EVERY and tick % config.TEST_SIM_NOTICE_EVERY == 0:
         t = datetime.now(TAIPEI).replace(microsecond=0)
         _sim["notices"].append({"id": f"sim-{tick}", "title": f"【模擬】第 {tick} 次更新的新公告", "body": "模擬公告內容",
                                 "center_ids": [], "starts_at": None, "ends_at": t + timedelta(days=7),

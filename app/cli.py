@@ -12,6 +12,9 @@
     python -m app.cli outbox                               最近的推播紀錄
     python -m app.cli watch                                即時顯示新的推播（Ctrl+C 結束）
 
+【立刻更新】不用等 3 分鐘、不需要測試模式、不用開 server
+    python -m app.cli sync                                 抓一次資料 → 更新到貨訂閱狀態 → 推播給訂閱人
+
 【功能狀態】要先用 TEST_MODE=true 開 server（python app/main.py），走真正的流程並推播
     python -m app.cli state                                信箱、預約、裝置、最近推播
     python -m app.cli scenario --token <FCM token>         建信箱 + 登記手機 + 借用預約（推「預約成功」）
@@ -20,7 +23,6 @@
     python -m app.cli trigger <預約編號> confirmed|completed|cancelled
     python -m app.cli stock <variant_id> 3                 設定庫存（0 → >0 推「到貨通知」）
     python -m app.cli notice "11/20 系統維護"              發公告
-    python -m app.cli sync                                 立刻抓一次資料（模擬變化）→ 有變化就推播
     python -m app.cli flow --token <FCM token>             一次跑完：預約成功 → 取貨提醒 → 逾期
 """
 
@@ -197,7 +199,15 @@ def cmd_notice(args) -> None:
 
 
 def cmd_sync(args) -> None:
-    r = _call(args, "POST", "/_test/sync")
+    """直接在這個 process 跑一次背景排程做的事（跟 server 共用同一個 DB）。"""
+    from app.features import jobs
+    from app.tools import fcm
+
+    s = get_settings()
+    mode = "測試模式（假資料）" if s.test_mode else "正式模式（官網資料）"
+    push = "Firebase 已設定" if fcm.is_enabled() else "Firebase 未設定（推播只記錄在本機）"
+    print(f"· {mode}，{push}")
+    r = asyncio.run(jobs.sync_now())
     print(f"✓ 庫存變動 {r['stock_changed']} 個品項、新公告 {r['new_notices']} 則")
     for e in r["errors"]:
         print(f"· {e}")
@@ -295,7 +305,8 @@ def main(argv=None) -> None:
     s.add_argument("--center", action="append", choices=["heyi", "south", "west"])
     s.set_defaults(fn=cmd_notice)
 
-    sub.add_parser("sync", help="[server] 立刻抓一次資料（模擬變化）→ 有變化就推播").set_defaults(fn=cmd_sync)
+    sub.add_parser("sync", help="立刻抓一次資料 → 更新到貨訂閱 → 推播（不需要 server、不需要測試模式）").set_defaults(
+        fn=cmd_sync)
 
     s = sub.add_parser("flow", help="[server] 一次跑完：預約成功 → 取貨提醒 → 逾期")
     s.add_argument("--token")

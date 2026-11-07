@@ -114,6 +114,11 @@ CREATE TABLE IF NOT EXISTS meta (
     value  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS notice_seen (
+    id          TEXT PRIMARY KEY,      -- 已經看過 / 推過的公告 id（重啟、CLI 都不會重複推）
+    created_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS hook_events (
     event_id    TEXT PRIMARY KEY,
     created_at  TEXT NOT NULL

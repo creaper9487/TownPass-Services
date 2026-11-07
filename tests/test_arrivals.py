@@ -15,7 +15,10 @@ TOKEN_OTHER = "token-other-000000000"
 
 @pytest.fixture
 def test_mode(monkeypatch):
+    from app import config
+
     monkeypatch.setattr(get_settings(), "test_mode", True)
+    monkeypatch.setattr(config, "TEST_SIMULATE_CHANGES", True)  # 這些測試用模擬到貨
     db.execute("DELETE FROM push_log")
 
 
