@@ -1,6 +1,6 @@
 # taipei-codefest-2026-Backend
 
-臺北市輔具預約後端（FastAPI）。**前端串接說明：[docs/FRONTEND.md](docs/FRONTEND.md)**
+臺北市輔具預約後端（FastAPI）。**前端串接說明：[docs/FRONTEND.md](docs/FRONTEND.md)　完整 API 清單：[docs/API.md](docs/API.md)**
 
 只服務臺北市 12 個行政區。API 基準路徑 `/assistive/v1`，啟動後看 http://192.168.88.208:8000/docs（IP / port 在 `.env` 的 `HOST`、`PORT` 改）
 
