@@ -1,6 +1,7 @@
 """到貨通知：同信箱同類別最多 1 筆（官方規則：同類型輔具只可候補一件）。
 
 到貨分配（預設做法，待中心確認）：依訂閱順序通知前 k 位（k = 到貨數），不保留優先期。
+品項必須存在、而且是 config 開放借用的（catalog_service.check_variant）。
 """
 
 from app.features.catalog import service as catalog_service
@@ -13,35 +14,28 @@ from app.tools.timeutil import now
 
 
 async def create(payload: SubscriptionCreate) -> str:
-    # 目錄還抓不到時 category 未知，退而以 variant 判斷重複
-    category_id = await catalog_service.category_of(payload.variant_id)
-    for s in repo.subscriptions.values():
-        if s.mailbox_id != payload.mailbox_id:
-            continue
-        same = (category_id and s.category_id == category_id) or s.variant_id == payload.variant_id
-        if same:
+    category_id = await catalog_service.check_variant(payload.variant_id, field="variant_id")
+    for s in repo.by_mailbox(payload.mailbox_id):
+        if (category_id and s.category_id == category_id) or s.variant_id == payload.variant_id:
             raise E.duplicate_waitlist()
     sub_id = new_id("sub")
-    repo.subscriptions[sub_id] = repo.SubscriptionRow(
-        sub_id, payload.mailbox_id, payload.variant_id, category_id, now()
-    )
+    repo.insert(repo.SubscriptionRow(sub_id, payload.mailbox_id, payload.variant_id, category_id, now()))
     return sub_id
 
 
 def get(sub_id: str) -> repo.SubscriptionRow:
-    row = repo.subscriptions.get(sub_id)
+    row = repo.get(sub_id)
     if row is None:
         raise E.not_found("訂閱")
     return row
 
 
 def delete(sub_id: str) -> None:
-    repo.subscriptions.pop(sub_id, None)
+    repo.delete(sub_id)
 
 
 async def on_arrival(variant_id: str, count: int) -> None:
     """庫存 0 → >0：通知前 count 位訂閱者，通知後刪除訂閱。"""
-    waiting = [s for s in repo.subscriptions.values() if s.variant_id == variant_id][:count]
-    for s in waiting:
+    for s in repo.waiting_for(variant_id, count):
         mailbox_service.append_event(s.mailbox_id, "stock.arrived", ref={"variant_id": variant_id})
-        repo.subscriptions.pop(s.id, None)
+        repo.delete(s.id)

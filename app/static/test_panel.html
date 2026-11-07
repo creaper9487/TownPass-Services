@@ -97,8 +97,19 @@
       <button onclick="notice()">發公告（寫入信箱 + 推播）</button></div>
   </section>
 
+  <section>
+    <h2>④ 模擬「定時抓資料 → 有變化就推播」</h2>
+    <p class="hint">後端平常每 <span id="sync-interval">?</span> 秒自動抓一次。測試模式下每次抓，假資料都會變：
+      你訂閱的缺貨品項會變成有貨（推到貨通知）、每幾次會出現新公告（推服務公告）。不想等就按這裡。</p>
+    <div class="row">
+      <button onclick="subscribeOne()">先訂閱一個缺貨品項</button>
+      <button class="primary" onclick="syncNow()">立刻抓一次</button>
+    </div>
+    <div class="hint mono" id="sync-result" style="margin:0"></div>
+  </section>
+
   <section class="wide">
-    <h2>④ 推播結果（每 2 秒更新）— 用這裡判斷是誰的問題</h2>
+    <h2>⑤ 推播結果（每 2 秒更新）— 用這裡判斷是誰的問題</h2>
     <dl style="margin-bottom:10px">
       <dt><span class="pill ok">ok</span></dt><dd>後端已成功交給 Firebase。手機沒收到 → <b>App 端</b>（通知權限、Firebase 設定、token 是不是最新的）。</dd>
       <dt><span class="pill local">local</span></dt><dd>沒設定 Firebase，或是本機假裝置：只記錄在本機，不會到手機。要真的推，請後端設 FCM_PROJECT_ID / FCM_CREDENTIALS_FILE。</dd>
@@ -114,7 +125,7 @@
   </section>
 
   <section>
-    <h2>⑤ 信箱事件（App pull 會拿到的）</h2>
+    <h2>⑥ 信箱事件（App pull 會拿到的）</h2>
     <p class="hint">推播沒到也沒關係，App 打開時會從這裡補拉。這裡有、推播紀錄沒有 → 該信箱沒登記裝置。</p>
     <div class="scroll"><table>
       <thead><tr><th>cursor</th><th>類型</th><th>ref / data</th></tr></thead>
@@ -123,7 +134,7 @@
   </section>
 
   <section>
-    <h2>⑥ 已登記裝置</h2>
+    <h2>⑦ 已登記裝置</h2>
     <div class="scroll"><table>
       <thead><tr><th>token</th><th>信箱</th></tr></thead>
       <tbody id="devices"></tbody>
@@ -211,6 +222,25 @@ async function arrival() {
   await api("POST", "/_test/stock", { variant_id, stock: 2, waiting: 2 });
   toast("✓ 庫存 0 → 2，應推「到貨通知」");
 }
+async function subscribeOne() {
+  await ensureMailbox();
+  const stock = await (await fetch(BASE + "/stock")).json();
+  const ids = Object.keys(stock.items).filter(v => stock.items[v].stock === 0);
+  for (const variant_id of ids) {
+    const res = await fetch(BASE + "/subscriptions", { method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + state.key },
+      body: JSON.stringify({ mailbox_id: state.mailbox, variant_id }) });
+    if (res.ok) return toast(`✓ 已訂閱缺貨品項 ${variant_id}，按「立刻抓一次」看它到貨`);
+  }
+  toast("找不到可訂閱的缺貨品項（每類只能訂一個）", true);
+}
+async function syncNow() {
+  const r = await api("POST", "/_test/sync");
+  const pushes = r.pushes.map(p => `${p.type}[${p.result}]`).join("、") || "沒有推播";
+  document.getElementById("sync-result").textContent =
+    `庫存變動 ${r.stock_changed} 個、新公告 ${r.new_notices} 則 → ${pushes}` + (r.errors.length ? `（${r.errors.join("；")}）` : "");
+  toast(`✓ 抓完了：${pushes}`);
+}
 async function notice() {
   const r = await api("POST", "/_test/notices", { title: document.getElementById("notice-title").value });
   toast(`✓ 公告寫入 ${r.mailboxes} 個信箱並推播`);
@@ -222,6 +252,7 @@ async function refresh() {
     document.getElementById("status").innerHTML =
       `測試模式 · Firebase：${s.fcm_enabled ? '<b class="ok">已設定</b>' : '<b class="local">未設定（只記錄在本機）</b>'}` +
       ` · 公告檢查每 ${s.intervals.push_check_minutes} 分鐘 · 庫存同步每 ${s.intervals.stock_sync_seconds} 秒`;
+    document.getElementById("sync-interval").textContent = s.intervals.stock_sync_seconds;
     document.getElementById("log").innerHTML = s.recent_pushes.length ? s.recent_pushes.map(p => `
       <tr${p.mailbox_id && p.mailbox_id === state.mailbox ? ' style="font-weight:600"' : ""}>
         <td>${p.id}</td><td class="mono">${esc(p.created_at.slice(11, 19))}</td>

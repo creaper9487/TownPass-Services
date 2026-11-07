@@ -79,7 +79,14 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
 所有設定集中在 `app/config.py`：
 - **`.env` 只放幾個特別的**：`HOST`、`PORT`、`TEST_MODE`、`DB_PATH`、`ENABLE_BACKGROUND_JOBS`，以及機密
   `HOOK_SECRET`、`FCM_PROJECT_ID`、`FCM_CREDENTIALS_FILE`（範本見 `.env.example`）。
-- **其他直接改 `config.py`**：`API_ENABLED`（每組 API 開或關，關掉的回 404）、排程間隔、推播 topic、CORS…
+- **其他直接改 `config.py`**：
+  - `API_ENABLED`：每組 API 開或關（關掉的回 404）
+  - `SERVICES`：開放哪些服務、要填哪幾組欄位、items 可選項目、最多幾個
+  - `FIELDS`：每個欄位的必填 / 長度 / 格式 / 選項 —— `POST /reservations` 的驗證直接讀這裡（`app/tools/fields.py`）
+  - `BORROW_CATEGORIES`、`BLOCKED_VARIANTS`：開放借用哪些分類 / 品項（`/catalog`、借用、到貨通知都套用）
+  - `FORWARD_TO_CENTER`：要不要送件到中心（目前 False：預約只記錄在本機，不存聯絡資料）
+  - 排程間隔、推播 topic、測試模式的模擬變化、CORS…
+- `GET /assistive/v1/forms/{service}`：把上面的設定給前端（可選項目、必填欄位、行政區、欄位規則）。
 
 ## 測試模式（TEST_MODE）
 
@@ -94,6 +101,9 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
 - 沒設定 FCM 也會跑完整推播流程，結果記成 `local`（只記錄在本機）；設定了就真的送到手機。
 - `scenario` / `flow` 沒給 `--token` 時會登記本機假裝置（`local-信箱ID`），推播照樣記錄，`outbox` / `watch` 看得到。
 - 每一則推播都記錄在本機 DB（`DB_PATH`，預設 `data/local.db`）的 `push_log`。
+- **模擬資料變化**（`config.TEST_SIMULATE_CHANGES`）：後端每 3 分鐘抓一次資料，測試模式下每次抓，假資料都會變——
+  有人訂閱的缺貨品項會變成有貨（推到貨通知）、每幾次出現一則新公告（推服務公告）。不想等就按面板的「立刻抓一次」
+  或 `python -m app.cli sync`。
 
 **正式環境一定要 `TEST_MODE=false`。**
 
@@ -115,14 +125,16 @@ python -m app.cli --help
 | `trigger <預約編號> pickup_reminder\|expired\|confirmed\|completed\|cancelled` | ✓ | 讓預約進入該狀態並推播 |
 | `stock <variant_id> <數量>` | ✓ | 設定庫存；0 → >0 推「到貨通知」 |
 | `notice "標題"` | ✓ | 發公告 |
+| `sync` | ✓ | 立刻抓一次資料（測試模式會模擬官網變化）→ 有變化就推播 |
 | `flow --token <token>` | ✓ | 一次跑完：預約成功 → 取貨提醒 → 逾期 |
 
 用手機測：App 拿到 FCM token 後，`python -m app.cli flow --token <token>`，手機應該依序收到三則通知。
 
 ## 本機 DB
 
-`app/tools/db.py`（SQLite，Python 內建，不用另外裝）。目前存 `devices`（推播裝置）與 `push_log`（推播紀錄），
-server 重啟不會不見；server 和 CLI 讀同一個檔案。其他資料（信箱、預約、庫存）仍在記憶體。
+`app/tools/db.py`（SQLite，Python 內建，不用另外裝），檔案在 `DB_PATH`（預設 `data/local.db`）。
+存信箱與事件、預約、Idempotency-Key、到貨訂閱、庫存（含 version）、中心 webhook 去重、推播裝置、推播紀錄；
+**全部不含個資**，server 重啟資料都還在。要清空就刪掉 DB 檔。server 和 CLI 讀同一個檔案。
 
 ## 開發
 
@@ -136,6 +148,6 @@ pytest
 
 ## 尚未完成（TODO）
 
-- 資料庫：裝置與推播紀錄已在 SQLite；信箱、預約、庫存仍在記憶體，重啟即消失（換 DB 只改各 feature 的 repository.py）
+- 送件到中心：`FORWARD_TO_CENTER = False`，預約只記錄在本機；要送件需先決定介接方式（`forward_reservation`）
 - 送件佇列個資的 KMS 加密
 - Rate limit（每信箱寫入 ≤ 10 次/分、讀取 ≤ 120 次/分）

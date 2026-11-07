@@ -1,10 +1,17 @@
-"""預約：建立、取消、批次查詢、逾期自動取消、取貨提醒、中心回寫狀態。"""
+"""預約：建立、取消、批次查詢、逾期自動取消、取貨提醒、中心回寫狀態。
+
+- 預約記錄在本機 SQLite（不含聯絡資料）。
+- 欄位規則、服務、可選項目都讀 app/config.py（validate_against_config），不寫死。
+- config.FORWARD_TO_CENTER = False 時不送到中心，forward_state = "off"。
+"""
 
 import hashlib
 import json
 import secrets
 from datetime import datetime, timedelta
 
+from app import config
+from app.features.catalog import service as catalog_service
 from app.features.centers import service as centers_service
 from app.features.forwarding import service as forwarding_service
 from app.features.mailbox import service as mailbox_service
@@ -13,6 +20,7 @@ from app.features.reservation.schemas import (
     BatchGetError,
     BatchGetItem,
     CancelResult,
+    FormOut,
     PickupInfo,
     ReservationCreate,
     ReservationCreated,
@@ -21,12 +29,54 @@ from app.features.reservation.schemas import (
 from app.features.stock import service as stock_service
 from app.tools import exceptions as E
 from app.tools.districts import DISTRICT_TO_CENTER
+from app.tools.fields import required_fields
 from app.tools.security import hash_secret, new_secret, verify_secret
 from app.tools.timeutil import TAIPEI as TZ, now, today
 
 TAIPEI = {"臺北市", "台北市"}
 FINAL_STATUSES = {"completed", "cancelled", "expired"}
 _PREFIX = {"borrow": "B", "assess": "A", "repair": "R", "recycle": "C"}
+OTHER = "其他"
+
+
+# ---------- 依 config 驗證 ----------
+def form(service: str) -> FormOut:
+    """GET /forms/{service}：表單選項與必填欄位，全部來自 config。"""
+    svc = config.SERVICES.get(service)
+    if svc is None or not svc["enabled"]:
+        raise E.not_found("服務")
+    groups = svc["groups"]
+    return FormOut(
+        service=service, label=svc["label"],
+        item_options=(svc["item_options"] or []) + ([OTHER] if svc["allow_other"] else []),
+        allow_other=svc["allow_other"], max_items=svc["max_items"], required_fields=required_fields(service),
+        districts=config.TAIPEI_DISTRICTS,
+        fields={n: r for n, r in config.FIELDS.items() if n.split(".")[0] in groups or n == "other_text"},
+    )
+
+
+async def validate_against_config(p: ReservationCreate) -> None:
+    """服務是否開放、該填的欄位組、items 是否合法（借用：品項存在且開放；其他：在可選項目內）。"""
+    svc = config.SERVICES.get(p.service)
+    if svc is None or not svc["enabled"]:
+        raise E.invalid_field(["service"])
+    missing = [g for g in ("subject", "pickup") if g in svc["groups"] and getattr(p, g) is None]
+    if p.service == "borrow" and p.center_id is None:
+        missing.append("center_id")
+    if missing:
+        raise E.invalid_field(missing)
+
+    if len(p.items) > svc["max_items"] or len(set(p.items)) != len(p.items):
+        raise E.invalid_field(["items"])
+    if svc["item_options"] is None:  # 借用：items 是品項代碼
+        for vid in p.items:
+            await catalog_service.check_variant(vid, field="items")
+    else:
+        allowed = set(svc["item_options"]) | ({OTHER} if svc["allow_other"] else set())
+        if any(i not in allowed for i in p.items):
+            raise E.invalid_field(["items"])
+        if OTHER in p.items and not p.other_text:
+            raise E.invalid_field(["other_text"])
 
 
 # ---------- helpers ----------
@@ -48,7 +98,7 @@ def _created(row: repo.ReservationRow, access_key: str) -> ReservationCreated:
 def _new_reservation_id(service: str) -> str:
     while True:
         rid = f"{_PREFIX[service]}{today():%Y%m%d}{secrets.randbelow(10000):04d}"
-        if rid not in repo.reservations:
+        if not repo.exists(rid):
             return rid
 
 
@@ -71,10 +121,11 @@ def _set_status(row: repo.ReservationRow, status: str) -> None:
     row.status = status
     row.version += 1
     row.updated_at = now()
+    repo.save(row)
 
 
 def _load(reservation_id: str, access_key: str) -> repo.ReservationRow:
-    row = repo.reservations.get(reservation_id)
+    row = repo.get(reservation_id)
     if row is None or not verify_secret(access_key, row.access_key_hash):
         raise E.bad_key()
     return row
@@ -83,14 +134,16 @@ def _load(reservation_id: str, access_key: str) -> repo.ReservationRow:
 # ---------- API ----------
 async def create(p: ReservationCreate, idempotency_key: str) -> ReservationCreated:
     body_hash = hashlib.sha256(json.dumps(p.model_dump(mode="json"), sort_keys=True).encode()).hexdigest()
-    if idempotency_key in repo.idempotency:
-        saved_hash, rid, key = repo.idempotency[idempotency_key]
+    saved = repo.get_idempotency(idempotency_key)
+    if saved:
+        saved_hash, rid, key = saved
         if saved_hash != body_hash:
             raise E.idempotency_conflict()
-        return _created(repo.reservations[rid], key)
+        return _created(repo.get(rid), key)
 
     if not mailbox_service.exists(p.mailbox_id):
         raise E.invalid_field(["mailbox_id"])
+    await validate_against_config(p)
 
     center_id = _resolve_center(p)
     deadline, open_dates = None, []
@@ -104,13 +157,15 @@ async def create(p: ReservationCreate, idempotency_key: str) -> ReservationCreat
         id=_new_reservation_id(p.service), access_key_hash=hash_secret(access_key), mailbox_id=p.mailbox_id,
         service=p.service, center_id=center_id, items=list(p.items),
         status="booked" if p.service == "borrow" else "submitted", version=1,
-        pickup_deadline=deadline, pickup_dates=open_dates, forward_state="pending", created_at=t, updated_at=t,
+        pickup_deadline=deadline, pickup_dates=open_dates,
+        forward_state="pending" if config.FORWARD_TO_CENTER else "off", created_at=t, updated_at=t,
     )
-    repo.reservations[row.id] = row
-    repo.idempotency[idempotency_key] = (body_hash, row.id, access_key)
+    repo.insert(row)
+    repo.put_idempotency(idempotency_key, body_hash, row.id, access_key, t.isoformat())
 
-    # 個資只進送件佇列
-    forwarding_service.enqueue(row.id, {"reservation_id": row.id, **p.model_dump(mode="json"), "center_id": center_id})
+    if config.FORWARD_TO_CENTER:  # 個資只進送件佇列（記憶體），不進資料庫
+        forwarding_service.enqueue(row.id, {"reservation_id": row.id, **p.model_dump(mode="json"),
+                                            "center_id": center_id})
 
     if p.service == "borrow":
         mailbox_service.append_event(
@@ -141,7 +196,7 @@ def batch_get(items: list[BatchGetItem]) -> list[ReservationStatus | BatchGetErr
     """密鑰不符或不存在都回 {id, error: "BAD_KEY"}，不透露該 id 是否存在。"""
     out: list[ReservationStatus | BatchGetError] = []
     for it in items:
-        row = repo.reservations.get(it.id)
+        row = repo.get(it.id)
         if row and verify_secret(it.access_key, row.access_key_hash):
             out.append(_status(row))
         else:
@@ -150,14 +205,15 @@ def batch_get(items: list[BatchGetItem]) -> list[ReservationStatus | BatchGetErr
 
 
 def set_forward_state(reservation_id: str, state: str) -> None:
-    row = repo.reservations.get(reservation_id)
+    row = repo.get(reservation_id)
     if row:
         row.forward_state = state
+        repo.save(row)
 
 
 async def apply_center_status(reservation_id: str, status: str) -> bool:
-    """中心 webhook / 後台回寫：confirmed / completed / cancelled。"""
-    row = repo.reservations.get(reservation_id)
+    """中心 webhook / 測試工具：confirmed / completed / cancelled。"""
+    row = repo.get(reservation_id)
     if row is None:
         return False
     if row.status in FINAL_STATUSES or row.status == status:
@@ -175,8 +231,8 @@ async def expire_overdue() -> int:
     """借用逾期未取貨：自動取消、釋回庫存、寫 reservation.expired。"""
     t = now()
     count = 0
-    for row in list(repo.reservations.values()):
-        if row.service != "borrow" or row.status != "booked" or row.pickup_deadline is None:
+    for row in repo.booked_borrows():
+        if row.pickup_deadline is None:
             continue
         end_of_deadline = datetime.combine(row.pickup_deadline + timedelta(days=1), datetime.min.time(), TZ)
         if t >= end_of_deadline:
@@ -191,8 +247,8 @@ async def expire_overdue() -> int:
 async def send_pickup_reminders() -> None:
     """取貨期限當天：開館時提醒一次、閉館前 2 小時再提醒一次。"""
     t = now()
-    for row in repo.reservations.values():
-        if row.status != "booked" or row.pickup_deadline != t.date():
+    for row in repo.booked_borrows():
+        if row.pickup_deadline != t.date():
             continue
         try:
             day = (await centers_service.get_calendar(row.center_id, t.date(), 1))[0]
@@ -205,6 +261,7 @@ async def send_pickup_reminders() -> None:
         for tag, at in (("open", opening), ("close-2h", closing - timedelta(hours=2))):
             if tag not in row.reminders_sent and at <= t < closing:
                 row.reminders_sent.add(tag)
+                repo.save(row)
                 mailbox_service.append_event(
                     row.mailbox_id, "reservation.pickup_reminder", ref={"reservation_id": row.id},
                     data={"pickup_deadline": row.pickup_deadline.isoformat()},

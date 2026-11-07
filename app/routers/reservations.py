@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Body, Header
 
 from app.features.reservation import service
+from app.features.reservation.service import form as service_form
 from app.features.reservation.schemas import (
     AccessKeyIn,
+    FormOut,
     BatchGetError,
     BatchGetItem,
     CancelResult,
@@ -31,3 +33,12 @@ async def batch_get(body: list[BatchGetItem] = Body(..., max_length=50)):
 @router.post("/{reservation_id}:cancel", response_model=CancelResult, summary="取消（借用會釋回庫存，可重複呼叫）")
 async def cancel(reservation_id: str, body: AccessKeyIn):
     return await service.cancel(reservation_id, body.access_key)
+
+
+forms_router = APIRouter(tags=["reservations"])
+
+
+@forms_router.get("/forms/{service}", response_model=FormOut,
+                  summary="表單的可選項目與必填欄位（來自 app/config.py 的 SERVICES、FIELDS）")
+async def get_form(service: str):
+    return service_form(service)

@@ -6,6 +6,7 @@
     POST /_test/reservations/{id}/trigger      讓預約進入某個狀態（會推對應通知）
     POST /_test/stock                          設定某款庫存（0 → >0 會推「到貨通知」）
     POST /_test/notices                        發一則公告（推「服務公告」）
+    POST /_test/sync                           立刻抓一次資料（模擬官網變化）→ 有變化就推播
     POST /_test/devices                        直接登記一支手機的 FCM token（不用 mailbox_key）
     POST /_test/push                           不改任何狀態，直接推一則指定類型的通知
     GET  /_test/events?mailbox_id=             看某信箱收到的事件（= App pull 會拿到的內容）
@@ -70,11 +71,11 @@ async def state(limit: int = 20):
         "api_enabled": config.API_ENABLED,
         "intervals": {"stock_sync_seconds": config.STOCK_SYNC_SECONDS, "push_check_minutes": config.PUSH_CHECK_MINUTES},
         "stock_version": stock_repo.current_version(),
-        "mailboxes": [{"mailbox_id": m.id, "events": len(m.events), "next_cursor": m.next_cursor,
-                       "devices": len(devices_repo.by_mailbox(m.id))} for m in mailbox_repo.mailboxes.values()],
+        "mailboxes": [{"mailbox_id": m.id, "events": mailbox_repo.count_events(m.id), "next_cursor": m.next_cursor,
+                       "devices": len(devices_repo.by_mailbox(m.id))} for m in mailbox_repo.all_mailboxes()],
         "reservations": [{"id": r.id, "service": r.service, "status": r.status, "center_id": r.center_id,
                           "mailbox_id": r.mailbox_id, "items": r.items, "pickup_deadline": r.pickup_deadline,
-                          "forward_state": r.forward_state} for r in reservation_repo.reservations.values()],
+                          "forward_state": r.forward_state} for r in reservation_repo.all_reservations()],
         "devices": [{"token": d.token[:12] + "…", "mailbox_id": d.mailbox_id, "updated_at": d.updated_at}
                     for d in devices_repo.all_devices()],
         "recent_pushes": [dict(r) | {"data": json.loads(r["data"] or "{}")} for r in db.query(
@@ -94,7 +95,8 @@ async def scenario(body: ScenarioIn):
     mb = mailbox_service.create()
     token = body.token or fcm.local_token(mb.mailbox_id)
     devices_service.register(mb.mailbox_id, "fcm", token)
-    variant_id = body.variant_id or next((r.variant_id for r in stock_repo.rows.values() if r.stock > 0), None)
+    variant_id = body.variant_id or next((r.variant_id for r in stock_repo.all_rows()
+                                         if r.stock > 0 and r.variant_id not in config.BLOCKED_VARIANTS), None)
     if variant_id is None:
         raise E.out_of_stock(0, 0)
     last_error = None
@@ -120,7 +122,7 @@ class TriggerIn(BaseModel):
 
 @router.post("/reservations/{reservation_id}/trigger", summary="讓預約進入某個狀態並推播")
 async def trigger(reservation_id: str, body: TriggerIn):
-    row = reservation_repo.reservations.get(reservation_id)
+    row = reservation_repo.get(reservation_id)
     if row is None:
         raise E.not_found("預約")
     match body.event:
@@ -132,10 +134,19 @@ async def trigger(reservation_id: str, body: TriggerIn):
             if row.service != "borrow" or row.status != "booked":
                 raise E.AppError("INVALID_STATE", 409, f"只有 booked 的借用可以逾期（目前 {row.status}）")
             row.pickup_deadline = today() - timedelta(days=1)  # 假裝期限已過，跑真正的逾期流程
+            reservation_repo.save(row)
             await reservation_service.expire_overdue()
         case _:
             await reservation_service.apply_center_status(row.id, body.event)
+    row = reservation_repo.get(reservation_id)  # 重新讀 DB 拿最新狀態
     return {"id": row.id, "status": row.status, "version": row.version}
+
+
+@router.post("/sync", summary="立刻抓一次資料；測試模式下假資料會變化（到貨、新公告），有變化就推播")
+async def sync():
+    from app.features import jobs
+
+    return await jobs.sync_now()
 
 
 class StockIn(BaseModel):
@@ -217,7 +228,7 @@ async def push(body: PushIn):
 
 @router.get("/events", summary="某信箱收到的事件（= App pull 會拿到的）")
 async def events(mailbox_id: str, cursor: int = 0):
-    row = mailbox_repo.mailboxes.get(mailbox_id)
+    row = mailbox_repo.get(mailbox_id)
     if row is None:
         raise E.not_found("信箱")
     return {"events": [e.model_dump(mode="json") for e in mailbox_service.events_after(row, cursor)]}

@@ -1,67 +1,62 @@
-"""POST /reservations 欄位（規格「POST /reservations 欄位」表）。
+"""POST /reservations 欄位。
 
-contact / subject / pickup / other_text 是個資：只轉送，不存資料庫、不進日誌。
-本系統只服務臺北市：居住縣市不是臺北市、或行政區不在臺北市 12 區 → 422 NOT_ELIGIBLE。
+欄位規則（必填、長度、格式、選項）全部來自 app/config.py 的 FIELDS；
+服務要填哪些欄位、items 可以選什麼來自 config.SERVICES。這裡不寫死規則。
+
+contact / subject / pickup / other_text 是個資：不存資料庫、不進日誌。
 """
 
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
-Service = Literal["borrow", "assess", "repair", "recycle"]
+from app.tools.fields import field, field_type
+
 CenterId = Literal["heyi", "south", "west"]
 Status = Literal["booked", "submitted", "confirmed", "completed", "cancelled", "expired"]
 
 
 class Contact(BaseModel):
-    name: str = Field(..., min_length=1, max_length=50)
-    mobile: str = Field(..., pattern=r"^09\d{8}$")
-    phone: str | None = Field(None, max_length=20)
-    gender: Literal["M", "F", "X"]
-    email: str | None = Field(None, max_length=100)
+    name: field_type("contact.name") = field("contact.name")
+    mobile: field_type("contact.mobile") = field("contact.mobile")
+    phone: field_type("contact.phone") = field("contact.phone")
+    gender: field_type("contact.gender") = field("contact.gender")
+    email: field_type("contact.email") = field("contact.email")
 
 
 class Subject(BaseModel):
     """輔具使用者（評估、維修）。"""
 
-    name: str = Field(..., min_length=1, max_length=50)
-    id_no: str = Field(..., pattern=r"^[A-Z][0-9A-Z]\d{8}$")
-    registered_district: str  # 戶籍行政區
-    living_county: str  # 居住縣市，只收「臺北市」
-    living_district: str  # 居住行政區（決定由哪間中心服務）
-    remark: str | None = Field(None, max_length=500)
+    name: field_type("subject.name") = field("subject.name")
+    id_no: field_type("subject.id_no") = field("subject.id_no")
+    registered_district: field_type("subject.registered_district") = field("subject.registered_district")
+    living_county: field_type("subject.living_county") = field("subject.living_county")
+    living_district: field_type("subject.living_district") = field("subject.living_district")
+    remark: field_type("subject.remark") = field("subject.remark")
 
 
 class Pickup(BaseModel):
     """回收地點。"""
 
-    district: str  # 回收地點行政區（臺北市），決定由哪間中心收取
-    address: str = Field(..., min_length=1, max_length=200)
-    has_elevator: bool
-    need_certificate: bool
-    remark: str | None = Field(None, max_length=500)
+    district: field_type("pickup.district") = field("pickup.district")
+    address: field_type("pickup.address") = field("pickup.address")
+    has_elevator: field_type("pickup.has_elevator") = field("pickup.has_elevator")
+    need_certificate: field_type("pickup.need_certificate") = field("pickup.need_certificate")
+    remark: field_type("pickup.remark") = field("pickup.remark")
 
 
 class ReservationCreate(BaseModel):
-    service: Service
+    """哪些欄位必填、items 能選什麼，由 service 層依 config.SERVICES 檢查（validate_against_config）。"""
+
+    service: str = Field(..., description="borrow / assess / repair / recycle（config.SERVICES 開著的）")
     mailbox_id: str
     center_id: CenterId | None = None  # borrow 必填；其他由後端依行政區決定
     items: list[str] = Field(..., min_length=1)
-    other_text: str | None = Field(None, max_length=500)
+    other_text: field_type("other_text") = field("other_text")
     contact: Contact
     subject: Subject | None = None
     pickup: Pickup | None = None
-
-    @model_validator(mode="after")
-    def _check_by_service(self):
-        if self.service == "borrow" and self.center_id is None:
-            raise ValueError("center_id")
-        if self.service in ("assess", "repair") and self.subject is None:
-            raise ValueError("subject")
-        if self.service == "recycle" and self.pickup is None:
-            raise ValueError("pickup")
-        return self
 
 
 class PickupInfo(BaseModel):
@@ -106,3 +101,16 @@ class AccessKeyIn(BaseModel):
 class BatchGetItem(BaseModel):
     id: str
     access_key: str
+
+
+class FormOut(BaseModel):
+    """GET /forms/{service}"""
+
+    service: str
+    label: str
+    item_options: list[str]
+    allow_other: bool
+    max_items: int
+    required_fields: list[str]
+    districts: list[str]
+    fields: dict[str, dict]
