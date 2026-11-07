@@ -202,7 +202,7 @@ Bearer。`cursor` = 上次的 `next_cursor`（第一次 0）；`wait` 0～25 秒
 | `reservation.pickup_reminder` | `reservation_id` | `pickup_deadline` |
 | `reservation.expired` | `reservation_id` | |
 | `reservation.confirmed` / `completed` / `cancelled` | `reservation_id` | |
-| `stock.arrived` | `variant_id`、`subscription_id` | |
+| `stock.arrived` | `variant_id`、`subscription_id` | `variant_name`、`category_name`（目錄查不到時為 null） |
 | `service.notice` | | `notice_id`、`title`、`center_ids` |
 
 ## 10. GET /mailboxes/{mailbox_id}/stream
@@ -287,7 +287,8 @@ Bearer。同一類「等待中」最多 1 筆。
 Bearer。
 ```json
 200 [
-  { "id": "sub_tPZHOROR9GgL", "variant_id": "181", "category_id": "1",
+  { "id": "sub_tPZHOROR9GgL", "variant_id": "181", "variant_name": "一般型輪椅",
+    "category_id": "1", "category_name": "輪椅類",       // 名稱是訂閱當下從目錄查到的，可能是 null
     "status": "waiting",                              // waiting 等待中 / arrived 已到貨
     "created_at": "2026-11-07T19:06:56.519670+08:00",
     "arrived_at": null }                              // 到貨時間
@@ -308,8 +309,9 @@ Bearer → **204**
 App 用 `POST /devices` 登記後，每個事件都會推一則：
 ```
 notification: { title, body }                         // 鎖定畫面看得到，不含姓名 / 電話 / 輔具名稱
-data: { type, event_id, reservation_id?, variant_id? } // 全部是字串
+data: { type, event_id, reservation_id?, variant_id?, variant_name?, category_name? } // 全部是字串
 ```
+到貨通知（`stock.arrived`）的 `data` 帶 `variant_name`、`category_name`，`notification.body` 也會顯示品項名稱。
 公告（`service.notice`）推到 topic `assistive-notice`。文案見 `docs/FRONTEND.md` 2.3。
 
 ---

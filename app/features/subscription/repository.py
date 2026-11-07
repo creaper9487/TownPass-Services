@@ -15,18 +15,22 @@ class SubscriptionRow:
     created_at: datetime
     status: str = "waiting"
     arrived_at: datetime | None = None
+    variant_name: str | None = None  # 訂閱當下的品項名稱（舊資料可能是 None）
+    category_name: str | None = None
 
 
 def _row(r) -> SubscriptionRow:
     return SubscriptionRow(r["id"], r["mailbox_id"], r["variant_id"], r["category_id"],
                            datetime.fromisoformat(r["created_at"]), r["status"],
-                           datetime.fromisoformat(r["arrived_at"]) if r["arrived_at"] else None)
+                           datetime.fromisoformat(r["arrived_at"]) if r["arrived_at"] else None,
+                           r["variant_name"], r["category_name"])
 
 
 def insert(row: SubscriptionRow) -> None:
-    db.execute("INSERT INTO subscriptions(id, mailbox_id, variant_id, category_id, created_at, status) "
-               "VALUES (?, ?, ?, ?, ?, 'waiting')",
-               (row.id, row.mailbox_id, row.variant_id, row.category_id, row.created_at.isoformat()))
+    db.execute("INSERT INTO subscriptions(id, mailbox_id, variant_id, category_id, variant_name, category_name, "
+               "created_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'waiting')",
+               (row.id, row.mailbox_id, row.variant_id, row.category_id, row.variant_name, row.category_name,
+                row.created_at.isoformat()))
 
 
 def get(sub_id: str) -> SubscriptionRow | None:

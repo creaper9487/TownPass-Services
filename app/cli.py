@@ -108,9 +108,18 @@ def cmd_push(args) -> None:
 
     if not fcm.is_enabled():
         print("· 沒設定 Firebase，推播只記錄在本機（[local]），不會送到手機")
-    results = asyncio.run(send_direct(targets, args.type, reservation_id=args.reservation_id,
-                                      variant_id=args.variant_id, deadline=args.deadline, center_id=args.center,
-                                      notice_title=args.title))
+
+    async def run():
+        names = (None, None)
+        if args.type == "stock.arrived" and args.variant_id:
+            from app.features.catalog import service as catalog_service
+
+            names = await catalog_service.variant_names(args.variant_id)
+        return await send_direct(targets, args.type, reservation_id=args.reservation_id,
+                                 variant_id=args.variant_id, deadline=args.deadline, center_id=args.center,
+                                 notice_title=args.title, variant_name=names[0], category_name=names[1])
+
+    results = asyncio.run(run())
     for r in results:
         mark = {"ok": "✓", "local": "·"}.get(r["result"], "✗")
         print(f"{mark} [{r['result']}] {r['token']}  {r['title']}｜{r['body']}")

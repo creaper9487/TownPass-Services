@@ -125,7 +125,7 @@ def test_only_async_events_are_pushed(client, fake_fcm):
     assert [e["type"] for e in events] == [*quiet, *loud]
 
 
-def test_stock_arrival_push_has_no_device_name(client, fake_fcm, monkeypatch):
+def test_stock_arrival_push_shows_device_name(client, fake_fcm, monkeypatch):
     from app.features.catalog import service as catalog_service
 
     monkeypatch.setattr(catalog_service, "fetch_catalog", lambda: [
@@ -137,9 +137,12 @@ def test_stock_arrival_push_has_no_device_name(client, fake_fcm, monkeypatch):
 
     signed_post(client, "/hooks/center/stock", {"event_id": "s2", "variant_id": "101", "stock": 1, "waiting": 2})
     (m,) = fake_fcm["flush"]()
-    assert m["notification"] == {"title": "到貨通知", "body": "你訂閱的輔具已到貨，可以預約了"}
-    assert "輪椅" not in str(m["notification"])
+    # 到貨通知依團隊決定顯示品項名稱（texts.py）
+    assert m["notification"] == {"title": "到貨通知", "body": "你訂閱的「電動輪椅」已到貨，可以預約了"}
     assert m["data"]["variant_id"] == "101" and "reservation_id" not in m["data"]
+    assert m["data"]["variant_name"] == "電動輪椅" and m["data"]["category_name"] == "輪椅類"
+    subs = client.get(f"{P}/subscriptions", params={"mailbox_id": mailbox_id}, headers=auth).json()
+    assert subs[0]["variant_name"] == "電動輪椅" and subs[0]["category_name"] == "輪椅類"
 
 
 def test_invalid_token_is_removed(client, fake_fcm):

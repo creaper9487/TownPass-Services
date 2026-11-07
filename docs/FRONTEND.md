@@ -106,10 +106,12 @@ Authorization: Bearer <mailbox_key>
 推播內容（後端組好，鎖定畫面看得到，所以**不含姓名、電話、輔具名稱**）：
 ```json
 notification: { "title": "到貨通知", "body": "你訂閱的輔具已到貨，可以預約了" }
-data: { "type": "stock.arrived", "event_id": "ev_xxx", "variant_id": "181" }
+data: { "type": "stock.arrived", "event_id": "ev_xxx", "variant_id": "181",
+        "variant_name": "一般型輪椅", "category_name": "輪椅類" }
 data: { "type": "reservation.booked", "event_id": "ev_xxx", "reservation_id": "B202611070001" }
 ```
-`data` 的值全部是字串；`reservation_id`、`variant_id` 有的才會出現。
+`data` 的值全部是字串；`reservation_id`、`variant_id`、`variant_name`、`category_name` 有的才會出現。
+到貨通知的內容會直接顯示品項名稱（`你訂閱的「一般型輪椅」已到貨…`）；App 內要用名稱也可以讀 `data.variant_name`。
 
 | type | 標題 | 內容 |
 |---|---|---|
@@ -119,7 +121,7 @@ data: { "type": "reservation.booked", "event_id": "ev_xxx", "reservation_id": "B
 | `reservation.confirmed` | 中心已確認 | 合宜輔具中心已確認你的申請 |
 | `reservation.completed` | 服務已完成 | 你的申請已辦理完成 |
 | `reservation.cancelled` | 預約已取消 | 這筆預約已取消 |
-| `stock.arrived` | 到貨通知 | 你訂閱的輔具已到貨，可以預約了 |
+| `stock.arrived` | 到貨通知 | 你訂閱的「一般型輪椅」已到貨，可以預約了（查不到名稱時：你訂閱的輔具已到貨，可以預約了） |
 | `service.notice` | 服務公告 | （公告標題） |
 
 > **只推非同步消息**：到貨（`stock.arrived`）、取貨期限將到（`reservation.pickup_reminder`）、中心確認（`reservation.confirmed`）。
@@ -141,7 +143,8 @@ data: { "type": "reservation.booked", "event_id": "ev_xxx", "reservation_id": "B
        → 422 INVALID_FIELD（品項不存在或不開放）
 
 列表   GET /subscriptions?mailbox_id=mb_xxx  Authorization: Bearer <mailbox_key>
-       → 200 [ { "id": "sub_xxx", "variant_id": "181", "category_id": "1",
+       → 200 [ { "id": "sub_xxx", "variant_id": "181", "variant_name": "一般型輪椅",
+                 "category_id": "1", "category_name": "輪椅類",
                  "status": "waiting" | "arrived",
                  "created_at": "...", "arrived_at": "..." | null } ]
 

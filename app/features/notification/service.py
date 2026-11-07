@@ -60,6 +60,7 @@ def _event_text(event: Event) -> tuple[str, str]:
         deadline=event.data.get("pickup_deadline") or (row.pickup_deadline if row else None),
         center_id=row.center_id if row else None,
         notice_title=event.data.get("title"),
+        variant_name=event.data.get("variant_name"),
     )
 
 
@@ -69,6 +70,9 @@ def _data(event: Event) -> dict:
         "event_id": event.id,
         "reservation_id": event.ref.get("reservation_id"),
         "variant_id": event.ref.get("variant_id"),
+        # 到貨通知：品項名稱（通知內容也會顯示，見 texts.py）
+        "variant_name": event.data.get("variant_name"),
+        "category_name": event.data.get("category_name"),
     }
 
 
@@ -132,13 +136,16 @@ async def drain() -> None:
 # ---------------- 測試用：直接推播（CLI、測試面板共用）----------------
 async def send_direct(targets: list[tuple[str, str | None]], type: str, *, reservation_id: str | None = None,
                       variant_id: str | None = None, deadline: str | None = None, center_id: str | None = None,
-                      notice_title: str | None = None) -> list[dict]:
+                      notice_title: str | None = None, variant_name: str | None = None,
+                      category_name: str | None = None) -> list[dict]:
     """不經過任何狀態，直接對 (token, mailbox_id) 發一則指定類型的通知；回傳每一台的結果。"""
     from app.features.devices import repository as devices_repo
     from app.tools.security import new_id
 
-    title, body = texts.build(type, deadline=deadline, center_id=center_id, notice_title=notice_title)
-    data = {"type": type, "event_id": new_id("ev"), "reservation_id": reservation_id, "variant_id": variant_id}
+    title, body = texts.build(type, deadline=deadline, center_id=center_id, notice_title=notice_title,
+                              variant_name=variant_name)
+    data = {"type": type, "event_id": new_id("ev"), "reservation_id": reservation_id, "variant_id": variant_id,
+            "variant_name": variant_name, "category_name": category_name}
     results = []
     for token, mailbox_id in targets:
         push = PendingPush(fcm.build_message(title=title, body=body, data=data, token=token), token, 0, mailbox_id)
