@@ -27,7 +27,7 @@
 | 409 | `DUPLICATE_WAITLIST` | 同一類已經有等待中的到貨通知 |
 | 409 | `IDEMPOTENCY_CONFLICT` | 同一個 Idempotency-Key 送了不同內容 |
 | 422 | `INVALID_FIELD` | 欄位錯誤；`fields` 列出哪幾個欄位（不會回顯你填的值） |
-| 422 | `PICKUP_WINDOW_CLOSED` | 該中心取貨期限內沒有開館日，請換中心 |
+| 422 | `PICKUP_WINDOW_CLOSED` | 該中心取貨期限內沒有開館日（目前後端關閉開館檢查，不會出現） |
 | 422 | `NOT_ELIGIBLE` | 居住地不在臺北市 |
 | 503 | `SOURCE_UNAVAILABLE` | 官網資料暫時抓不到（目錄有備份時會回上次的資料，不會出現這個） |
 
@@ -189,7 +189,7 @@ Idempotency-Key: <每次「送出」產生一個 UUID；重試時用同一個>
   "pickup":  { ... }                         // 只有 recycle（欄位見 /forms）
 }
 → 201 { "id": "B202611070001", "access_key": "xxxx", "status": "booked",
-        "pickup": { "deadline": "2026-11-08", "open_dates": ["2026-11-07"] } }
+        "pickup": { "deadline": "2026-11-08", "open_dates": ["2026-11-07", "2026-11-08"] } }
 ```
 - `status`：借用是 `booked`，其他服務是 `submitted`。
 - **`id` 和 `access_key` 網頁自己存**（localStorage），之後查詢、取消要用；`access_key` 只回這一次。
