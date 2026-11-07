@@ -538,7 +538,12 @@
     },
     {
      "type": "p",
-     "text": "聽語障溝通服務方案 【手語版】請點選此連結"
+     "text": "聽語障溝通服務方案"
+    },
+    {
+     "type": "link",
+     "text": "【手語版】請點選此連結",
+     "href": "https://youtu.be/cTU3QwaLHXI"
     },
     {
      "type": "p",
@@ -618,12 +623,7 @@
     },
     {
      "type": "p",
-     "text": "五、臺北市聽語障溝通服務線上申辦系統《線上申辦》請點選此連結"
-    },
-    {
-     "type": "link",
-     "text": "【手語版】請點選此連結",
-     "href": "https://youtu.be/cTU3QwaLHXI"
+     "text": "五、臺北市聽語障溝通服務線上申辦系統"
     },
     {
      "type": "link",
