@@ -132,6 +132,14 @@ FIELDS = {
     "other_text": {"required": False, "max_length": 500, "label": "其他輔具說明"},
 }
 
+# ---- 借用取貨時間 ----
+# False = 不管中心有沒有開館：任何一天都能預約，取貨期限 = 今天起算 PICKUP_DAYS 天（含今天）
+# True  = 照中心行事曆（例假日、國定假日、臨時休館），取貨期限內沒有開館日就不能預約（422 PICKUP_WINDOW_CLOSED）
+CHECK_OPENING_HOURS = False
+PICKUP_DAYS = 2  # 規格：預約後 2 天內（含當天）取貨
+# 取貨期限當天的提醒時間（CHECK_OPENING_HOURS = False 時用；True 時改用中心當天的開館 / 閉館前 2 小時）
+PICKUP_REMINDER_TIMES = ["09:00", "15:00"]
+
 # ---- 送件到中心 ----
 # False = 預約只記錄在本機 DB，不送到中心、不追蹤中心狀態；聯絡資料（個資）不保存
 FORWARD_TO_CENTER = False

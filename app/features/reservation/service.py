@@ -245,21 +245,33 @@ async def expire_overdue() -> int:
 
 
 async def send_pickup_reminders() -> None:
-    """取貨期限當天：開館時提醒一次、閉館前 2 小時再提醒一次。"""
+    """取貨期限當天提醒兩次。
+
+    config.CHECK_OPENING_HOURS = False：在 config.PICKUP_REMINDER_TIMES（例：09:00、15:00）提醒。
+    config.CHECK_OPENING_HOURS = True ：中心開館時、閉館前 2 小時提醒（休館日不提醒）。
+    """
     t = now()
+
+    def at(hhmm: str) -> datetime:
+        return datetime.combine(t.date(), datetime.strptime(hhmm, "%H:%M").time(), TZ)
+
     for row in repo.booked_borrows():
         if row.pickup_deadline != t.date():
             continue
-        try:
-            day = (await centers_service.get_calendar(row.center_id, t.date(), 1))[0]
-        except NotImplementedError:
-            return
-        if not day.open or not day.hours:
-            continue
-        opening = datetime.combine(t.date(), datetime.strptime(day.hours[0].from_, "%H:%M").time(), TZ)
-        closing = datetime.combine(t.date(), datetime.strptime(day.hours[-1].to, "%H:%M").time(), TZ)
-        for tag, at in (("open", opening), ("close-2h", closing - timedelta(hours=2))):
-            if tag not in row.reminders_sent and at <= t < closing:
+        if config.CHECK_OPENING_HOURS:
+            try:
+                day = (await centers_service.get_calendar(row.center_id, t.date(), 1))[0]
+            except Exception:  # noqa: BLE001  行事曆抓不到就這次先不提醒
+                continue
+            if not day.open or not day.hours:
+                continue
+            closing = at(day.hours[-1].to)
+            slots = (("open", at(day.hours[0].from_)), ("close-2h", closing - timedelta(hours=2)))
+        else:
+            closing = datetime.combine(t.date() + timedelta(days=1), datetime.min.time(), TZ)
+            slots = tuple((f"t{i}", at(hhmm)) for i, hhmm in enumerate(config.PICKUP_REMINDER_TIMES))
+        for tag, when in slots:
+            if tag not in row.reminders_sent and when <= t < closing:
                 row.reminders_sent.add(tag)
                 repo.save(row)
                 mailbox_service.append_event(

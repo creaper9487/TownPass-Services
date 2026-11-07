@@ -86,6 +86,8 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
   - `SERVICES`：開放哪些服務、要填哪幾組欄位、items 可選項目、最多幾個
   - `FIELDS`：每個欄位的必填 / 長度 / 格式 / 選項 —— `POST /reservations` 的驗證直接讀這裡（`app/tools/fields.py`）
   - `BORROW_CATEGORIES`、`BLOCKED_VARIANTS`：開放借用哪些分類 / 品項（`/catalog`、借用、到貨通知都套用）
+  - `CHECK_OPENING_HOURS`：借用要不要看中心有沒有開館（目前 False：任何一天都能預約，取貨期限 = 今天起 `PICKUP_DAYS` 天）；
+    `PICKUP_REMINDER_TIMES`：取貨提醒時間
   - `FORWARD_TO_CENTER`：要不要送件到中心（目前 False：預約只記錄在本機，不存聯絡資料）
   - 排程間隔、推播 topic、測試模式的模擬變化、CORS…
 - `GET /assistive/v1/forms/{service}`：把上面的設定給前端（可選項目、必填欄位、行政區、欄位規則）。

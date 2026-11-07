@@ -164,6 +164,10 @@ def test_subscription_arrival(client, monkeypatch):
 
 def test_offline_calendar_and_year_end_borrow_use_bundled_holidays(client, monkeypatch):
     import httpx
+
+    from app import config
+
+    monkeypatch.setattr(config, "CHECK_OPENING_HOURS", True)  # 這個測試驗的是「照開館日算取貨期限」
     from app.features.reservation import service as reservation_service
     from app.tools.crawlers import _calendar_source as cal
 
