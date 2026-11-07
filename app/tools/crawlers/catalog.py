@@ -77,4 +77,35 @@ def fetch_catalog() -> list[CatalogCategory]:
     檢查：python -m app.tools.crawlers.check catalog
     後端快取 1 小時，很少呼叫。
     """
+    # ── 範本（CSS 選擇器是假的，請用 F12 看官網實際 HTML 改掉）──
+    # import requests
+    # from bs4 import BeautifulSoup
+    # from app.tools.crawlers.schemas import CatalogVariant
+    #
+    # BASE = "https://tpap.gov.taipei"
+    # html = requests.get(BASE + "/app37/rentView/index", timeout=10).text
+    # soup = BeautifulSoup(html, "html.parser")
+    #
+    # def full_url(src):                       # 相對路徑 → 完整網址
+    #     return None if not src else (src if src.startswith("http") else BASE + src)
+    #
+    # result = []
+    # for cat in soup.select(".category"):                       # ← 每個分類
+    #     variants = []
+    #     for item in cat.select(".item"):                       # ← 分類底下每款
+    #         variants.append(CatalogVariant(
+    #             id=item["data-id"],                            # ← 款式代碼
+    #             name=item.select_one(".name").text.strip(),
+    #             image=full_url(item.select_one("img") and item.select_one("img").get("src")),
+    #             specs=[li.text.strip() for li in item.select(".spec li")],
+    #             description=None,
+    #             attrs=None,                                    # ← 規格有身高/座寬/承重再填
+    #         ))
+    #     result.append(CatalogCategory(
+    #         id=cat["data-id"],                                 # ← 分類代碼
+    #         name=cat.select_one(".title").text.strip(),
+    #         image=None,
+    #         variants=variants,
+    #     ))
+    # return result
     raise NotImplementedError("fetch_catalog 尚未實作")

@@ -56,4 +56,24 @@ def fetch_center_calendar(center_id: CenterId, start: date, days: int) -> list[C
     檢查：python -m app.tools.crawlers.check calendar
     後端快取 5 分鐘。
     """
+    # ── 範本 ──
+    # from datetime import timedelta
+    # from app.tools.crawlers.centers import fetch_centers
+    #
+    # center = next(c for c in fetch_centers() if c.id == center_id)
+    # holidays = load_holidays()        # ← 自己寫：讀 data.gov.tw 辦公日曆表 → {date: "國慶日", ...}
+    # closures = load_closures(center_id)  # ← 自己寫：臨時休館 → {date: "臨時休館"}；沒有就回 {}
+    #
+    # result = []
+    # for i in range(days):
+    #     d = start + timedelta(days=i)
+    #     if d in holidays:
+    #         result.append(CalendarDay(date=d, open=False, hours=[], reason=holidays[d]))
+    #     elif d in closures:
+    #         result.append(CalendarDay(date=d, open=False, hours=[], reason=closures[d]))
+    #     elif d.isoweekday() not in center.open_days:     # isoweekday(): 1=星期一 … 7=星期日
+    #         result.append(CalendarDay(date=d, open=False, hours=[], reason="例假日休館"))
+    #     else:
+    #         result.append(CalendarDay(date=d, open=True, hours=center.hours, reason=None))
+    # return result
     raise NotImplementedError("fetch_center_calendar 尚未實作")

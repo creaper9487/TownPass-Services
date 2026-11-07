@@ -57,4 +57,20 @@ def fetch_centers() -> list[Center]:
     檢查：python -m app.tools.crawlers.check centers
     後端快取 1 小時。
     """
+    # ── 範本：資料很少變，查好直接寫死就好 ──
+    # return [
+    #     Center(
+    #         id="heyi",
+    #         name="臺北市合宜輔具中心",
+    #         address="（查官網填）",
+    #         phone="（查官網填）",
+    #         districts=["中山區", "大同區", "士林區", "北投區"],
+    #         open_days=[1, 2, 3, 4, 5],
+    #         hours=[{"from": "08:30", "to": "12:00"}, {"from": "13:30", "to": "17:30"}],
+    #         lat=0.0,   # Google 地圖查
+    #         lng=0.0,
+    #     ),
+    #     Center(id="south", name="臺北市南區輔具中心", districts=["內湖區", "信義區", "文山區", "南港區"], ...),
+    #     Center(id="west",  name="臺北市西區輔具中心", districts=["中正區", "萬華區", "大安區", "松山區"], ...),
+    # ]
     raise NotImplementedError("fetch_centers 尚未實作")
