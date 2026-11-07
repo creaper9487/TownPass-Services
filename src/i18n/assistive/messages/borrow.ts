@@ -33,7 +33,6 @@ export const zh: Record<string, string> = {
 
   // 選擇種類（款式）
   'borrow.variants.title': '選擇種類',
-  'borrow.variants.noticeSummary': '圖片與尺寸僅供參考，查看預約提醒',
   'borrow.variants.noStock': '目前二手{name}均無庫存',
   'borrow.variants.assessLink': '預約輔具評估，了解購買或租賃補助',
   'borrow.variants.height': '身高（公分）',
@@ -137,7 +136,6 @@ export const en: Record<string, string> = {
 
   // 選擇種類（款式）
   'borrow.variants.title': 'Choose a type',
-  'borrow.variants.noticeSummary': 'Photos and sizes are for reference · Booking note',
   'borrow.variants.noStock': 'Out of stock: second-hand {name}',
   'borrow.variants.assessLink': 'Reserve an assessment to learn about purchase or rental subsidies',
   'borrow.variants.height': 'Height (cm)',

@@ -1,11 +1,11 @@
 // 輔具預約「reservations」區的介面文字。key 一律以 `reservations.` 開頭。
 export const zh: Record<string, string> = {
   'reservations.status.cancelled': '已取消',
-  'reservations.status.expired': '已逾期，預約已自動取消',
+  'reservations.status.expired': '已逾期',
   'reservations.status.completed': '已完成',
   'reservations.status.confirmed': '中心已確認',
-  'reservations.status.booked': '已預約，待取貨',
-  'reservations.status.submitted': '已送出，待中心來電確認',
+  'reservations.status.booked': '待取貨',
+  'reservations.status.submitted': '待中心確認',
   'reservations.number': '預約編號',
   'reservations.empty.title': '目前沒有預約紀錄',
   'reservations.empty.hint': '預約紀錄將顯示於此。',
@@ -67,11 +67,11 @@ export const zh: Record<string, string> = {
 };
 export const en: Record<string, string> = {
   'reservations.status.cancelled': 'Cancelled',
-  'reservations.status.expired': 'Expired, cancelled automatically',
+  'reservations.status.expired': 'Expired',
   'reservations.status.completed': 'Completed',
   'reservations.status.confirmed': 'Confirmed by the center',
-  'reservations.status.booked': 'Reserved, awaiting pickup',
-  'reservations.status.submitted': 'Submitted, awaiting call from the center',
+  'reservations.status.booked': 'Awaiting pickup',
+  'reservations.status.submitted': 'Awaiting center',
   'reservations.number': 'Reservation no.',
   'reservations.empty.title': 'No reservations yet',
   'reservations.empty.hint': 'Assistive device services you reserve will appear here.',

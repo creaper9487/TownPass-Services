@@ -85,17 +85,17 @@ const totals = computed(() =>
                   </template>
                 </p>
                 <span
+                  v-if="loaded"
                   class="mt-3 flex min-h-12 items-center justify-center rounded-lg px-3 text-base font-semibold"
                   :class="
-                    !loaded || totals[c.id] > 0
+                    totals[c.id] > 0
                       ? 'bg-primary-700 text-white'
                       : 'border border-primary-700 text-primary-700'
                   "
                 >
-                  {{
-                    !loaded || totals[c.id] > 0 ? t('borrow.reserve') : t('borrow.arrivalNotice')
-                  }}
+                  {{ totals[c.id] > 0 ? t('borrow.reserve') : t('borrow.arrivalNotice') }}
                 </span>
+                <span v-else class="mt-3 block min-h-12" aria-hidden="true" />
               </div>
             </RouterLink>
           </li>

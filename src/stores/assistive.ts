@@ -23,7 +23,6 @@ import type {
 } from '@/utils/assistive/types';
 
 export interface Account {
-  id: string;
   name: string;
   mobile: string;
   email: string;
@@ -62,6 +61,7 @@ const genderFromId = (idNo: string): ApplicantForm['gender'] => {
 
 export const useAssistiveStore = defineStore('assistive', () => {
   const service = ref<ServiceId>('borrow');
+  const consents = ref<boolean[]>([false, false, false]);
   /** 本次預約項目（可選多件） */
   const variants = ref<SelectedVariant[]>([]);
   const needs = ref<string[]>([]);
@@ -79,6 +79,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
   const draft = loadDraft();
   if (draft) {
     service.value = draft.service ?? service.value;
+    consents.value = draft.consents ?? consents.value;
     variants.value = draft.variants ?? (draft.variant ? [draft.variant] : []);
     needs.value = draft.needs ?? [];
     needOther.value = draft.needOther ?? '';
@@ -91,6 +92,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
   watch(
     [
       service,
+      consents,
       variants,
       needs,
       needOther,
@@ -104,6 +106,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
       if (!draftActive) return;
       saveDraft({
         service: service.value,
+        consents: consents.value,
         variants: variants.value,
         needs: needs.value,
         needOther: needOther.value,
@@ -236,6 +239,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
     draftActive = true;
     fit.value = { height: '', weight: '' };
     service.value = id;
+    consents.value = [false, false, false];
     variants.value = [];
     needs.value = [];
     needOther.value = '';
@@ -265,7 +269,6 @@ export const useAssistiveStore = defineStore('assistive', () => {
       addresses.map((a) => districtFromAddress(`${text(a.city)}${text(a.town)}`)).find(Boolean) ||
       '';
     account.value = {
-      id: text(data.id) || text(data.cityInternetUid) || text(data.account),
       name: text(data.realName) || text(data.username),
       mobile: text(data.phoneNo),
       email: text(data.email),
@@ -307,6 +310,7 @@ export const useAssistiveStore = defineStore('assistive', () => {
 
   return {
     service,
+    consents,
     variants,
     addVariant,
     removeVariant,

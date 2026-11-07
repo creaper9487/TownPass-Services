@@ -188,14 +188,15 @@ const undoArrival = async () => {
     :total="flow.total.value"
   >
     <ASection>
-      <details class="text-sm text-grey-700">
-        <summary class="a11y-focus cursor-pointer font-semibold text-primary-700">
-          {{ t('borrow.variants.noticeSummary') }}
-        </summary>
-        <p :lang="zhAttr" class="mt-2 leading-relaxed">
+      <p
+        :lang="zhAttr"
+        class="flex items-start gap-2 rounded-lg bg-grey-50 p-3 text-sm leading-relaxed text-grey-700"
+      >
+        <AIcon name="info" class="mt-0.5 h-[18px] w-[18px] shrink-0" />
+        <span>
           圖片僅供參考，請以現場提供之輔具為主。若您所預約的輔具尺寸不合用，因輔具數量有限，若現場已無其他合適尺寸輔具則須另行預約借用。
-        </p>
-      </details>
+        </span>
+      </p>
     </ASection>
     <ASection v-if="noStockAtAll">
       <div class="rounded-lg border border-secondary-200 bg-secondary-50 p-4">
