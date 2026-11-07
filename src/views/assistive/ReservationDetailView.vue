@@ -8,6 +8,7 @@ import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseDialog from '@/components/atoms/BaseDialog.vue';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
+import { isPushRegistered } from '@/utils/assistive/push';
 import {
   cancelReservation,
   deadlineText,
@@ -56,7 +57,8 @@ const doCancel = async () => {
     const id = reservation.value.id;
     await cancelReservation(id);
     reservation.value = { ...reservation.value, status: 'cancelled' };
-    native.notify('輔具預約已取消', `預約編號 ${id} 已成功取消。`);
+    // 已登記推播時，後端會推播「預約已取消」，不再跳同一則本機通知。
+    if (!isPushRegistered()) native.notify('輔具預約已取消', `預約編號 ${id} 已成功取消。`);
   } catch {
     cancelFailed.value = true;
   } finally {

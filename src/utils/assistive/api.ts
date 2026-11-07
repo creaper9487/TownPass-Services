@@ -99,7 +99,7 @@ const dayToIso = (ymd: string) => {
 };
 
 /** 信箱由網頁建立；金鑰只存在這個裝置的瀏覽器儲存空間 */
-const webMailbox = async (): Promise<{ id: string; key: string }> => {
+export const webMailbox = async (): Promise<{ id: string; key: string }> => {
   const saved = read<{ id: string; key: string } | null>(MAILBOX_KEY, null);
   if (saved?.id && saved.key) return saved;
   const box = await requestJson<{ mailbox_id: string; mailbox_key: string }>('POST', '/mailboxes');
@@ -112,7 +112,7 @@ const webMailbox = async (): Promise<{ id: string; key: string }> => {
  * 用信箱執行一個請求。後端不認得存在這台裝置上的信箱（後端資料被清掉、換了環境）時，
  * 建立新的信箱再試一次；不然使用者會一直卡在「送出失敗」，只能自己清除瀏覽器資料。
  */
-const withMailbox = async <T>(
+export const withMailbox = async <T>(
   run: (box: { id: string; key: string }) => Promise<T>
 ): Promise<T> => {
   try {

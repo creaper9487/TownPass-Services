@@ -5,6 +5,7 @@ import { useAssistiveNative, inApp } from '@/composables/useAssistiveNative';
 import { useAssistiveStore } from '@/stores/assistive';
 import { installMotion } from '@/composables/useAssistiveMotion';
 import { applyLang } from '@/i18n/assistive';
+import { ensurePush } from '@/utils/assistive/push';
 
 const store = useAssistiveStore();
 const route = useRoute();
@@ -33,6 +34,9 @@ useHandleConnectionData((event) => {
 });
 
 native.requestUserInfo();
+
+// 已經同意推播的話，進入服務時悄悄更新登記（token 換了、使用者撤回授權都會在這裡同步），不會跳視窗。
+ensurePush({ silent: true });
 
 // 載入時讓 <html lang> 與網頁標題對上目前的語言。
 applyLang();
