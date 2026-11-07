@@ -1,6 +1,6 @@
 # taipei-codefest-2026-Backend
 
-臺北市輔具預約後端（FastAPI），只服務臺北市 12 個行政區。API 基準路徑 `/assistive/v1`，啟動後看 http://127.0.0.1:8000/docs
+臺北市輔具預約後端（FastAPI），只服務臺北市 12 個行政區。API 基準路徑 `/assistive/v1`，啟動後看 http://192.168.88.208:8000/docs（IP / port 在 `.env` 的 `HOST`、`PORT` 改）
 
 ## 分層
 

@@ -10,6 +10,10 @@ class Settings(BaseSettings):
 
     app_name: str = "Taipei Codefest 2026 Backend"
 
+    # python app/main.py 啟動時聽的 IP / port（區網內手機、前端用這個連）
+    host: str = "192.168.88.208"
+    port: int = 8000
+
     # 測試模式：爬蟲改回傳固定假資料（不連官網），並開放 /_test/* 測試 API。正式環境一定要 false。
     test_mode: bool = False
     # 本機 SQLite（推播裝置、推播紀錄）

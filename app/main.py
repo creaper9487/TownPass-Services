@@ -68,4 +68,5 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True, app_dir=str(ROOT_DIR))
+    s = get_settings()
+    uvicorn.run("app.main:app", host=s.host, port=s.port, reload=True, app_dir=str(ROOT_DIR))
