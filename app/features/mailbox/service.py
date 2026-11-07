@@ -1,6 +1,6 @@
 """匿名信箱：所有通知與預約狀態事件都寫進信箱，前端用 cursor pull。
 
-- 寫入事件後，喚醒正在 long-poll / SSE 等待的連線，並通知推播閘道（只帶 id + cursor）。
+- 寫入事件後，喚醒正在 long-poll / SSE 等待的連線，並推播（FCM）到該信箱登記的裝置。
 - 事件保留 30 天；ack 之後可清除。
 """
 
@@ -10,8 +10,8 @@ from typing import Any
 
 from app.features.mailbox import repository as repo
 from app.features.mailbox.schemas import Event, EventType, MailboxCreated
+from app.features.notification import service as notification_service
 from app.tools import exceptions as E
-from app.tools import push
 from app.tools.security import hash_secret, new_id, new_secret, verify_secret
 from app.tools.timeutil import now
 
@@ -48,7 +48,7 @@ def authenticate(mailbox_id: str, key: str | None) -> repo.MailboxRow:
 
 
 def append_event(mailbox_id: str, type: EventType, ref: dict[str, Any] | None = None,
-                 data: dict[str, Any] | None = None) -> Event | None:
+                 data: dict[str, Any] | None = None, push: bool = True) -> Event | None:
     row = repo.mailboxes.get(mailbox_id)
     if row is None:
         return None
@@ -58,13 +58,18 @@ def append_event(mailbox_id: str, type: EventType, ref: dict[str, Any] | None = 
     row.next_cursor += 1
     row.events.append(event)
     _signal(mailbox_id)
-    push.schedule_wakeup(mailbox_id, event.cursor)
+    if push:
+        notification_service.notify_event(mailbox_id, event)
     return event
 
 
 def broadcast(type: EventType, data: dict[str, Any]) -> int:
-    """service.notice：公告廣播給所有信箱。"""
-    return sum(1 for mid in list(repo.mailboxes) if append_event(mid, type, data=data))
+    """service.notice：公告寫進所有信箱（給 pull 補拉），推播只發一次 FCM topic。"""
+    count = sum(1 for mid in list(repo.mailboxes) if append_event(mid, type, data=data, push=False))
+    ts = now()
+    notification_service.notify_topic(Event(cursor=0, id=new_id("ev"), type=type, ts=ts, data=data,
+                                            expires_at=ts + EVENT_TTL))
+    return count
 
 
 def events_after(row: repo.MailboxRow, cursor: int) -> list[Event]:

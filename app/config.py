@@ -21,13 +21,18 @@ class Settings(BaseSettings):
     expire_scan_seconds: int = 60  # 規格：逾期後 ≤ 1 分鐘自動取消
     forward_retry_seconds: int = 30
 
-    # 中心回呼 webhook 與推播閘道共用的 HMAC 密鑰
+    # 中心回呼 webhook 的 HMAC 密鑰
     hook_secret: str = "dev-hook-secret"
     hook_max_skew_seconds: int = 300  # X-Timestamp 允許誤差 5 分鐘
 
-    # 台北通推播閘道；空字串 = 尚未開通，只靠 pull
-    push_gateway_url: str = ""
-    push_secret: str = "dev-push-secret"
+    # 推播（FCM）。兩個都設定才會真的發；沒設定時事件只寫進信箱。
+    fcm_project_id: str = ""
+    fcm_credentials_file: str = ""  # 服務帳號金鑰 JSON 路徑，不要 commit
+    fcm_notice_topic: str = "assistive-notice"  # 公告用 topic，App 啟動時訂閱
+    max_devices_per_mailbox: int = 10
+
+    # 每幾分鐘檢查一次：官網新公告 → 推播 service.notice、重試失敗的推播
+    push_check_minutes: int = 5
 
 
 @lru_cache

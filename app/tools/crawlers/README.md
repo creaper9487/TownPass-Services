@@ -12,6 +12,7 @@
 | `stock.py` | `fetch_stock()` | 每款還剩幾台、幾人在排隊（每 45 秒跑一次） | 爬蟲組 |
 | `centers.py` | `fetch_centers()` | 3 間中心的地址、電話、開館日與時段、經緯度（可寫死） | 爬蟲組 |
 | `center_calendar.py` | `fetch_center_calendar()` | 接下來每天有沒有開館（國定假日、臨時休館） | 爬蟲組 |
+| `notices.py` | `fetch_notices()` | 最新消息裡目前有效的公告（休館、服務異動），新公告會推播給使用者 | 爬蟲組 |
 | `center_forward.py` | `forward_reservation()` | 不是爬蟲，是把預約送到中心；等中心決定介接方式 | 先不用寫 |
 
 **不要改**：`schemas.py`（回傳格式，看就好）、`check.py`、`runner.py`、`__init__.py`。
@@ -32,7 +33,7 @@
 在專案根目錄：
 
 ```bash
-python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar / all
+python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar / notices / all
 ```
 
 會實際跑你的 function、檢查格式，錯的話會告訴你哪一筆哪個欄位錯。全部 ✓ 才 commit。
