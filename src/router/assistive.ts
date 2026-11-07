@@ -3,6 +3,7 @@ import { useAssistiveStore } from '@/stores/assistive';
 import { flows } from '@/utils/assistive/services';
 import type { ServiceId } from '@/utils/assistive/types';
 import { useAssistiveWelfareStore } from '@/stores/assistiveWelfare';
+import { FIRST_QUESTION } from '@/utils/assistive/welfare';
 import { t } from '@/i18n/assistive';
 
 /** 原生 App 的標題列顯示 document.title，要跟著語言走（每次換頁時才讀） */
@@ -104,10 +105,13 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         meta: titleMeta()
       },
       {
+        // 不放「您好」說明頁：每次進來都從頭作答，直接到第 1 題（說明文字放在第 1 題上方）
         path: 'welfare',
         name: 'assistive-welfare',
-        component: () => import('@/views/assistive/WelfareIntroView.vue'),
-        meta: titleMeta()
+        redirect: () => {
+          useAssistiveWelfareStore().reset();
+          return { name: 'assistive-welfare-question', params: { id: FIRST_QUESTION } };
+        }
       },
       {
         path: 'welfare/question/:id',
