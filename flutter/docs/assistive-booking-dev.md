@@ -1,15 +1,12 @@
 # 輔具預約：本機建置與執行
 
-網頁（`TownPass-Services`，Vue）在台北通 App（本 repo，Flutter）的 WebView 裡執行。網頁程式碼由 Vite 開發伺服器即時提供，
-**只有 Flutter 端有改動才需要重建 App**。
-
-兩個 repo 都用 `wip/assistive-booking` 分支（`main` 沒有輔具預約的入口）。
+網頁（repo 根目錄，Vue）在台北通 App（`flutter/`）的 WebView 裡執行。網頁程式碼由 Vite 開發伺服器即時提供，
+**只有 Flutter 端有改動才需要重建 App**。三個部分（網頁、`flutter/`、`backend/`）現在都在同一個 repo 的 `main`，整體架構見根目錄 [README](../../README.md)。
 
 ## 1. 網頁
 
 ```bash
-cd TownPass-Services
-git checkout wip/assistive-booking
+# 在 repo 根目錄
 pnpm install
 cp .env.development.example .env.development   # 填後端位址
 pnpm exec vite --host 0.0.0.0 --port 5173        # 一定要 --host，模擬器或手機才連得到
@@ -23,8 +20,7 @@ pnpm exec vite --host 0.0.0.0 --port 5173        # 一定要 --host，模擬器�
 需要 Flutter 3.47、JDK 17、Android SDK。
 
 ```bash
-cd TownPass-upstream
-git checkout wip/assistive-booking
+cd flutter
 flutter pub get
 dart run build_runner build          # 產生 *.gen.dart（不在版本庫裡）
 flutter build apk --debug --target-platform android-arm64 \
