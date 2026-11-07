@@ -49,3 +49,28 @@ git push origin crawler
 ```
 
 寫好後開 PR：`crawler` → `developer`。
+
+## Code Review
+
+### 2026-11-07 13:04 — commit `3039c5c` Implement assistive borrowing data crawlers
+
+審查結果：測試 28 個全過，`check centers` 格式正確（`catalog`、`stock` 需連官網，審查環境連不到，未實測）。
+整體寫得很好，**修完第 1 項才能合回 `developer`**。
+
+做得好的地方：
+- 使用官網真實代碼（`/rentView/additem`、`/vehicleDetail/{id}`），目錄與庫存代碼一致
+- 抓取失敗直接拋錯，不會回空清單或假 0 蓋掉有效庫存
+- 目錄與庫存共用 30 秒快照，不重複請求
+- 中心資料有標註官方來源；休館公告處理民國年、日期區間、「將於…開館」不算休館
+- 離線測試完整，不會真的連官網
+
+要改的東西：
+
+| # | 嚴重度 | 檔案 | 問題 | 怎麼改 | 狀態 |
+|---|---|---|---|---|---|
+| 1 | 🔴 合併前必改 | `_calendar_source.py` | 最新消息裡只要有一則提到「休館」卻讀不出中心或日期（例如圖片公告），或最新消息頁改版、連不上，`_fetch_closures()` 就 raise → 行事曆失敗 → **借用預約也失敗**。實測行事曆 API、`POST /reservations`（borrow）都回 500。 | 休館公告抓取或解析失敗時：記 log（不含個資）、改用上一次成功的結果；沒有上一次就用 `_reviewed_closures()`。讀不懂的單則公告略過並記 log，不要讓整份失敗。補一個測試：`_fetch_closures` 拋錯時 `fetch_center_calendar` 仍回傳正確天數。 | ☐ |
+| 2 | 🟠 12/18 前要改 | `_calendar_source.py` | `GOVERNMENT_CALENDARS` 只有 2026 年，查到 2027 年就 `NotImplementedError`：2026-12-19 起前端預設查 14 天會回 501；2026-12-31 借用預約會失敗。 | 補 2027 年（民國 116 年）的官方 CSV 網址（data.gov.tw/dataset/14718）。若 codefest 在 12/18 前結束可先不做。 | ☐ |
+| 3 | 🟡 要跟後端確認 | `stock.py`、`_borrow_source.py` | 後端每 45 秒同步庫存，每次約 13 個請求（1 個分類頁 + 每個分類 1 頁，間隔 1 秒），約每小時 1000 個請求打市府網站。 | 後端會把 `stock_sync_seconds` 調慢（2～5 分鐘）；正式上線前跟中心確認頻率。爬蟲這邊不用改。 | ☐ 後端處理 |
+| 4 | ⚪ 建議 | `preview.py`、`PREVIEW.md`、`preview_test.py` | 這些是開發時預覽資料用的工具，不是正式執行要用的，放在 `app/tools/crawlers/` 會混在正式程式裡。 | 搬到專案根目錄的 `scripts/`（`preview_test.py` 一起搬或改到 `tests/`）。不擋合併。 | ☐ |
+
+改完把「狀態」打勾，push 到 `crawler`，然後開 PR `crawler` → `developer`。
