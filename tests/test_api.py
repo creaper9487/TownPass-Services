@@ -194,7 +194,8 @@ def test_offline_calendar_and_year_end_borrow_use_bundled_holidays(client, monke
                            headers={"Idempotency-Key": "offline-borrow"})
     assert response.status_code == 201, response.text
     assert response.json()["pickup"] == {"deadline": "2027-01-01", "open_dates": ["2026-12-31"]}
-    assert requested_hosts == ["tpap.gov.taipei"]  # 公告失敗後回退，政府日曆完全沒有網路請求。
+    # 公告失敗後回退，政府日曆完全沒有網路請求（借用時檢查品項存在也會打官網目錄，同一個主機）。
+    assert set(requested_hosts) == {"tpap.gov.taipei"}
     cal._load_holidays.cache_clear()
 
 
