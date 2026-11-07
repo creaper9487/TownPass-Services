@@ -1,0 +1,35 @@
+import { onBeforeUnmount, ref } from 'vue';
+
+/**
+ * 臺北現在的牆上時間（以本機 Date 表示）。
+ * 開館日與取貨期限要以臺北時間判斷，不能依裝置所在時區或被改過的時區。
+ */
+export const taipeiNow = (): Date => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(new Date());
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  return new Date(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    get('hour'),
+    get('minute'),
+    get('second')
+  );
+};
+
+/** 會隨時間更新的臺北現在時間（每 30 秒），頁面停留很久也不會停在過期的開館狀態 */
+export const useTaipeiNow = () => {
+  const now = ref(taipeiNow());
+  const timer = setInterval(() => (now.value = taipeiNow()), 30_000);
+  onBeforeUnmount(() => clearInterval(timer));
+  return now;
+};

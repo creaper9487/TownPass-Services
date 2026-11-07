@@ -45,6 +45,7 @@ import FeePaymentHistoryDetailView from '@/views/FeePaymentHistoryDetailView.vue
 import FeePaymentScanView from '@/views/FeePaymentScanView.vue';
 import FeePaymentStepView from '@/views/FeePaymentStepView.vue';
 import FeePaymentFinishedView from '@/views/FeePaymentFinishedView.vue';
+import { assistiveRoutes } from './assistive';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -52,6 +53,7 @@ const router = createRouter({
     return { top: 0 };
   },
   routes: [
+    ...assistiveRoutes,
     {
       path: '/',
       name: 'home',

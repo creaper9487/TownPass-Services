@@ -16,3 +16,51 @@
     @apply -translate-x-1;
   }
 }
+
+@layer components {
+  /* 輔具預約：鍵盤焦點外框，使用品牌深青色以維持對比 */
+  .a11y-focus {
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600;
+  }
+}
+
+/* 城市通 Figma「Foundation & UI kit」規範：字級（H2 24/32、H3 16/22、Body 14/20，只用 regular 與 semibold）與元件外觀 */
+@layer components {
+  .tp-h2 {
+    @apply text-2xl font-semibold;
+    line-height: 2rem;
+  }
+  .tp-h3 {
+    @apply text-base;
+    line-height: 1.375rem;
+  }
+  .tp-h3-semibold {
+    @apply text-base font-semibold;
+    line-height: 1.375rem;
+  }
+  /* Card：白底、圓角 3、柔和陰影，放在 Grey/50 底上 */
+  .tp-card {
+    @apply rounded-[3px] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.04)];
+  }
+  /* Tag：膠囊、主色外框 */
+  .tp-tag {
+    @apply inline-block rounded-full border border-primary-500 px-3 py-0.5 text-sm text-primary-700;
+  }
+}
+
+/* 輔具預約的無障礙補強 */
+@layer components {
+  /* Figma Primary/500 配白字只有 2.4:1，未達 WCAG AA；輔具預約內的按鈕改用 Primary/700（5.9:1）。 */
+  .assistive-scope .base-button:not(.base-button--outline):not(.base-button--disabled) {
+    @apply bg-primary-700;
+  }
+  .assistive-scope .base-button--outline {
+    @apply border-primary-700 text-primary-700;
+  }
+  /* Android 沒有 PingFang，系統字型沒有 600 這一級，半粗會退回一般字重；Android 上改用 700 保留層次。 */
+  .assistive-android .font-semibold,
+  .assistive-android .tp-h2,
+  .assistive-android .tp-h3-semibold {
+    font-weight: 700;
+  }
+}
