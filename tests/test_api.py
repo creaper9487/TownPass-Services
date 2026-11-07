@@ -201,7 +201,7 @@ def test_offline_calendar_and_year_end_borrow_use_bundled_holidays(client, monke
 
 def test_repair_status_hook(client):
     mailbox_id, auth = new_mailbox(client)
-    body = {"service": "repair", "mailbox_id": mailbox_id, "items": ["輪椅"], "contact": CONTACT,
+    body = {"service": "repair", "mailbox_id": mailbox_id, "items": ["手動輪椅"], "contact": CONTACT,
             "subject": {"name": "王小明", "id_no": "A123456789", "registered_district": "大安區",
                         "living_county": "臺北市", "living_district": "大安區"}}
     r = client.post(f"{P}/reservations", json=body, headers={"Idempotency-Key": "r1"}).json()
