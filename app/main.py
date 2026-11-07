@@ -1,7 +1,18 @@
 """應用程式進入點：建立 FastAPI app、掛上 middleware 與 routers。
 
-啟動：uvicorn app.main:app --reload
+啟動方式（擇一）：
+    1. 直接執行這個檔案（VS Code 按 ▶ 也可以）：python app/main.py
+    2. 在專案根目錄：uvicorn app.main:app --reload
 """
+
+import sys
+from pathlib import Path
+
+# 直接執行 app/main.py 時，Python 只會看到 app/ 資料夾，
+# 把專案根目錄加進 sys.path，才能 import app.xxx
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from contextlib import asynccontextmanager
 
@@ -45,3 +56,9 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True, app_dir=str(ROOT_DIR))
