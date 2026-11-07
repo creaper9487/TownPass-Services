@@ -48,6 +48,15 @@ def waiting_with_stock() -> list[tuple[SubscriptionRow, int]]:
         "WHERE s.status = 'waiting' AND k.stock > 0 ORDER BY s.seq")]
 
 
+def waiting(variant_id: str | None = None, mailbox_id: str | None = None) -> list[SubscriptionRow]:
+    sql, params = "SELECT * FROM subscriptions WHERE status = 'waiting'", []
+    if variant_id:
+        sql, params = sql + " AND variant_id = ?", params + [variant_id]
+    if mailbox_id:
+        sql, params = sql + " AND mailbox_id = ?", params + [mailbox_id]
+    return [_row(r) for r in db.query(sql + " ORDER BY seq", tuple(params))]
+
+
 def mark_arrived(sub_id: str, ts: datetime) -> bool:
     """waiting → arrived；已經是 arrived 回 False（不重複推播）。"""
     cur = db.execute("UPDATE subscriptions SET status = 'arrived', arrived_at = ? WHERE id = ? AND status = 'waiting'",

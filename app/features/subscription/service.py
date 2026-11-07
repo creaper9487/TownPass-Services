@@ -45,6 +45,24 @@ def delete(sub_id: str) -> None:
     repo.delete(sub_id)
 
 
+def _notify(sub: repo.SubscriptionRow) -> None:
+    """寫進「這個人」的信箱 → 推播給這個信箱登記的裝置（不是廣播）。"""
+    mailbox_service.append_event(sub.mailbox_id, "stock.arrived",
+                                 ref={"variant_id": sub.variant_id, "subscription_id": sub.id})
+
+
+async def force_arrive(variant_id: str | None = None, mailbox_id: str | None = None) -> list[repo.SubscriptionRow]:
+    """手動：把等待中的訂閱直接改成已到貨並推播（不管官網有沒有貨）。不給條件 = 全部。"""
+    done = []
+    for sub in repo.waiting(variant_id, mailbox_id):
+        if repo.mark_arrived(sub.id, now()):
+            _notify(sub)
+            done.append(sub)
+    if done:
+        logger.info("force arrived: %d subscription(s)", len(done))
+    return done
+
+
 async def check_arrivals() -> int:
     """等待中、而且現在有貨的訂閱 → arrived + 推播給訂閱人。回傳這次通知了幾筆。"""
     notified: dict[str, int] = {}
@@ -55,9 +73,7 @@ async def check_arrivals() -> int:
         if repo.mark_arrived(sub.id, now()):
             notified[sub.variant_id] = notified.get(sub.variant_id, 0) + 1
             count += 1
-            # 寫進「這個人」的信箱 → 推播給這個信箱登記的裝置（不是廣播）
-            mailbox_service.append_event(sub.mailbox_id, "stock.arrived",
-                                         ref={"variant_id": sub.variant_id, "subscription_id": sub.id})
+            _notify(sub)
     if count:
         logger.info("stock.arrived: %d subscription(s) notified", count)
     return count

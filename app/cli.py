@@ -15,6 +15,9 @@
 【立刻更新】不用等 3 分鐘、不需要測試模式、不用開 server
     python -m app.cli sync                                 抓一次資料 → 更新到貨訂閱狀態 → 推播給訂閱人
     python -m app.cli state                                信箱、預約、到貨訂閱狀態、裝置、最近推播
+    python -m app.cli arrive                               ★ 所有等待中的到貨訂閱 → 直接改成已到貨 + 推播給每個訂閱人
+    python -m app.cli arrive --variant 185                 只處理這個品項
+    python -m app.cli arrive --mailbox mb_xxx              只處理這個人
 
 【功能狀態】要先用 TEST_MODE=true 開 server（python app/main.py），走真正的流程並推播
     python -m app.cli scenario --token <FCM token>         建信箱 + 登記手機 + 借用預約（推「預約成功」）
@@ -229,6 +232,34 @@ def cmd_sync(args) -> None:
         print(f"  推播 [{p['result']}] {p['type']}")
 
 
+def cmd_arrive(args) -> None:
+    """直接改 DB 狀態並推播（正式 / 測試模式都可以，不需要 server）。"""
+    from app.features.devices import repository as devices_repo
+    from app.features.notification import service as notification_service
+    from app.features.subscription import service as subscription_service
+    from app.tools import db, fcm
+
+    print(f"· {'Firebase 已設定' if fcm.is_enabled() else 'Firebase 未設定（推播只記錄在本機）'}")
+    before = db.query("SELECT COALESCE(MAX(id), 0) AS m FROM push_log")[0]["m"]
+
+    async def run():
+        subs = await subscription_service.force_arrive(args.variant, args.mailbox)
+        await notification_service.drain()
+        return subs
+
+    subs = asyncio.run(run())
+    if not subs:
+        print("· 沒有等待中的到貨訂閱（python -m app.cli state 看訂閱狀態）")
+        return
+    print(f"✓ {len(subs)} 筆訂閱改成已到貨")
+    for sub in subs:
+        n = len(devices_repo.by_mailbox(sub.mailbox_id))
+        tip = f"推播給 {n} 台裝置" if n else "⚠ 這個信箱沒有登記裝置，只寫進信箱、不會推播（App 要先 POST /devices）"
+        print(f"  {sub.id}  品項 {sub.variant_id}  信箱 {sub.mailbox_id}  → {tip}")
+    for p in db.query("SELECT result, target FROM push_log WHERE id > ? ORDER BY id", (before,)):
+        print(f"  推播 [{p['result']}] → {p['target']}")
+
+
 def cmd_flow(args) -> None:
     print("① 建立預約")
     r = cmd_scenario(args)
@@ -307,6 +338,11 @@ def main(argv=None) -> None:
     s.add_argument("title")
     s.add_argument("--center", action="append", choices=["heyi", "south", "west"])
     s.set_defaults(fn=cmd_notice)
+
+    s = sub.add_parser("arrive", help="★ 等待中的到貨訂閱 → 直接改成已到貨 + 推播給訂閱人（不管官網有沒有貨）")
+    s.add_argument("--variant", help="只處理這個品項代碼")
+    s.add_argument("--mailbox", help="只處理這個信箱")
+    s.set_defaults(fn=cmd_arrive)
 
     sub.add_parser("sync", help="立刻抓一次資料 → 更新到貨訂閱 → 推播（不需要 server、不需要測試模式）").set_defaults(
         fn=cmd_sync)

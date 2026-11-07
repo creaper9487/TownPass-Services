@@ -106,6 +106,14 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
 - **模擬資料變化**（`config.TEST_SIMULATE_CHANGES`、`TEST_SIM_NOTICE_EVERY`）：**預設關閉**。
   打開後測試模式下每次抓資料，有人訂閱的缺貨品項會被模擬成到貨、可設定每幾次產生一則【模擬】公告。
 
+### 一個指令：全部直接到貨（正式 / 測試都可以）
+
+```bash
+python -m app.cli arrive
+```
+把**所有等待中的到貨訂閱**直接改成 `arrived`（已到貨），並推播給每個訂閱人的手機，不管官網有沒有貨。
+`--variant 185` 只處理某個品項、`--mailbox mb_xxx` 只處理某個人。不需要開 server。
+
 ### 立刻更新（正式）
 
 ```bash

@@ -131,3 +131,27 @@ def test_cli_state_works_in_production(capsys):
     cli(["state"])
     out = capsys.readouterr().out
     assert "到貨訂閱" in out and "裝置" in out
+
+
+def test_cli_arrive_forces_all_waiting_and_pushes_each_owner(client, official_site, capsys):
+    cli(["sync"])  # 185 缺貨、192 有貨
+    people = []
+    for token in ("local-phone-a", "local-phone-b"):
+        mb = client.post(f"{P}/mailboxes").json()
+        devices_service.register(mb["mailbox_id"], "fcm", token)
+        auth = {"Authorization": f"Bearer {mb['mailbox_key']}"}
+        assert client.post(f"{P}/subscriptions", json={"mailbox_id": mb["mailbox_id"], "variant_id": "185"},
+                           headers=auth).status_code == 201
+        people.append((mb["mailbox_id"], auth))
+
+    cli(["arrive"])  # 官網沒到貨也直接全部改
+    out = capsys.readouterr().out
+    assert "✓ 2 筆訂閱改成已到貨" in out
+    for mailbox_id, auth in people:
+        subs = client.get(f"{P}/subscriptions?mailbox_id={mailbox_id}", headers=auth).json()
+        assert subs[0]["status"] == "arrived"
+    log = db.query("SELECT mailbox_id FROM push_log WHERE type = 'stock.arrived'")
+    assert sorted(x["mailbox_id"] for x in log) == sorted(m for m, _ in people)  # 各推給各自的人
+
+    cli(["arrive"])  # 再跑一次：沒有等待中的了，不重複推
+    assert "沒有等待中的到貨訂閱" in capsys.readouterr().out
