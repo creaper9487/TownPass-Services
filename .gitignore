@@ -222,3 +222,6 @@ __marimo__/
 # Firebase 服務帳號金鑰（不要 commit）
 *firebase*.json
 secrets/
+
+# 本機 SQLite
+/data/

@@ -62,7 +62,7 @@ def test_register_requires_mailbox_key(client):
     assert register(client, mailbox_id, {}).json()["code"] == "BAD_KEY"
     assert register(client, mailbox_id, auth).status_code == 204
     assert register(client, mailbox_id, auth).status_code == 204  # 重複 = 更新
-    assert list(devices_repo.devices) == [TOKEN_A]
+    assert [d.token for d in devices_repo.all_devices()] == [TOKEN_A]
 
 
 def test_token_moves_to_new_mailbox_and_unregister_is_scoped(client):
@@ -70,12 +70,12 @@ def test_token_moves_to_new_mailbox_and_unregister_is_scoped(client):
     mb2, auth2 = new_mailbox(client)
     register(client, mb1, auth1)
     register(client, mb2, auth2)  # 重灌 App 換信箱
-    assert devices_repo.devices[TOKEN_A].mailbox_id == mb2
+    assert devices_repo.get(TOKEN_A).mailbox_id == mb2
     # 舊信箱刪不到別人的裝置
     client.request("DELETE", f"{P}/devices?mailbox_id={mb1}", json={"token": TOKEN_A}, headers=auth1)
-    assert TOKEN_A in devices_repo.devices
+    assert devices_repo.get(TOKEN_A) is not None
     res = client.request("DELETE", f"{P}/devices?mailbox_id={mb2}", json={"token": TOKEN_A}, headers=auth2)
-    assert res.status_code == 204 and TOKEN_A not in devices_repo.devices
+    assert res.status_code == 204 and devices_repo.get(TOKEN_A) is None
 
 
 def test_borrow_pushes_booked_to_all_devices(client, fake_fcm, monkeypatch):
@@ -127,7 +127,7 @@ def test_invalid_token_is_removed(client, fake_fcm):
 
     mailbox_service.append_event(mailbox_id, "reservation.cancelled", ref={"reservation_id": "B1"})
     fake_fcm["flush"]()
-    assert TOKEN_A not in devices_repo.devices
+    assert devices_repo.get(TOKEN_A) is None
 
 
 def test_temporary_failure_is_retried_then_dropped(client, fake_fcm):
