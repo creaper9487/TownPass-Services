@@ -55,6 +55,7 @@ async def sync_now() -> dict:
     from app.tools import db
 
     before = db.query("SELECT COALESCE(MAX(id), 0) AS m FROM push_log")[0]["m"]
+    before_ev = db.query("SELECT COALESCE(MAX(rowid), 0) AS m FROM events")[0]["m"]
     result: dict = {"stock_changed": 0, "new_notices": 0, "errors": []}
     for step, fn in (("notices", notice_watch.check_new_notices), ("stock", stock_service.sync_from_source),
                      ("notices", notice_watch.check_new_notices)):
@@ -66,6 +67,11 @@ async def sync_now() -> dict:
     await notification_service.drain()
     pushes = db.query("SELECT type, result FROM push_log WHERE id > ? ORDER BY id", (before,))
     result["pushes"] = [dict(p) for p in pushes]
+    # 寫進信箱的事件（推播是推給「該信箱登記的裝置」；沒裝置就只會在信箱裡，要靠 App / 網頁 pull）
+    events = db.query(
+        "SELECT e.type, e.mailbox_id, (SELECT COUNT(*) FROM devices d WHERE d.mailbox_id = e.mailbox_id) AS devices "
+        "FROM events e WHERE e.rowid > ? ORDER BY e.rowid", (before_ev,))
+    result["events"] = [dict(e) for e in events]
     return result
 
 
