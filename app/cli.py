@@ -225,7 +225,8 @@ def main(argv=None) -> None:
              "reservation.completed", "reservation.cancelled", "stock.arrived", "service.notice"]
     p = argparse.ArgumentParser(prog="python -m app.cli", description="推播 / 功能狀態測試工具",
                                 formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
-    p.add_argument("--server", default="http://127.0.0.1:8000", help="server 網址（功能狀態指令用）")
+    s = get_settings()
+    p.add_argument("--server", default=f"http://{s.host}:{s.port}", help="server 網址（功能狀態指令用，預設讀 HOST / PORT）")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("devices", help="列出已登記的裝置").set_defaults(fn=cmd_devices)
