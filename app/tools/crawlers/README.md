@@ -83,3 +83,20 @@ git push origin crawler
 - `python -m pytest -q`：36 個測試通過，包含公告失敗時行事曆 API 回 200、借用預約回 201；全部離線執行。
 - `python -m app.tools.crawlers.check all`：實際連官網，catalog／stock／centers／calendar 全部通過（12 類、62 款）。
 - router、schemas、check、runner、爬蟲匯出介面與庫存排程頻率均未修改；第 3 項仍由後端調整。
+
+### 2026-11-07 13:33 — 複查 commit `34fbf68` Fix closure announcement fallback and support 2027 calendar
+
+審查結果：測試 36 個全過。上次的第 1、2、4 項都確認修好，第 3 項仍由後端處理。
+這次又找到 2 個問題，**修完第 5 項就可以開 PR 合回 `developer`**。
+
+確認修好：
+- 第 1 項：單則公告失敗會略過並記 warning（只記錯誤類別，不記內容），整批失敗時沿用上次成功的結果，第一次就失敗則用人工核對過的日期；回退結果暫存 5 分鐘。有測試證明公告失敗時行事曆回 200、借用回 201。
+- 第 2 項：已加入 2027 年官方 CSV，並有 12/19 查 14 天、12/31 借用的跨年測試。
+- 第 4 項：預覽工具搬到 `scripts/`，測試搬到 `tests/test_preview.py`。
+
+要改的東西：
+
+| # | 嚴重度 | 檔案 | 問題 | 怎麼改 | 狀態 |
+|---|---|---|---|---|---|
+| 5 | 🔴 合併前必改 | `_calendar_source.py` | 跟第 1 項同一類問題，換成政府假日 CSV：`_load_holidays()` 在**執行時**才去 dgpa.gov.tw 下載 CSV，下載失敗（網站掛掉、改網址、逾時）就 raise → 行事曆 500 → 借用預約也失敗。實測讓下載拋 `ConnectError`，行事曆 API 回 500。而且 `lru_cache` 不會快取例外，所以網站掛掉期間每個借用請求都會重試、等 20 秒逾時。 | 把 2026、2027 年的 CSV 檔直接放進 repo（例如 `app/tools/crawlers/data/holidays_2026.csv`），`_load_holidays()` 改成讀本機檔，不要在執行時下載。一年只更新一次，手動更新就好；原本的網址留在註解裡記錄來源。補測試：沒有網路時行事曆仍回 200。 | ☐ |
+| 6 | ⚪ 建議 | `_calendar_source.py` `_fetch_closures()` | 為了保留「讀不懂的那則公告」，現在每次都把上一次的全部結果合併進來（`result.update(_closures)`），所以中心**撤回或更正**某個休館日之後，那天會一直被當成休館，直到程式重啟。 | 只保留「這次讀取失敗的那幾則公告」上次解析出來的日期，其他照這次的結果。或者至少在 README 註明「撤回休館需重啟後端」。不擋合併。 | ☐ |
