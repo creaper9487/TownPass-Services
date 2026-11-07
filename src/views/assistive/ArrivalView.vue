@@ -8,13 +8,11 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import { catalog } from '@/utils/assistive/catalog';
 import { t, trSummary } from '@/i18n/assistive';
 import { ArrivalError, subscribeArrival, type ArrivalNotice } from '@/utils/assistive/api';
-import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { ensurePush } from '@/utils/assistive/push';
 
 // 到貨通知：確認 → 送出 → 完成，和預約同樣有最後一次確認與明確的結果。
 const route = useRoute();
 const router = useRouter();
-const native = useAssistiveNative();
 
 const found = computed(() => {
   for (const c of catalog.value) {
@@ -39,14 +37,8 @@ const submit = async () => {
   failed.value = false;
   try {
     // 到貨是後端在庫存補貨的當下推播：先登記這支手機，到貨通知才收得到。
-    const pushed = await ensurePush();
+    await ensurePush();
     done.value = await subscribeArrival(found.value.variant.id, found.value.label);
-    native.notify(
-      '到貨通知登記成功',
-      pushed
-        ? `已登記「${found.value.label}」到貨通知，到貨時將以推播通知您`
-        : `已登記「${found.value.label}」到貨通知`
-    );
   } catch (e) {
     const code = e instanceof ArrivalError ? e.code : '';
     failureKey.value =

@@ -11,14 +11,12 @@ import { newIdempotencyKey, submitReservation } from '@/utils/assistive/api';
 import { centerName, formatDate, hoursText, openDaysText } from '@/utils/assistive/centers';
 import { serviceTitle } from '@/utils/assistive/services';
 import { t, trSummary, tx, zhAttr } from '@/i18n/assistive';
-import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { ensurePush } from '@/utils/assistive/push';
 import { ApiError } from '@/utils/assistive/remote';
 
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 const router = useRouter();
-const native = useAssistiveNative();
 
 const isBorrow = computed(() => flow.service.value === 'borrow');
 const center = computed(() => store.center!);
@@ -106,8 +104,8 @@ const submit = async () => {
   sending.value = true;
   failed.value = false;
   try {
-    // 借用成功時後端會推播「預約成功」：要在預約之前就登記好這支手機，不然收不到這一則。
-    const pushed = await ensurePush();
+    // 之後的進度（中心確認、取貨提醒、逾期）會推播：要在預約之前就登記好這支手機。
+    await ensurePush();
     const created = await submitReservation({
       service: flow.service.value,
       centerId: center.value.id,
@@ -118,14 +116,7 @@ const submit = async () => {
       idempotencyKey
     });
     store.finishSubmit(created[0]);
-    // 借用已登記推播時由後端推播；評估、維修要等中心確認才有後續通知，送出當下仍由本機通知告知。
-    const isBorrowService = flow.service.value === 'borrow';
-    if (!(isBorrowService && pushed)) {
-      native.notify(
-        isBorrowService ? '輔具借用預約成功' : '輔具申請已送出',
-        `預約編號 ${created[0].id}，請至預約紀錄查看詳情。`
-      );
-    }
+    // 送出成功的告知就是接著顯示的完成頁，不另外發通知。
     await router.replace(stepRoute(flow.service.value, 'done'));
   } catch (e) {
     failureKey.value =

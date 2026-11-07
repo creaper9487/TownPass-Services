@@ -448,14 +448,22 @@ export const loadArrivals = async (): Promise<ArrivalNotice[]> => {
 
 const failureCode = (e: unknown) => (e instanceof ApiError ? e.code ?? 'ERROR' : 'NETWORK');
 
-/** 登記到貨通知。這個品項已經在等待中就直接回傳原本的登記；失敗丟出 ArrivalError。 */
+/** 這個品項最新的一筆登記（等待中或已到貨都算） */
+const newestFor = (list: SubscriptionDto[] | null | undefined, variantId: string) =>
+  (list ?? [])
+    .filter((s) => s.variant_id === variantId)
+    .sort((a, b) => String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')))[0];
+
+/**
+ * 登記到貨通知。失敗丟出 ArrivalError。
+ * 有後端時以後端的清單為準：這台裝置記得的登記可能已經被取消、已到貨，或後端換過資料，
+ * 不能拿來當作「已經登記過」（否則按了送出卻根本沒有請求發出去）。
+ */
 export const subscribeArrival = async (
   variantId: string,
   label: string
 ): Promise<ArrivalNotice> => {
-  const existing = listArrivals().find((a) => a.variantId === variantId && a.status !== 'arrived');
-  if (existing) return existing;
-
+  const cached = listArrivals().find((a) => a.variantId === variantId);
   let notice: ArrivalNotice = {
     variantId,
     label,
@@ -464,36 +472,43 @@ export const subscribeArrival = async (
     status: 'waiting'
   };
   if (hasBackend) {
-    if (inApp()) {
-      const reply = await askApp<true | { ok: false; code?: string }>('assistive_subscribe', {
-        variant_id: variantId,
-        on: true
-      });
-      if (reply !== true) {
-        throw new ArrivalError(
-          reply && typeof reply === 'object' ? reply.code ?? 'ERROR' : 'NETWORK'
-        );
-      }
-    } else {
-      try {
-        await withMailbox((box) =>
-          requestJson(
-            'POST',
-            '/subscriptions',
-            { mailbox_id: box.id, variant_id: variantId },
-            { Authorization: `Bearer ${box.key}` }
-          )
-        );
-      } catch (e) {
-        throw new ArrivalError(failureCode(e));
-      }
-    }
-    // 取回後端的登記編號與分類
-    const mine = (await fetchSubscriptions())?.find(
+    const before = (await fetchSubscriptions())?.find(
       (s) => s.variant_id === variantId && s.status === 'waiting'
     );
-    notice = mine ? toNotice(mine, notice) : { ...notice, id: '—' };
+    if (before) {
+      // 後端已經有等待中的登記：直接回傳，不重複登記
+      notice = toNotice(before, cached ?? notice);
+    } else {
+      if (inApp()) {
+        const reply = await askApp<true | { ok: false; code?: string }>('assistive_subscribe', {
+          variant_id: variantId,
+          on: true
+        });
+        if (reply !== true) {
+          throw new ArrivalError(
+            reply && typeof reply === 'object' ? reply.code ?? 'ERROR' : 'NETWORK'
+          );
+        }
+      } else {
+        try {
+          await withMailbox((box) =>
+            requestJson(
+              'POST',
+              '/subscriptions',
+              { mailbox_id: box.id, variant_id: variantId },
+              { Authorization: `Bearer ${box.key}` }
+            )
+          );
+        } catch (e) {
+          throw new ArrivalError(failureCode(e));
+        }
+      }
+      // 取回後端的登記編號與分類。測試環境可能在登記後幾秒內就到貨，所以等待中或已到貨都要認得。
+      const mine = newestFor(await fetchSubscriptions(), variantId);
+      notice = mine ? toNotice(mine, notice) : { ...notice, id: '—' };
+    }
   } else {
+    if (cached && cached.status !== 'arrived') return cached;
     await delay(600);
   }
   write(ARRIVALS_KEY, [notice, ...listArrivals().filter((a) => a.variantId !== variantId)]);

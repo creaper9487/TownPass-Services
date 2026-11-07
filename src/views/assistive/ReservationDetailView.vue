@@ -10,7 +10,6 @@ import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseDialog from '@/components/atoms/BaseDialog.vue';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
-import { isPushRegistered } from '@/utils/assistive/push';
 import { pickupRemaining } from '@/utils/assistive/pickup';
 import { useTaipeiNow } from '@/utils/assistive/time';
 import {
@@ -37,6 +36,7 @@ const remaining = computed(() =>
 const loaded = ref(false);
 const confirming = ref(false);
 const cancelling = ref(false);
+const cancelledDialog = ref(false);
 const cancelFailed = ref(false);
 
 const center = computed(() =>
@@ -62,11 +62,10 @@ const doCancel = async () => {
   cancelling.value = true;
   cancelFailed.value = false;
   try {
-    const id = reservation.value.id;
-    await cancelReservation(id);
+    await cancelReservation(reservation.value.id);
     reservation.value = { ...reservation.value, status: 'cancelled' };
-    // 已登記推播時，後端會推播「預約已取消」，不再跳同一則本機通知。
-    if (!isPushRegistered()) native.notify('輔具預約已取消', `預約編號 ${id} 已成功取消。`);
+    // 取消是使用者自己剛做的事，用彈窗告知就好，不發通知。
+    cancelledDialog.value = true;
   } catch {
     cancelFailed.value = true;
   } finally {
@@ -157,6 +156,12 @@ const doCancel = async () => {
       </BaseButton>
     </template>
 
+    <BaseDialog
+      v-model="cancelledDialog"
+      is-check
+      :title="t('reservations.cancelledDialog.title')"
+      :content="t('reservations.cancelledDialog.content', { id: reservation?.id ?? '' })"
+    />
     <BaseDialog
       v-model="confirming"
       :title="t('reservations.cancelDialog.title')"

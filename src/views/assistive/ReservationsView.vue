@@ -20,14 +20,15 @@ import { centerById, centerShort } from '@/utils/assistive/centers';
 import { serviceTitle } from '@/utils/assistive/services';
 import type { Reservation } from '@/utils/assistive/types';
 import { t, trSummary } from '@/i18n/assistive';
-import { useAssistiveNative } from '@/composables/useAssistiveNative';
 
-const native = useAssistiveNative();
 const list = ref<Reservation[]>([]);
 const arrivals = ref<ArrivalNotice[]>(listArrivals());
 const removing = ref<ArrivalNotice | null>(null);
 const confirming = ref(false);
 const removeFailed = ref(false);
+// 取消到貨通知是使用者自己剛做的事：用彈窗告知，不發通知
+const removedDialog = ref(false);
+const removedLabel = ref('');
 
 const askRemove = (a: ArrivalNotice) => {
   removing.value = a;
@@ -40,7 +41,8 @@ const doRemove = async () => {
   try {
     await unsubscribeArrival(removing.value.variantId);
     arrivals.value = listArrivals();
-    native.notify('到貨通知已取消', `已取消「${label}」到貨通知`);
+    removedLabel.value = label;
+    removedDialog.value = true;
   } catch {
     removeFailed.value = true;
   }
@@ -154,6 +156,12 @@ onMounted(async () => {
       </ul>
     </ASection>
 
+    <BaseDialog
+      v-model="removedDialog"
+      is-check
+      :title="t('reservations.removedDialog.title')"
+      :content="t('reservations.removedDialog.content', { label: trSummary(removedLabel) })"
+    />
     <BaseDialog
       v-model="confirming"
       :title="t('reservations.removeDialog.title')"
