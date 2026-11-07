@@ -11,10 +11,12 @@ import { newIdempotencyKey, submitReservation } from '@/utils/assistive/api';
 import { centerName, formatDate, hoursText, openDaysText } from '@/utils/assistive/centers';
 import { serviceTitle } from '@/utils/assistive/services';
 import { t, trSummary, tx, zhAttr } from '@/i18n/assistive';
+import { useAssistiveNative } from '@/composables/useAssistiveNative';
 
 const store = useAssistiveStore();
 const flow = useAssistiveFlow();
 const router = useRouter();
+const native = useAssistiveNative();
 
 const isBorrow = computed(() => flow.service.value === 'borrow');
 const center = computed(() => store.center!);
@@ -110,6 +112,11 @@ const submit = async () => {
       idempotencyKey
     });
     store.finishSubmit(created[0]);
+    const isBorrowService = flow.service.value === 'borrow';
+    native.notify(
+      isBorrowService ? '輔具借用預約成功' : '輔具申請已送出',
+      `預約編號 ${created[0].id}，請至預約紀錄查看詳情。`
+    );
     await router.replace(stepRoute(flow.service.value, 'done'));
   } catch {
     failed.value = true;

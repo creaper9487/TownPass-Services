@@ -8,11 +8,13 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import catalogJson from '@/data/assistive-catalog.json';
 import { t, trSummary } from '@/i18n/assistive';
 import { subscribeArrival, type ArrivalNotice } from '@/utils/assistive/api';
+import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import type { Category } from '@/utils/assistive/types';
 
 // 到貨通知：確認 → 送出 → 完成，和預約同樣有最後一次確認與明確的結果。
 const route = useRoute();
 const router = useRouter();
+const native = useAssistiveNative();
 
 const found = computed(() => {
   for (const c of catalogJson as unknown as Category[]) {
@@ -35,6 +37,10 @@ const submit = async () => {
   failed.value = false;
   try {
     done.value = await subscribeArrival(found.value.variant.id, found.value.label);
+    native.notify(
+      '到貨通知登記成功',
+      `已登記「${found.value.label}」到貨通知，到貨時將以推播通知您`
+    );
   } catch {
     failed.value = true;
   } finally {

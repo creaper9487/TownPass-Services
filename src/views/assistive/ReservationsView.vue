@@ -18,7 +18,9 @@ import { centerById, centerShort } from '@/utils/assistive/centers';
 import { serviceTitle } from '@/utils/assistive/services';
 import type { Reservation } from '@/utils/assistive/types';
 import { t, trSummary } from '@/i18n/assistive';
+import { useAssistiveNative } from '@/composables/useAssistiveNative';
 
+const native = useAssistiveNative();
 const list = ref<Reservation[]>([]);
 const arrivals = ref<ArrivalNotice[]>(listArrivals());
 const removing = ref<ArrivalNotice | null>(null);
@@ -32,9 +34,11 @@ const askRemove = (a: ArrivalNotice) => {
 };
 const doRemove = async () => {
   if (!removing.value) return;
+  const label = removing.value.label;
   try {
     await unsubscribeArrival(removing.value.variantId);
     arrivals.value = listArrivals();
+    native.notify('到貨通知已取消', `已取消「${label}」到貨通知`);
   } catch {
     removeFailed.value = true;
   }

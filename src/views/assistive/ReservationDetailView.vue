@@ -53,8 +53,10 @@ const doCancel = async () => {
   cancelling.value = true;
   cancelFailed.value = false;
   try {
-    await cancelReservation(reservation.value.id);
+    const id = reservation.value.id;
+    await cancelReservation(id);
     reservation.value = { ...reservation.value, status: 'cancelled' };
+    native.notify('輔具預約已取消', `預約編號 ${id} 已成功取消。`);
   } catch {
     cancelFailed.value = true;
   } finally {
