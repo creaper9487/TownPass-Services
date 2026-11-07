@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>推播測試面板</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1d2330; --muted: #677085; --line: #e2e5ea;
+    --accent: #2563eb; --ok: #15803d; --warn: #b45309; --bad: #b91c1c; --local: #6b7280;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111418; --card: #1a1e24; --text: #e6e9ee; --muted: #9aa3b2; --line: #2b313a;
+            --accent: #60a5fa; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171; --local: #9ca3af; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+  header { padding: 16px; border-bottom: 1px solid var(--line); background: var(--card);
+           display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+  header h1 { font-size: 18px; margin: 0; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px;
+         grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+  section.wide { grid-column: 1 / -1; }
+  h2 { font-size: 15px; margin: 0 0 4px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; align-items: center; }
+  input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+          background: var(--bg); color: var(--text); font: inherit; }
+  input.short { flex: 0 0 90px; }
+  button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg);
+           color: var(--text); font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600;
+          border: 1px solid currentColor; white-space: nowrap; }
+  .ok { color: var(--ok); } .local { color: var(--local); } .retry { color: var(--warn); }
+  .invalid_token, .failed, .err { color: var(--bad); }
+  code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 13px; word-break: break-all; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  .scroll { overflow-x: auto; }
+  #toast { position: fixed; right: 16px; bottom: 16px; left: 16px; max-width: 480px; margin-left: auto;
+           padding: 10px 14px; border-radius: 8px; background: var(--text); color: var(--bg);
+           opacity: 0; transition: opacity .2s; pointer-events: none; }
+  #toast.show { opacity: .95; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+  dt { font-weight: 600; } dd { margin: 0; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>推播測試面板</h1>
+  <span id="status" class="hint" style="margin:0">連線中…</span>
+</header>
+
+<main>
+  <section>
+    <h2>① 你的裝置</h2>
+    <p class="hint">貼上 App 的 FCM token 再登記；沒有 token 就用本機假裝置（推播只記錄、不會到手機）。</p>
+    <div class="row"><input id="token" placeholder="FCM token（可空白）"></div>
+    <div class="row">
+      <button class="primary" onclick="registerDevice()">登記 / 換成這個 token</button>
+      <button onclick="useLocal()">用本機假裝置</button>
+    </div>
+    <div class="row hint" style="margin:0">目前信箱：<code id="mailbox">（還沒有）</code></div>
+  </section>
+
+  <section>
+    <h2>② 直接推送（不改任何狀態）</h2>
+    <p class="hint">最快確認「手機收不收得到」。每個按鈕推一種通知給上面的裝置。</p>
+    <div class="grid" id="push-buttons"></div>
+    <div class="row"><input id="topic-title" value="測試公告">
+      <button onclick="pushTopic()">推公告到 topic</button></div>
+  </section>
+
+  <section>
+    <h2>③ 走真正流程</h2>
+    <p class="hint">建立一筆真的借用預約，再讓它進入各種狀態；每一步都會依規則推播。</p>
+    <div class="row"><button class="primary" onclick="scenario()">建立借用預約</button>
+      <span class="hint" style="margin:0">預約：<code id="rid">（還沒有）</code></span></div>
+    <div class="grid">
+      <button onclick="trigger('pickup_reminder')">取貨提醒</button>
+      <button onclick="trigger('expired')">逾期自動取消</button>
+      <button onclick="trigger('confirmed')">中心已確認</button>
+      <button onclick="trigger('completed')">服務已完成</button>
+      <button onclick="trigger('cancelled')">取消預約</button>
+    </div>
+    <div class="row">
+      <input id="variant" class="short" value="181" title="款式代碼">
+      <button onclick="arrival()">訂閱並模擬到貨</button>
+    </div>
+    <div class="row"><input id="notice-title" value="11/20 系統維護">
+      <button onclick="notice()">發公告（寫入信箱 + 推播）</button></div>
+  </section>
+
+  <section>
+    <h2>④ 模擬「定時抓資料 → 有變化就推播」</h2>
+    <p class="hint">後端平常每 <span id="sync-interval">?</span> 秒自動抓一次，不想等就按「立刻抓一次」（= python -m app.cli sync）。
+      假資料預設不會變；要模擬到貨，把 app/config.py 的 TEST_SIMULATE_CHANGES 改成 True。</p>
+    <div class="row">
+      <button onclick="subscribeOne()">先訂閱一個缺貨品項</button>
+      <button class="primary" onclick="syncNow()">立刻抓一次</button>
+    </div>
+    <div class="hint mono" id="sync-result" style="margin:0"></div>
+  </section>
+
+  <section class="wide">
+    <h2>⑤ 推播結果（每 2 秒更新）— 用這裡判斷是誰的問題</h2>
+    <dl style="margin-bottom:10px">
+      <dt><span class="pill ok">ok</span></dt><dd>後端已成功交給 Firebase。手機沒收到 → <b>App 端</b>（通知權限、Firebase 設定、token 是不是最新的）。</dd>
+      <dt><span class="pill local">local</span></dt><dd>沒設定 Firebase，或是本機假裝置：只記錄在本機，不會到手機。要真的推，請後端設 FCM_PROJECT_ID / FCM_CREDENTIALS_FILE。</dd>
+      <dt><span class="pill invalid_token">invalid_token</span></dt><dd>token 無效或過期（已自動刪除）→ <b>App 端</b>重新取得 token 再登記；或 App 跟後端不是同一個 Firebase 專案。</dd>
+      <dt><span class="pill failed">failed</span></dt><dd>Firebase 拒絕 → <b>後端設定</b>（金鑰 / 專案 ID 不對、FCM API 沒開）。</dd>
+      <dt><span class="pill retry">retry</span></dt><dd>暫時失敗（網路 / Firebase 忙碌），後端會自動重試。</dd>
+      <dt>按了沒出現新紀錄</dt><dd><b>後端</b>沒觸發推播（或這個信箱沒有登記裝置）。</dd>
+    </dl>
+    <div class="scroll"><table>
+      <thead><tr><th>#</th><th>時間</th><th>結果</th><th>類型</th><th>標題｜內容</th><th>對象</th></tr></thead>
+      <tbody id="log"><tr><td colspan="6" class="hint">還沒有推播</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>⑥ 信箱事件（App pull 會拿到的）</h2>
+    <p class="hint">推播沒到也沒關係，App 打開時會從這裡補拉。這裡有、推播紀錄沒有 → 該信箱沒登記裝置。</p>
+    <div class="scroll"><table>
+      <thead><tr><th>cursor</th><th>類型</th><th>ref / data</th></tr></thead>
+      <tbody id="events"><tr><td colspan="3" class="hint">先在 ① 登記或在 ③ 建立預約</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>⑦ 已登記裝置</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>token</th><th>信箱</th></tr></thead>
+      <tbody id="devices"></tbody>
+    </table></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const BASE = location.pathname.replace(/\/_test\/panel\/?$/, "");
+const TYPES = [
+  ["reservation.booked", "預約成功"], ["reservation.pickup_reminder", "取貨提醒"],
+  ["reservation.expired", "預約已逾期"], ["reservation.confirmed", "中心已確認"],
+  ["reservation.completed", "服務已完成"], ["reservation.cancelled", "預約已取消"],
+  ["stock.arrived", "到貨通知"], ["service.notice", "服務公告"],
+];
+const store = {
+  get(k) { try { return localStorage.getItem("panel." + k); } catch { return null; } },
+  set(k, v) { try { v == null ? localStorage.removeItem("panel." + k) : localStorage.setItem("panel." + k, v); } catch {} },
+};
+let state = { mailbox: store.get("mailbox"), key: store.get("key"), token: store.get("token"), rid: store.get("rid") };
+
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function toast(msg, bad) {
+  const t = document.getElementById("toast"); t.textContent = msg;
+  t.style.background = bad ? "var(--bad)" : ""; t.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2800);
+}
+async function api(method, path, body) {
+  const res = await fetch(BASE + path, { method, headers: body ? {"Content-Type": "application/json"} : {},
+                                         body: body ? JSON.stringify(body) : undefined });
+  const data = res.headers.get("content-type")?.includes("json") ? await res.json() : null;
+  if (!res.ok) { const msg = data?.title || data?.detail || res.status; toast("✗ " + msg, true); throw new Error(msg); }
+  return data;
+}
+function save() {
+  for (const k of ["mailbox", "key", "token", "rid"]) store.set(k, state[k]);
+  document.getElementById("mailbox").textContent = state.mailbox || "（還沒有）";
+  document.getElementById("rid").textContent = state.rid || "（還沒有）";
+  if (state.token && !state.token.startsWith("local-")) document.getElementById("token").value = state.token;
+}
+
+async function registerDevice() {
+  const token = document.getElementById("token").value.trim();
+  if (!token) return useLocal();
+  const r = await api("POST", "/_test/devices", { token, mailbox_id: state.mailbox || null });
+  Object.assign(state, { mailbox: r.mailbox_id, key: r.mailbox_key || state.key, token: r.device_token });
+  save(); toast("✓ 已登記，信箱 " + r.mailbox_id);
+}
+async function useLocal() {
+  const r = await api("POST", "/_test/devices", {});
+  Object.assign(state, { mailbox: r.mailbox_id, key: r.mailbox_key, token: r.device_token, rid: null });
+  save(); toast("✓ 已建立信箱並登記本機假裝置");
+}
+async function ensureMailbox() { if (!state.mailbox) await useLocal(); }
+
+async function push(type) {
+  await ensureMailbox();
+  const r = await api("POST", "/_test/push", { type, mailbox_id: state.mailbox, title: type === "service.notice" ? "測試公告" : null });
+  toast(r.results.map(x => `[${x.result}] ${x.title}`).join("、"), r.results.some(x => !["ok","local"].includes(x.result)));
+}
+async function pushTopic() {
+  const r = await api("POST", "/_test/push", { type: "service.notice", topic: true, title: document.getElementById("topic-title").value });
+  toast(`[${r.results[0].result}] ${r.results[0].target}`);
+}
+async function scenario() {
+  const token = document.getElementById("token").value.trim() || null;
+  const r = await api("POST", "/_test/scenario", { token });
+  Object.assign(state, { mailbox: r.mailbox_id, key: r.mailbox_key, token: r.device_token, rid: r.reservation.id });
+  save(); toast(`✓ 預約 ${r.reservation.id}（${r.center_id}），期限 ${r.reservation.pickup.deadline}`);
+}
+async function trigger(event) {
+  if (!state.rid) return toast("先按「建立借用預約」", true);
+  const r = await api("POST", `/_test/reservations/${state.rid}/trigger`, { event });
+  toast(`✓ ${r.id} → ${r.status}`);
+}
+async function arrival() {
+  await ensureMailbox();
+  const variant_id = document.getElementById("variant").value.trim();
+  await api("POST", "/_test/stock", { variant_id, stock: 0, waiting: 3 });
+  const res = await fetch(BASE + "/subscriptions", { method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + state.key },
+    body: JSON.stringify({ mailbox_id: state.mailbox, variant_id }) });
+  if (!res.ok && res.status !== 409) { const d = await res.json(); return toast("✗ 訂閱失敗：" + (d.title || res.status), true); }
+  await api("POST", "/_test/stock", { variant_id, stock: 2, waiting: 2 });
+  toast("✓ 庫存 0 → 2，應推「到貨通知」");
+}
+async function subscribeOne() {
+  await ensureMailbox();
+  const stock = await (await fetch(BASE + "/stock")).json();
+  const ids = Object.keys(stock.items).filter(v => stock.items[v].stock === 0);
+  for (const variant_id of ids) {
+    const res = await fetch(BASE + "/subscriptions", { method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + state.key },
+      body: JSON.stringify({ mailbox_id: state.mailbox, variant_id }) });
+    if (res.ok) return toast(`✓ 已訂閱缺貨品項 ${variant_id}，按「立刻抓一次」看它到貨`);
+  }
+  toast("找不到可訂閱的缺貨品項（每類只能訂一個）", true);
+}
+async function syncNow() {
+  const r = await api("POST", "/_test/sync");
+  const pushes = r.pushes.map(p => `${p.type}[${p.result}]`).join("、") || "沒有推播";
+  const noDevice = r.events.filter(e => e.type !== "service.notice" && !e.devices);
+  if (noDevice.length) toast(`⚠ ${noDevice.length} 個事件的信箱沒有登記裝置，只寫進信箱、不會推播`, true);
+  document.getElementById("sync-result").textContent =
+    `庫存變動 ${r.stock_changed} 個、新公告 ${r.new_notices} 則 → ${pushes}` + (r.errors.length ? `（${r.errors.join("；")}）` : "");
+  if (!noDevice.length) toast(`✓ 抓完了：${pushes}`);
+}
+async function notice() {
+  const r = await api("POST", "/_test/notices", { title: document.getElementById("notice-title").value });
+  toast(`✓ 公告寫入 ${r.mailboxes} 個信箱並推播`);
+}
+
+async function refresh() {
+  try {
+    const s = await api("GET", "/_test/state?limit=30");
+    document.getElementById("status").innerHTML =
+      `測試模式 · Firebase：${s.fcm_enabled ? '<b class="ok">已設定</b>' : '<b class="local">未設定（只記錄在本機）</b>'}` +
+      ` · 公告檢查每 ${s.intervals.push_check_minutes} 分鐘 · 庫存同步每 ${s.intervals.stock_sync_seconds} 秒`;
+    document.getElementById("sync-interval").textContent = s.intervals.stock_sync_seconds;
+    document.getElementById("log").innerHTML = s.recent_pushes.length ? s.recent_pushes.map(p => `
+      <tr${p.mailbox_id && p.mailbox_id === state.mailbox ? ' style="font-weight:600"' : ""}>
+        <td>${p.id}</td><td class="mono">${esc(p.created_at.slice(11, 19))}</td>
+        <td><span class="pill ${esc(p.result)}">${esc(p.result)}</span></td>
+        <td class="mono">${esc(p.type)}</td><td>${esc(p.title)}｜${esc(p.body)}</td>
+        <td class="mono">${esc(p.target)}</td></tr>`).join("")
+      : '<tr><td colspan="6" class="hint">還沒有推播</td></tr>';
+    document.getElementById("devices").innerHTML = s.devices.map(d =>
+      `<tr><td class="mono">${esc(d.token)}</td><td class="mono">${esc(d.mailbox_id)}</td></tr>`).join("")
+      || '<tr><td colspan="2" class="hint">沒有</td></tr>';
+    if (state.mailbox) {
+      const e = await fetch(BASE + "/_test/events?mailbox_id=" + encodeURIComponent(state.mailbox));
+      if (e.status === 404) { Object.assign(state, { mailbox: null, key: null, rid: null }); save(); return; }
+      const ev = (await e.json()).events;
+      document.getElementById("events").innerHTML = ev.length ? ev.slice().reverse().map(x =>
+        `<tr><td>${x.cursor}</td><td class="mono" style="white-space:nowrap">${esc(x.type)}</td><td class="mono">${esc(JSON.stringify({...x.ref, ...x.data}))}</td></tr>`).join("")
+        : '<tr><td colspan="3" class="hint">還沒有事件</td></tr>';
+    }
+  } catch (err) {
+    document.getElementById("status").innerHTML = '<b class="err">連不到 server 或不是測試模式</b>';
+  }
+}
+
+document.getElementById("push-buttons").innerHTML =
+  TYPES.map(([t, label]) => `<button onclick="push('${t}')">${label}</button>`).join("");
+save(); refresh(); setInterval(refresh, 2000);
+</script>
+</body>
+</html>

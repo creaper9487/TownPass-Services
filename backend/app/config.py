@@ -1,0 +1,176 @@
+"""統一設定檔。所有功能開關、時間間隔都在這裡。
+
+分兩種：
+    1. Env（最上面）：從 .env 讀。只放「每台電腦不一樣」或「機密」的值。
+    2. 其他（下面的大寫常數）：直接改這個檔案，不從 .env 讀，改完重開 server。
+
+程式裡：
+    from app.config import get_settings      → get_settings().host、get_settings().test_mode …（.env 的值）
+    from app import config                   → config.API_ENABLED、config.STOCK_SYNC_SECONDS …（這個檔案的值）
+"""
+
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# =====================================================================
+# 1. 從 .env 讀（只有這幾個）
+# =====================================================================
+class Env(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # server 聽的 IP / port；同 Wi-Fi 的隊友打這個 IP。換網路 IP 會變，改 .env 就好
+    host: str = "192.168.88.208"
+    port: int = 8000
+
+    # 測試模式：爬蟲改用固定假資料（不連官網）、開放 /_test/* 測試 API 與測試面板。正式環境一定要 false
+    test_mode: bool = False
+
+    # 本機 SQLite（推播裝置、推播紀錄）
+    db_path: str = "data/local.db"
+
+    # 背景工作（庫存同步、逾期掃描、送件、推播檢查）。跑 pytest 時關掉
+    enable_background_jobs: bool = True
+
+    # ---- 機密：不要 commit ----
+    hook_secret: str = "dev-hook-secret"  # 中心 webhook 的 HMAC 密鑰
+    fcm_project_id: str = ""  # Firebase 專案 ID；空的 = 推播只記錄在本機
+    fcm_credentials_file: str = ""  # Firebase 服務帳號金鑰 JSON 路徑
+
+
+@lru_cache
+def get_settings() -> Env:
+    return Env()
+
+
+# =====================================================================
+# 2. 直接改這裡
+# =====================================================================
+APP_NAME = "Taipei Codefest 2026 Backend"
+DEBUG = False
+API_PREFIX = "/assistive/v1"
+CORS_ORIGINS = ["*"]
+
+# ---- API 開關：False = 整組 API 不註冊（打了回 404）----
+API_ENABLED = {
+    "health": True,  # GET /health
+    "catalog": True,  # GET /catalog
+    "centers": True,  # GET /centers、/centers/{id}/calendar
+    "stock": True,  # GET /stock
+    "mailboxes": True,  # /mailboxes（信箱、事件、SSE、ack）
+    "devices": True,  # /devices（推播裝置登記）
+    "reservations": True,  # /reservations（建立、取消、批次查詢）
+    "subscriptions": True,  # /subscriptions（到貨通知）
+    "hooks": True,  # /hooks/center/*（中心回呼）
+    "test": True,  # /_test/*（測試 API 與測試面板）；另外還要 .env 的 TEST_MODE=true 才會開
+}
+
+# =====================================================================
+# 服務與欄位定義：API 驗證、GET /forms/{service} 都直接讀這裡，不寫死在程式裡
+# 改完重開 server 就生效
+# =====================================================================
+
+TAIPEI_DISTRICTS = ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區",
+                    "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"]
+
+# ---- 支援哪些服務 ----
+#   enabled      False = 這個服務不收（POST /reservations 回 422 INVALID_FIELD）
+#   groups       這個服務要填哪幾組欄位（對應下面 FIELDS 的前綴）
+#   item_options 可勾選的項目（items 只能從這裡選）；None = 借用，items 是品項代碼
+#   allow_other  可不可以選「其他」並填 other_text
+#   max_items    items 最多幾個
+SERVICES = {
+    "borrow": {"enabled": True, "label": "二手輔具借用", "groups": ["contact"], "item_options": None,
+               "allow_other": False, "max_items": 3},
+    # assess / repair 的項目名稱照官網「申請評估／申請維修」表單的勾選項目（一字不差，含括號與斜線）：
+    # https://tpap.gov.taipei/app37/otherReserveView/index
+    # 官網沒有限制勾選幾項，所以 max_items = 全部項目 + 「其他」。對照官網：python -m app.tools.crawlers.check forms
+    "assess": {"enabled": True, "label": "輔具評估", "groups": ["contact", "subject"],
+               "item_options": ["居家用照顧床(病床)", "氣墊床", "輪椅座墊", "手動輪椅", "電動輪椅", "居家無障礙",
+                                "矯具/義具", "視障輔具", "溝通輔具", "電腦輔具", "爬梯機借用"],
+               "allow_other": True, "max_items": 12},
+    "repair": {"enabled": True, "label": "輔具維修", "groups": ["contact", "subject"],
+               "item_options": ["居家用照顧床(病床)", "氣墊床", "輪椅座墊", "手動輪椅", "電動輪椅", "拐杖/助行器",
+                                "便盆椅"],
+               "allow_other": True, "max_items": 8},
+    "recycle": {"enabled": True, "label": "輔具回收", "groups": ["contact", "pickup"],
+                "item_options": ["輪椅", "助行器", "拐杖", "洗澡椅", "便盆椅", "居家照顧床"],
+                "allow_other": True, "max_items": 10},
+}
+# 上面 recycle 的 item_options 還是暫定的，要對照官方回收表單的勾選項目再改
+
+# ---- 支援哪些借用品項（GET /catalog、借用、到貨通知都會套用）----
+BORROW_CATEGORIES: list[str] | None = None  # None = 全部分類；例如 ["1", "2"] 只開放這兩類
+BLOCKED_VARIANTS: list[str] = []  # 不開放的品項代碼，例如 ["185"]
+
+# ---- 欄位規則 ----
+#   required  必填        min_length / max_length  字數
+#   pattern   格式（正規表示式）                    choices  只能選這些
+#   type      預設 str；也可以是 bool
+FIELDS = {
+    "contact.name": {"required": True, "min_length": 1, "max_length": 50, "label": "聯絡人姓名"},
+    "contact.mobile": {"required": True, "pattern": r"^09\d{8}$", "label": "手機"},
+    "contact.phone": {"required": False, "max_length": 20, "pattern": r"^[0-9#\-() ]*$", "label": "市話"},
+    "contact.gender": {"required": True, "choices": ["M", "F", "X"], "label": "性別"},
+    "contact.email": {"required": False, "max_length": 100, "pattern": r"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+                      "label": "E-mail"},
+
+    "subject.name": {"required": True, "min_length": 1, "max_length": 50, "label": "使用者姓名"},
+    "subject.id_no": {"required": True, "pattern": r"^[A-Z][0-9A-Z]\d{8}$", "label": "身分證字號"},
+    "subject.registered_district": {"required": True, "choices": TAIPEI_DISTRICTS, "label": "戶籍行政區"},
+    "subject.living_county": {"required": True, "max_length": 10, "label": "居住縣市"},  # 非臺北市 → NOT_ELIGIBLE
+    "subject.living_district": {"required": True, "max_length": 10, "label": "居住行政區"},
+    "subject.remark": {"required": False, "max_length": 500, "label": "備註 / 維修需求"},
+
+    "pickup.district": {"required": True, "max_length": 10, "label": "回收地點行政區"},
+    "pickup.address": {"required": True, "min_length": 1, "max_length": 200, "label": "回收地址"},
+    "pickup.has_elevator": {"required": True, "type": "bool", "label": "有無電梯"},
+    "pickup.need_certificate": {"required": True, "type": "bool", "label": "需要捐贈證明"},
+    "pickup.remark": {"required": False, "max_length": 500, "label": "備註"},
+
+    "other_text": {"required": False, "max_length": 500, "label": "其他輔具說明"},
+}
+
+# ---- 借用取貨時間 ----
+# False = 不管中心有沒有開館：任何一天都能預約，取貨期限 = 今天起算 PICKUP_DAYS 天（含今天）
+# True  = 照中心行事曆（例假日、國定假日、臨時休館），取貨期限內沒有開館日就不能預約（422 PICKUP_WINDOW_CLOSED）
+CHECK_OPENING_HOURS = False
+PICKUP_DAYS = 2  # 規格：預約後 2 天內（含當天）取貨
+# 取貨期限當天的提醒時間（CHECK_OPENING_HOURS = False 時用；True 時改用中心當天的開館 / 閉館前 2 小時）
+PICKUP_REMINDER_TIMES = ["09:00", "15:00"]
+
+# ---- 送件到中心 ----
+# False = 預約只記錄在本機 DB，不送到中心、不追蹤中心狀態；聯絡資料（個資）不保存
+FORWARD_TO_CENTER = False
+
+# ---- 背景排程間隔 ----
+# 庫存同步：每次約 13 個請求打官網，規格的 30–60 秒太頻繁，先用 3 分鐘；正式上線前跟中心確認
+STOCK_SYNC_SECONDS = 180
+EXPIRE_SCAN_SECONDS = 60  # 逾期自動取消、取貨提醒（規格：逾期後 ≤ 1 分鐘）
+FORWARD_RETRY_SECONDS = 30  # 送件佇列重試
+PUSH_CHECK_MINUTES = 5  # 檢查官網新公告 → 推播；重試失敗的推播
+
+# ---- 推播 ----
+FCM_NOTICE_TOPIC = "assistive-notice"  # 公告用 topic，App 啟動時要訂閱
+MAX_DEVICES_PER_MAILBOX = 10
+# 哪些事件要推播到手機：只推「使用者不在 App 裡也想知道」的非同步消息——到貨、取貨期限將到、中心確認。
+# 預約成功、自己取消預約這類使用者剛做的事，App 用畫面與彈窗告知，不發通知。
+# 沒列在這裡的事件仍會寫進信箱（補拉看得到）；要多推哪一種，把事件類型加進來。公告走 topic，不受這個設定影響。
+PUSH_EVENT_TYPES = {"stock.arrived", "reservation.pickup_reminder", "reservation.confirmed"}
+
+# ---- 中心 webhook ----
+HOOK_MAX_SKEW_SECONDS = 300  # X-Timestamp 允許誤差 5 分鐘
+
+
+# ---- 測試模式：模擬資料變化（只在 TEST_MODE=true 時有用）----
+# 預設全部關掉：抓資料就是抓資料，不會假裝到貨、不會產生假公告。
+# 想在沒有真實資料變化時測推播流程，才暫時打開。
+TEST_SIMULATE_CHANGES = False  # True = 每次抓資料，有人訂閱的缺貨品項會被模擬成到貨
+TEST_SIM_ARRIVALS_PER_SYNC: int | None = None  # 每次模擬幾個到貨；None = 全部等待中的訂閱
+TEST_SIM_NOTICE_EVERY = 0  # 每抓幾次產生一則【模擬】公告並推到所有手機；0 = 不產生
+
+
+def test_api_enabled() -> bool:
+    """測試 API / 測試面板要同時：config 開著 + .env TEST_MODE=true。"""
+    return API_ENABLED.get("test", False) and get_settings().test_mode
