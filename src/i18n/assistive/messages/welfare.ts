@@ -13,6 +13,9 @@ export const zh: Record<string, string> = {
   'welfare.restart': '重新填答',
   'welfare.result.title': '問答結果',
   'welfare.result.lead': '您可能符合以下補助項目，請點選各項目名稱以獲得更多資訊：',
+  'welfare.result.empty.title': '依您的回答，查無可能符合的補助項目',
+  'welfare.result.empty.hint': '如需諮詢輔具相關福利，請洽您所在行政區的輔具中心。',
+  'welfare.result.sep': '、',
   'welfare.error.number': '請輸入數字!',
   'welfare.error.positive': '請輸入大於0的數字!',
   'welfare.error.choose': '請選擇',
@@ -32,6 +35,10 @@ export const en: Record<string, string> = {
   'welfare.result.title': 'Results',
   'welfare.result.lead':
     'You may qualify for the following subsidies; select an item name for more information:',
+  'welfare.result.empty.title': 'No subsidies match your answers',
+  'welfare.result.empty.hint':
+    'For advice on assistive device benefits, please contact the assistive device center for your district.',
+  'welfare.result.sep': ', ',
   'welfare.error.number': 'Please enter a number.',
   'welfare.error.positive': 'Please enter 0 or a larger number.',
   'welfare.error.choose': 'Please select an option.',
