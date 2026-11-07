@@ -192,6 +192,7 @@ Idempotency-Key: <每次「送出」產生一個 UUID；重試時用同一個>
 - `status`：借用是 `booked`，其他服務是 `submitted`。
 - **`id` 和 `access_key` 網頁自己存**（localStorage），之後查詢、取消要用；`access_key` 只回這一次。
 - 欄位規則（必填、長度、格式）以 `GET /forms/{service}` 的 `fields` 為準。
+- 評估、維修的 `items` 是官網表單的勾選項目名稱，一字不差（例：`居家用照顧床(病床)`、`氣墊床`、`拐杖/助行器`），照 `GET /forms/{service}` 的 `item_options` 送；改字或自創名稱會被擋（422 `INVALID_FIELD`）。
 
 ### 3.3 我的預約、取消
 ```

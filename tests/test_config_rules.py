@@ -62,7 +62,7 @@ def test_blocked_variant_and_category_from_config(client, test_mode, monkeypatch
 
 def test_other_services_items_follow_config(client, monkeypatch):
     mb, _ = new_mailbox(client)
-    body = {"service": "repair", "mailbox_id": mb, "items": ["輪椅"], "contact": CONTACT, "subject": SUBJECT}
+    body = {"service": "repair", "mailbox_id": mb, "items": ["手動輪椅"], "contact": CONTACT, "subject": SUBJECT}
     assert post(client, body, "a").status_code == 201
     body["items"] = ["飛機"]
     assert post(client, body, "b").json()["fields"] == ["items"]
