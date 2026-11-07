@@ -5,9 +5,13 @@
  * （沒有同意、系統拒絕通知、沒有設定 Firebase 時回傳 false），同意後由 App 向後端登記這支手機。
  * 沒有登記成功就不會有推播，畫面照常運作（預約成功、取消這類使用者自己剛做的事用畫面與彈窗告知，不靠通知）。
  */
+import { ref } from 'vue';
 import { inApp } from '@/composables/useAssistiveNative';
 import { askApp } from './appBridge';
 import { hasBackend } from './remote';
+
+/** 這次開啟期間是否已確認這支手機會收到推播（完成頁據此決定要不要說「會發送取貨提醒」） */
+export const pushRegistered = ref(false);
 
 /** 使用者要在授權視窗與系統通知權限上花時間，所以等久一點；背景更新（silent）不會跳視窗 */
 const ASK_TIMEOUT_MS = 120_000;
@@ -29,7 +33,11 @@ export const ensurePush = (options: { silent?: boolean } = {}): Promise<boolean>
     { silent },
     silent ? SILENT_TIMEOUT_MS : ASK_TIMEOUT_MS
   )
-    .then((registered) => registered === true)
+    .then((registered) => {
+      // 背景更新逾時不代表沒登記，所以只記成功
+      if (registered === true) pushRegistered.value = true;
+      return registered === true;
+    })
     .finally(() => (inFlight = null));
   return inFlight;
 };

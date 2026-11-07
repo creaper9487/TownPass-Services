@@ -14,6 +14,7 @@ import { centerById, mapUrl } from '@/utils/assistive/centers';
 import { serviceTitle } from '@/utils/assistive/services';
 import { pickupDays, pickupRemaining } from '@/utils/assistive/pickup';
 import { useTaipeiNow } from '@/utils/assistive/time';
+import { pushRegistered } from '@/utils/assistive/push';
 import { t } from '@/i18n/assistive';
 
 const store = useAssistiveStore();
@@ -56,6 +57,10 @@ const pickupSentence = computed(() =>
               <APickupCountdown v-if="remaining" :remaining="remaining" />
               <APickupDays v-if="days.length" :days="days" class="w-full" />
             </div>
+          </AInfoRow>
+          <!-- 預約成功本身不發通知；之後唯一會推播的是期限當天的取貨提醒。期限內沒有開館日時提醒也沒有用，不提。 -->
+          <AInfoRow v-if="pushRegistered && r.pickupDates?.length" icon="clock">
+            {{ t('done.reminder') }}
           </AInfoRow>
           <AInfoRow icon="idcard">
             <span>{{ t('done.id.before') }}</span>

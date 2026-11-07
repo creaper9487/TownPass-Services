@@ -9,7 +9,7 @@ import { selectedInfo, type VariantInfo } from '@/utils/assistive/catalog';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow, stepRoute } from '@/composables/useAssistiveFlow';
-import { newIdempotencyKey, submitReservation } from '@/utils/assistive/api';
+import { newIdempotencyKey, submitReservation, unsubscribeArrival } from '@/utils/assistive/api';
 import { centerName, formatDate, hoursText, openDaysText } from '@/utils/assistive/centers';
 import { serviceTitle } from '@/utils/assistive/services';
 import { t, trSummary, tx, zhAttr } from '@/i18n/assistive';
@@ -32,8 +32,11 @@ const failureKey = ref('review.error');
 
 const win = computed(() => store.windowFor(center.value));
 const datesLabel = computed(() => win.value.openDates.map(formatDate).join(t('review.dateSep')));
+// 期限內沒有開館日時只寫期限，不留下「可前往」後面接空白
 const pickupText = computed(() =>
-  t('review.pickup', { deadline: formatDate(win.value.deadline), dates: datesLabel.value })
+  win.value.openDates.length
+    ? t('review.pickup', { deadline: formatDate(win.value.deadline), dates: datesLabel.value })
+    : t('review.pickupNoDates', { deadline: formatDate(win.value.deadline) })
 );
 const mask = (id: string) => (id.length === 10 ? `${id.slice(0, 3)}****${id.slice(7)}` : id);
 const genderText = (g: string) => (g === 'M' ? tx('男') : g === 'F' ? tx('女') : '');
@@ -119,7 +122,11 @@ const submit = async () => {
       pickup: isBorrow.value ? win.value : undefined,
       idempotencyKey
     });
+    const booked = isBorrow.value ? store.variants.map((v) => v.id) : [];
     store.finishSubmit(created[0]);
+    // 預約到的品項如果登記過到貨通知，那筆登記已經用完了：收掉，免得「已到貨，去預約」還留在清單和通知列。
+    // 只是整理，失敗不影響預約。
+    booked.forEach((id) => unsubscribeArrival(id).catch(() => undefined));
     // 送出成功的告知就是接著顯示的完成頁，不另外發通知。
     await router.replace(stepRoute(flow.service.value, 'done'));
   } catch (e) {
