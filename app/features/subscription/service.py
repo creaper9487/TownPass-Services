@@ -24,13 +24,16 @@ async def create(payload: SubscriptionCreate) -> str:
     for s in repo.by_mailbox(payload.mailbox_id, status="waiting"):
         if (category_id and s.category_id == category_id) or s.variant_id == payload.variant_id:
             raise E.duplicate_waitlist()
+    variant_name, category_name = await catalog_service.variant_names(payload.variant_id)
     sub_id = new_id("sub")
-    repo.insert(repo.SubscriptionRow(sub_id, payload.mailbox_id, payload.variant_id, category_id, now()))
+    repo.insert(repo.SubscriptionRow(sub_id, payload.mailbox_id, payload.variant_id, category_id, now(),
+                                     variant_name=variant_name, category_name=category_name))
     return sub_id
 
 
 def list_for(mailbox_id: str) -> list[SubscriptionOut]:
-    return [SubscriptionOut(id=s.id, variant_id=s.variant_id, category_id=s.category_id, status=s.status,
+    return [SubscriptionOut(id=s.id, variant_id=s.variant_id, variant_name=s.variant_name,
+                            category_id=s.category_id, category_name=s.category_name, status=s.status,
                             created_at=s.created_at, arrived_at=s.arrived_at) for s in repo.by_mailbox(mailbox_id)]
 
 
@@ -45,10 +48,19 @@ def delete(sub_id: str) -> None:
     repo.delete(sub_id)
 
 
-def _notify(sub: repo.SubscriptionRow) -> None:
-    """寫進「這個人」的信箱 → 推播給這個信箱登記的裝置（不是廣播）。"""
+async def _notify(sub: repo.SubscriptionRow) -> None:
+    """寫進「這個人」的信箱 → 推播給這個信箱登記的裝置（不是廣播）。
+
+    data 帶品項名稱（variant_name / category_name），App 收到後可以顯示「什麼到貨了」。
+    名稱只放 data，不放通知標題 / 內容（鎖定畫面看得到，見 notification/texts.py）。
+    舊訂閱沒存名稱時，這時再查一次目錄。
+    """
+    variant_name, category_name = sub.variant_name, sub.category_name
+    if variant_name is None:
+        variant_name, category_name = await catalog_service.variant_names(sub.variant_id)
     mailbox_service.append_event(sub.mailbox_id, "stock.arrived",
-                                 ref={"variant_id": sub.variant_id, "subscription_id": sub.id})
+                                 ref={"variant_id": sub.variant_id, "subscription_id": sub.id},
+                                 data={"variant_name": variant_name, "category_name": category_name})
 
 
 async def force_arrive(variant_id: str | None = None, mailbox_id: str | None = None) -> list[repo.SubscriptionRow]:
@@ -56,7 +68,7 @@ async def force_arrive(variant_id: str | None = None, mailbox_id: str | None = N
     done = []
     for sub in repo.waiting(variant_id, mailbox_id):
         if repo.mark_arrived(sub.id, now()):
-            _notify(sub)
+            await _notify(sub)
             done.append(sub)
     if done:
         logger.info("force arrived: %d subscription(s)", len(done))
@@ -73,7 +85,7 @@ async def check_arrivals() -> int:
         if repo.mark_arrived(sub.id, now()):
             notified[sub.variant_id] = notified.get(sub.variant_id, 0) + 1
             count += 1
-            _notify(sub)
+            await _notify(sub)
     if count:
         logger.info("stock.arrived: %d subscription(s) notified", count)
     return count

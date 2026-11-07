@@ -63,6 +63,20 @@ async def category_of(variant_id: str) -> str | None:
     return None
 
 
+async def variant_names(variant_id: str) -> tuple[str | None, str | None]:
+    """回傳 (品項名稱, 分類名稱)；目錄拿不到或找不到時回 (None, None)，不 raise。"""
+    try:
+        data, _ = await get_catalog()
+    except Exception as exc:  # noqa: BLE001  名稱只是顯示用，拿不到不影響流程
+        logger.warning("catalog unavailable for names (%s)", type(exc).__name__)
+        return None, None
+    for cat in data:
+        for v in cat["variants"]:
+            if v["id"] == variant_id:
+                return v["name"], cat["name"]
+    return None, None
+
+
 async def check_variant(variant_id: str, field: str = "variant_id") -> str | None:
     """品項必須存在且開放借用（config），否則 422 INVALID_FIELD。回傳分類 id。
 

@@ -223,9 +223,15 @@ async def push(body: PushIn):
         raise E.invalid_field(["token|mailbox_id|all|topic"])
     if not targets:
         raise E.not_found("裝置")
+    variant_id = body.variant_id or ("181" if body.type == "stock.arrived" else None)
+    variant_name = category_name = None
+    if body.type == "stock.arrived" and variant_id:
+        from app.features.catalog import service as catalog_service
+
+        variant_name, category_name = await catalog_service.variant_names(variant_id)
     results = await notification_service.send_direct(
         targets, body.type, reservation_id=body.reservation_id if body.type.startswith("reservation.") else None,
-        variant_id=body.variant_id or ("181" if body.type == "stock.arrived" else None),
+        variant_id=variant_id, variant_name=variant_name, category_name=category_name,
         deadline=body.deadline or (today() + timedelta(days=1)).isoformat(), center_id=body.center_id,
         notice_title=body.title)
     return {"results": results}

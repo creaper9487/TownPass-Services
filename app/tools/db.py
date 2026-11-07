@@ -97,6 +97,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     mailbox_id   TEXT NOT NULL,
     variant_id   TEXT NOT NULL,
     category_id  TEXT,
+    variant_name   TEXT,   -- 訂閱當下從目錄查到的品項名稱（推播 data 用）
+    category_name  TEXT,
     created_at   TEXT NOT NULL,
     status       TEXT NOT NULL DEFAULT 'waiting',   -- waiting（等待中）/ arrived（已到貨）
     arrived_at   TEXT
@@ -148,6 +150,8 @@ def conn() -> sqlite3.Connection:
 _COLUMNS = [
     ("subscriptions", "status", "TEXT NOT NULL DEFAULT 'waiting'"),
     ("subscriptions", "arrived_at", "TEXT"),
+    ("subscriptions", "variant_name", "TEXT"),
+    ("subscriptions", "category_name", "TEXT"),
 ]
 
 
