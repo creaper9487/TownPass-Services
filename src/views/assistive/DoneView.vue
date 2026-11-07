@@ -24,8 +24,11 @@ const isBorrow = r.service === 'borrow';
 const now = useTaipeiNow();
 const days = computed(() => pickupDays(r, now.value));
 const remaining = computed(() => pickupRemaining(r, now.value));
+// 期限內沒有開館日時沒有「可以去的日子」可列，句子改成只講期限，不要留下「請在 到中心取貨」這種空洞的句子。
 const pickupSentence = computed(() =>
-  t('done.pickup', { dates: pickupDatesText(r), deadline: deadlineText(r) })
+  r.pickupDates?.length
+    ? t('done.pickup', { dates: pickupDatesText(r), deadline: deadlineText(r) })
+    : t('done.pickupNoDates', { deadline: deadlineText(r) })
 );
 </script>
 

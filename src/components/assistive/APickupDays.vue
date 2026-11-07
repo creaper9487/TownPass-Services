@@ -33,7 +33,7 @@ defineProps<{ days: PickupDay[] }>();
         :class="d.open ? 'text-primary-700' : ''"
       >
         <AIcon :name="d.open ? 'check' : 'closed'" class="h-[16px] w-[16px] shrink-0" />
-        {{ d.open ? t('pickup.open') : t('pickup.closed') }}
+        {{ d.open ? t('pickup.open') : d.pastClosing ? t('pickup.passed') : t('pickup.closed') }}
       </span>
       <span
         v-if="d.isDeadline"

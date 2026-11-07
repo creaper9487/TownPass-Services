@@ -13,6 +13,8 @@ export interface PickupDay {
   open: boolean;
   isDeadline: boolean;
   isToday: boolean;
+  /** 今天本來是開館日，但現在已經過了閉館時間（畫面寫「已過閉館時間」，不是「休館」） */
+  pastClosing: boolean;
 }
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -31,11 +33,19 @@ export const pickupDays = (r: Reservation, now = taipeiNow()): PickupDay[] => {
     day <= deadline && days.length < 7;
     day = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1)
   ) {
+    const isToday = key(day) === today;
+    const isOpen = open.has(key(day));
+    const center = centerById(r.centerId);
     days.push({
       date: day,
-      open: open.has(key(day)),
+      open: isOpen,
       isDeadline: key(day) === key(deadline),
-      isToday: key(day) === today
+      isToday,
+      pastClosing:
+        isToday &&
+        !isOpen &&
+        !!center?.openDays.includes(day.getDay()) &&
+        now.getHours() * 60 + now.getMinutes() >= closingMinutes(r)
     });
   }
   return days;

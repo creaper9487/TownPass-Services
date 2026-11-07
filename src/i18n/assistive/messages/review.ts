@@ -36,6 +36,7 @@ export const zh: Record<string, string> = {
   'done.titleAssess': '已送出申請',
   'done.next': '接下來',
   'done.pickup': '請在 {dates} 到中心取貨。取貨期限是 {deadline}，逾期預約會自動取消。',
+  'done.pickupNoDates': '請在取貨期限 {deadline} 前到中心取貨，逾期預約會自動取消。',
   'done.id.before': '帶使用者或借用人的',
   'done.id.bold': '身分證正本',
   'done.id.after': '，現場填寫借用申請單。',
@@ -87,6 +88,8 @@ export const en: Record<string, string> = {
   'done.next': 'What happens next',
   'done.pickup':
     'Pick up at the center on {dates}. The pickup deadline is {deadline}; reservations not picked up by then are cancelled automatically.',
+  'done.pickupNoDates':
+    'Please collect it at the center by {deadline}. A reservation that is overdue is cancelled automatically.',
   'done.id.before': 'Bring the ',
   'done.id.bold': 'original ID card',
   'done.id.after': ' of the device user or the borrower, and fill in the loan form on site.',
