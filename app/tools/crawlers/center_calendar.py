@@ -1,5 +1,6 @@
 from datetime import date
 
+from app.tools.crawlers._calendar_source import fetch_calendar
 from app.tools.crawlers.schemas import CalendarDay, CenterId
 
 
@@ -76,4 +77,4 @@ def fetch_center_calendar(center_id: CenterId, start: date, days: int) -> list[C
     #     else:
     #         result.append(CalendarDay(date=d, open=True, hours=center.hours, reason=None))
     # return result
-    raise NotImplementedError("fetch_center_calendar 尚未實作")
+    return fetch_calendar(center_id, start, days)

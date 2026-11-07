@@ -41,7 +41,11 @@ def test_health(client):
     assert client.get(f"{P}/health").json() == {"status": "ok"}
 
 
-def test_crawler_not_implemented_returns_501(client):
+def test_crawler_not_implemented_returns_501(client, monkeypatch):
+    def not_implemented():
+        raise NotImplementedError("測試尚未提供的爬蟲")
+
+    monkeypatch.setattr(catalog_service, "fetch_catalog", not_implemented)
     res = client.get(f"{P}/catalog")
     assert res.status_code == 501
     assert res.json()["code"] == "NOT_IMPLEMENTED"
@@ -116,7 +120,10 @@ def test_borrow_flow(client, monkeypatch):
     assert client.get(f"{P}/stock").json()["items"]["101"]["stock"] == 1
 
 
-def test_subscription_arrival(client):
+def test_subscription_arrival(client, monkeypatch):
+    # 分類對照使用固定 fixture，測試不連官方網站。
+    monkeypatch.setattr(catalog_service, "fetch_catalog", lambda: [
+        {"id": "1", "name": "輪椅", "variants": [{"id": "101", "name": "測試輪椅"}]}])
     signed_post(client, "/hooks/center/stock", {"event_id": "e1", "variant_id": "101", "stock": 0, "waiting": 5})
     mailbox_id, auth = new_mailbox(client)
     body = {"mailbox_id": mailbox_id, "variant_id": "101"}
