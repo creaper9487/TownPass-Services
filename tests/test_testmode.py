@@ -45,15 +45,16 @@ def test_full_flow_with_push_log(client, test_mode):
 
     state = client.get(f"{P}/_test/state").json()
     pushes = [p for p in reversed(state["recent_pushes"]) if p["mailbox_id"] == mb]
-    assert [p["type"] for p in pushes] == ["reservation.booked", "reservation.pickup_reminder",
-                                           "reservation.expired"]
+    # 只推非同步消息（取貨提醒）；預約成功、逾期不推播
+    assert [p["type"] for p in pushes] == ["reservation.pickup_reminder"]
     assert all(p["result"] == "local" for p in pushes)  # 沒設定 FCM：只記錄在本機
     assert pushes[0]["data"]["reservation_id"] == rid
 
-    # 信箱裡也有同樣的事件（pull 補拉）
+    # 信箱裡有全部事件（pull 補拉）
     events = client.get(f"{P}/mailboxes/{mb}/events?wait=0",
                         headers={"Authorization": f"Bearer {r['mailbox_key']}"}).json()["events"]
-    assert [e["type"] for e in events] == [p["type"] for p in pushes]
+    assert [e["type"] for e in events] == ["reservation.booked", "reservation.pickup_reminder",
+                                           "reservation.expired"]
 
 
 def test_flow_without_token_uses_local_device(client, test_mode):
@@ -61,8 +62,7 @@ def test_flow_without_token_uses_local_device(client, test_mode):
     assert r["device_token"] == f"local-{r['mailbox_id']}"
     client.post(f"{P}/_test/reservations/{r['reservation']['id']}/trigger", json={"event": "expired"})
     pushes = [p for p in client.get(f"{P}/_test/state").json()["recent_pushes"] if p["mailbox_id"] == r["mailbox_id"]]
-    assert [p["type"] for p in reversed(pushes)] == ["reservation.booked", "reservation.expired"]
-    assert {p["result"] for p in pushes} == {"local"}
+    assert pushes == []  # 預約成功、逾期都不推播（事件仍在信箱）
 
 
 def test_stock_and_notice_triggers(client, test_mode):

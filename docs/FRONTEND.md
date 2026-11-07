@@ -124,6 +124,10 @@ data: { "type": "reservation.booked", "event_id": "ev_xxx", "reservation_id": "B
 | `stock.arrived` | 到貨通知 | 你訂閱的「一般型輪椅」已到貨，可以預約了（查不到名稱時：你訂閱的輔具已到貨，可以預約了） |
 | `service.notice` | 服務公告 | （公告標題） |
 
+> **只推非同步消息**：到貨（`stock.arrived`）、取貨期限將到（`reservation.pickup_reminder`）、中心確認（`reservation.confirmed`）。
+> 預約成功、自己取消預約這類使用者剛做的事 App 用畫面與彈窗告知，**後端不推**；逾期、完成、中心取消目前也不推。
+> 沒推的事件仍會寫進信箱（`GET /mailboxes/{id}/events` 補拉看得到）。要多推哪一種，改 `config.PUSH_EVENT_TYPES`。上面表格的其他列是文案，沒在推播清單內不會發出。
+
 - **App 在背景 / 關閉**：系統自動顯示通知。
 - **App 在前景**：Android 預設**不會**顯示，要在 `FirebaseMessaging.onMessage` 裡用 `flutter_local_notifications` 自己顯示。
 - **點通知**（`onMessageOpenedApp` / `getInitialMessage`）：

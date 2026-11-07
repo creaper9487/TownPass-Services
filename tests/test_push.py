@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from app import config
 from app.features.centers import service as centers_service
 from app.features.devices import repository as devices_repo
 from app.features.notification import notice_watch
@@ -79,6 +80,8 @@ def test_token_moves_to_new_mailbox_and_unregister_is_scoped(client):
 
 
 def test_borrow_pushes_booked_to_all_devices(client, fake_fcm, monkeypatch):
+    # 預約成功預設不推播；這裡把它加進推播清單，驗證文案與多裝置
+    monkeypatch.setattr(config, "PUSH_EVENT_TYPES", {*config.PUSH_EVENT_TYPES, "reservation.booked"})
     monkeypatch.setattr(centers_service, "fetch_center_calendar", fake_calendar)
     signed_post(client, "/hooks/center/stock", {"event_id": "s1", "variant_id": "101", "stock": 1, "waiting": 0})
     mailbox_id, auth = new_mailbox(client)
@@ -100,6 +103,26 @@ def test_borrow_pushes_booked_to_all_devices(client, fake_fcm, monkeypatch):
     assert all(isinstance(v, str) for v in m["data"].values())
     # 鎖定畫面不出現個資
     assert CONTACT["name"] not in str(m) and CONTACT["mobile"] not in str(m)
+
+
+def test_only_async_events_are_pushed(client, fake_fcm):
+    """通知只給非同步消息：到貨、取貨提醒、中心確認。使用者剛做的事不推播，但事件仍在信箱。"""
+    from app.features.mailbox import service as mailbox_service
+
+    mailbox_id, auth = new_mailbox(client)
+    register(client, mailbox_id, auth)
+    quiet = ("reservation.booked", "reservation.cancelled", "reservation.expired", "reservation.completed")
+    for t in quiet:
+        mailbox_service.append_event(mailbox_id, t, ref={"reservation_id": "B1"})
+    assert fake_fcm["flush"]() == []
+
+    loud = ("reservation.pickup_reminder", "reservation.confirmed")
+    for t in loud:
+        mailbox_service.append_event(mailbox_id, t, ref={"reservation_id": "B1"})
+    assert [m["data"]["type"] for m in fake_fcm["flush"]()] == list(loud)
+
+    events = client.get(f"{P}/mailboxes/{mailbox_id}/events?wait=0", headers=auth).json()["events"]
+    assert [e["type"] for e in events] == [*quiet, *loud]
 
 
 def test_stock_arrival_push_shows_device_name(client, fake_fcm, monkeypatch):
@@ -128,7 +151,7 @@ def test_invalid_token_is_removed(client, fake_fcm):
     fake_fcm["result"][TOKEN_A] = fcm.SendResult.INVALID_TOKEN
     from app.features.mailbox import service as mailbox_service
 
-    mailbox_service.append_event(mailbox_id, "reservation.cancelled", ref={"reservation_id": "B1"})
+    mailbox_service.append_event(mailbox_id, "reservation.confirmed", ref={"reservation_id": "B1"})
     fake_fcm["flush"]()
     assert devices_repo.get(TOKEN_A) is None
 
@@ -139,7 +162,7 @@ def test_temporary_failure_is_retried_then_dropped(client, fake_fcm):
     fake_fcm["result"][TOKEN_A] = fcm.SendResult.RETRY
     from app.features.mailbox import service as mailbox_service
 
-    mailbox_service.append_event(mailbox_id, "reservation.expired", ref={"reservation_id": "B1"})
+    mailbox_service.append_event(mailbox_id, "reservation.pickup_reminder", ref={"reservation_id": "B1"})
     fake_fcm["flush"]()
     assert len(notification_service._retry_queue) == 1
     asyncio.run(notification_service.retry_failed())
@@ -181,10 +204,10 @@ def test_without_fcm_push_is_logged_as_local(client, monkeypatch):
     register(client, mailbox_id, auth)
     from app.features.mailbox import service as mailbox_service
 
-    mailbox_service.append_event(mailbox_id, "reservation.expired", ref={"reservation_id": "B1"})
+    mailbox_service.append_event(mailbox_id, "reservation.confirmed", ref={"reservation_id": "B1"})
     asyncio.run(_gather(calls))
     row = db.query("SELECT result, type FROM push_log ORDER BY id DESC LIMIT 1")[0]
-    assert (row["result"], row["type"]) == ("local", "reservation.expired")
+    assert (row["result"], row["type"]) == ("local", "reservation.confirmed")
     assert len(client.get(f"{P}/mailboxes/{mailbox_id}/events?wait=0", headers=auth).json()["events"]) == 1
 
 
