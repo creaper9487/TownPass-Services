@@ -17,11 +17,6 @@
   }
 }
 
-.no-scroll {
-  overflow: hidden !important;
-  height: 100dvh;
-}
-
 @layer components {
   /* 輔具預約：鍵盤焦點外框，使用品牌深青色以維持對比 */
   .a11y-focus {

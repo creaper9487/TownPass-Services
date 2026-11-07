@@ -45,8 +45,6 @@ import FeePaymentHistoryDetailView from '@/views/FeePaymentHistoryDetailView.vue
 import FeePaymentScanView from '@/views/FeePaymentScanView.vue';
 import FeePaymentStepView from '@/views/FeePaymentStepView.vue';
 import FeePaymentFinishedView from '@/views/FeePaymentFinishedView.vue';
-import SportaView from '@/views/Sport/SportaView.vue';
-import SportaEventDetail from '@/views/SportaEventDetail.vue';
 import { assistiveRoutes } from './assistive';
 
 const router = createRouter({
@@ -405,32 +403,8 @@ const router = createRouter({
             title: '掃描'
           }
         }
-
-      ]
-      
-    },
-    {
-      path: '/sporta',
-      meta: {
-        title: '運動資訊'
-      },
-      children: [
-        {
-          path: '',
-          name: 'sporta',
-          component: SportaView
-        },
-        {
-          path: 'event/:id',
-          name: 'sporta-event-detail',
-          component: SportaEventDetail,
-          meta: {
-            title: '活動詳情'
-          }
-        }
       ]
     }
-
   ]
 });
 

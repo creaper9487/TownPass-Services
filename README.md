@@ -27,8 +27,6 @@
 └── scripts/assistive/      重新爬取衛教文章
 ```
 
-專案裡也有同一個網頁專案下的其他微服務（例如 `src/views/Sport/` 的運動資訊 `/sporta`），與輔具通互不依賴。
-
 ## 架構
 
 ```mermaid
