@@ -7,7 +7,7 @@ ID 規則：
 - 時間一律 24 小時制 "HH:MM"。
 """
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -88,3 +88,14 @@ class ForwardReceipt(BaseModel):
     accepted: bool = Field(..., description="中心是否已收到")
     center_reference: str | None = Field(None, description="中心那邊的單號（如果有）")
     message: str | None = Field(None, description="失敗原因，不要放個資")
+
+
+# ---------- 公告 fetch_notices() → 推播 service.notice、GET /notices ----------
+class Notice(BaseModel):
+    id: str = Field(..., description="官網公告代碼（newsid），穩定不變；用來判斷是不是新公告")
+    title: str = Field(..., description="公告標題，會直接當推播內容，不可含個資")
+    body: str = Field("", description="公告內文純文字（去掉 HTML）")
+    center_ids: list[CenterId] = Field(default_factory=list, description="適用中心；全部中心適用就給 []")
+    starts_at: datetime | None = Field(None, description="公告生效時間（例：休館開始），沒有就 None")
+    ends_at: datetime | None = Field(None, description="公告結束時間（例：休館結束），沒有就 None")
+    published_at: datetime = Field(..., description="官網發布時間")

@@ -54,6 +54,26 @@ app/
 python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar / all
 ```
 
+## 主動推播（FCM）
+
+使用者不用開著 App：預約進度、取貨提醒、到貨、公告都會推播到手機。
+
+| 事件 | 誰觸發 | 多久檢查一次 |
+|---|---|---|
+| `reservation.booked` / `cancelled` | 使用者建立、取消預約 | 即時 |
+| `reservation.pickup_reminder` / `expired` | 排程 | 每 1 分鐘 |
+| `reservation.confirmed` / `completed` / `cancelled` | 中心回報（`/hooks/center/status`） | 即時 |
+| `stock.arrived` | 庫存同步發現 0 → >0 | 每 `STOCK_SYNC_SECONDS`（預設 3 分鐘） |
+| `service.notice` | 官網出現新公告（`fetch_notices`） | 每 `PUSH_CHECK_MINUTES`（預設 5 分鐘），同時重試失敗的推播 |
+
+- App 啟動時 `POST /devices`（Bearer mailbox_key，body `{mailbox_id, platform: "fcm", token}`），
+  token 更新時重送；`DELETE /devices?mailbox_id=` 取消（token 放 body）。
+- 公告走 FCM topic `assistive-notice`，App 啟動時要訂閱。
+- 推播 data：`{type, event_id, reservation_id?, variant_id?}`；文案見 `app/features/notification/texts.py`。
+  **鎖定畫面看得到：不放姓名、身分證、電話、輔具名稱。**
+- 事件仍會寫進信箱，App 打開時用 `/mailboxes/{id}/events` 補拉，推播漏掉也不會少資料。
+- 設定 `FCM_PROJECT_ID`、`FCM_CREDENTIALS_FILE`（Firebase 服務帳號金鑰，不要 commit）才會真的發。
+
 ## 開發
 
 ```bash

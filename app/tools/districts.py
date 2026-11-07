@@ -6,6 +6,12 @@
 
 CENTER_IDS = ("heyi", "south", "west")
 
+CENTER_NAMES = {
+    "heyi": "合宜輔具中心",
+    "south": "南區輔具中心",
+    "west": "西區輔具中心",
+}
+
 DISTRICT_TO_CENTER: dict[str, str] = {
     # 合宜輔具中心
     "中山區": "heyi",

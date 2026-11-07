@@ -5,6 +5,7 @@
     python -m app.tools.crawlers.check stock
     python -m app.tools.crawlers.check centers
     python -m app.tools.crawlers.check calendar
+    python -m app.tools.crawlers.check notices
     python -m app.tools.crawlers.check all
 """
 
@@ -14,14 +15,15 @@ from datetime import date
 
 from pydantic import TypeAdapter, ValidationError
 
-from app.tools.crawlers import fetch_catalog, fetch_center_calendar, fetch_centers, fetch_stock
-from app.tools.crawlers.schemas import CalendarDay, CatalogCategory, Center, StockItem
+from app.tools.crawlers import fetch_catalog, fetch_center_calendar, fetch_centers, fetch_notices, fetch_stock
+from app.tools.crawlers.schemas import CalendarDay, CatalogCategory, Center, Notice, StockItem
 
 CHECKS = {
     "catalog": (lambda: fetch_catalog(), list[CatalogCategory]),
     "stock": (lambda: fetch_stock(), list[StockItem]),
     "centers": (lambda: fetch_centers(), list[Center]),
     "calendar": (lambda: fetch_center_calendar("heyi", date.today(), 14), list[CalendarDay]),
+    "notices": (lambda: fetch_notices(), list[Notice]),
 }
 
 
@@ -49,6 +51,11 @@ def _extra_checks(name: str, data: list) -> list[str]:
         got = sorted(c.id for c in data)
         if got != ["heyi", "south", "west"]:
             problems.append(f"id 應該剛好是 heyi / south / west，拿到 {got}")
+    elif name == "notices":
+        ids = [n.id for n in data]
+        if len(ids) != len(set(ids)):
+            problems.append("公告 id 有重複")
+        print(f"  目前有效公告 {len(data)} 則")
     elif name == "calendar":
         if len(data) != 14:
             problems.append(f"要 14 筆，拿到 {len(data)} 筆")

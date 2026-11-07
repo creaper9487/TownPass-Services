@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Firebase 服務帳號金鑰（不要 commit）
+*firebase*.json
+secrets/
