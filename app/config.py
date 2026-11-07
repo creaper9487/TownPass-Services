@@ -154,6 +154,10 @@ PUSH_CHECK_MINUTES = 5  # 檢查官網新公告 → 推播；重試失敗的推�
 # ---- 推播 ----
 FCM_NOTICE_TOPIC = "assistive-notice"  # 公告用 topic，App 啟動時要訂閱
 MAX_DEVICES_PER_MAILBOX = 10
+# 哪些事件要推播到手機：只推「使用者不在 App 裡也想知道」的非同步消息——到貨、取貨期限將到、中心確認。
+# 預約成功、自己取消預約這類使用者剛做的事，App 用畫面與彈窗告知，不發通知。
+# 沒列在這裡的事件仍會寫進信箱（補拉看得到）；要多推哪一種，把事件類型加進來。公告走 topic，不受這個設定影響。
+PUSH_EVENT_TYPES = {"stock.arrived", "reservation.pickup_reminder", "reservation.confirmed"}
 
 # ---- 中心 webhook ----
 HOOK_MAX_SKEW_SECONDS = 300  # X-Timestamp 允許誤差 5 分鐘

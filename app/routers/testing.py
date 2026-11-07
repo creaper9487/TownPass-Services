@@ -2,8 +2,8 @@
 
 用來在不需要中心系統、不需要等時間的情況下，直接觸發各種狀態與推播：
     GET  /_test/state                          目前狀態總覽（信箱、預約、裝置、最近推播）
-    POST /_test/scenario                       一鍵：建信箱 + 登記裝置 + 借用預約（會推「預約成功」）
-    POST /_test/reservations/{id}/trigger      讓預約進入某個狀態（會推對應通知）
+    POST /_test/scenario                       一鍵：建信箱 + 登記裝置 + 借用預約（預約成功不推播，事件會寫進信箱）
+    POST /_test/reservations/{id}/trigger      讓預約進入某個狀態（只有 config.PUSH_EVENT_TYPES 裡的才會推播）
     POST /_test/stock                          設定某款庫存（0 → >0 會推「到貨通知」）
     POST /_test/notices                        發一則公告（推「服務公告」）
     POST /_test/sync                           立刻抓一次資料（模擬官網變化）→ 有變化就推播

@@ -98,7 +98,9 @@ async def _deliver(push: PendingPush) -> None:
 
 
 def notify_event(mailbox_id: str, event: Event) -> None:
-    """mailbox 寫入事件後呼叫。不阻塞呼叫端。"""
+    """mailbox 寫入事件後呼叫。不阻塞呼叫端。只有 config.PUSH_EVENT_TYPES 裡的事件會推播。"""
+    if event.type not in config.PUSH_EVENT_TYPES:
+        return
     # 沒設定 FCM 也照樣跑流程：fcm.send 回 local、記進 push_log，方便看推了什麼
     title, body = _event_text(event)
     for token in devices_service.tokens_of(mailbox_id):
