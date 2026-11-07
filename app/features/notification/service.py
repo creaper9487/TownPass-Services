@@ -15,6 +15,7 @@ import asyncio
 import json
 from dataclasses import dataclass
 
+from app import config
 from app.config import get_settings
 from app.features.devices import service as devices_service
 from app.features.mailbox.schemas import Event
@@ -112,7 +113,7 @@ def notify_topic(event: Event) -> None:
     if not fcm.is_enabled() and not get_settings().test_mode:
         return
     title, body = _event_text(event)
-    msg = fcm.build_message(title=title, body=body, data=_data(event), topic=get_settings().fcm_notice_topic)
+    msg = fcm.build_message(title=title, body=body, data=_data(event), topic=config.FCM_NOTICE_TOPIC)
     _spawn(_deliver(PendingPush(msg, None, 0)))
 
 
@@ -128,6 +129,39 @@ async def drain() -> None:
     """測試用：等所有背景推播送完。"""
     while _tasks:
         await asyncio.gather(*list(_tasks), return_exceptions=True)
+
+
+# ---------------- 測試用：直接推播（CLI、測試面板共用）----------------
+async def send_direct(targets: list[tuple[str, str | None]], type: str, *, reservation_id: str | None = None,
+                      variant_id: str | None = None, deadline: str | None = None, center_id: str | None = None,
+                      notice_title: str | None = None) -> list[dict]:
+    """不經過任何狀態，直接對 (token, mailbox_id) 發一則指定類型的通知；回傳每一台的結果。"""
+    from app.features.devices import repository as devices_repo
+    from app.tools.security import new_id
+
+    title, body = texts.build(type, deadline=deadline, center_id=center_id, notice_title=notice_title)
+    data = {"type": type, "event_id": new_id("ev"), "reservation_id": reservation_id, "variant_id": variant_id}
+    results = []
+    for token, mailbox_id in targets:
+        push = PendingPush(fcm.build_message(title=title, body=body, data=data, token=token), token, 0, mailbox_id)
+        result = await fcm.send(push.message)
+        log_push(push, result)
+        if result == fcm.SendResult.INVALID_TOKEN:
+            devices_repo.delete(token)
+        results.append({"token": token[:16] + "…", "mailbox_id": mailbox_id, "result": result.value,
+                        "title": title, "body": body})
+    return results
+
+
+async def send_topic(title: str) -> dict:
+    from app.tools.security import new_id
+
+    t, body = texts.build("service.notice", notice_title=title)
+    msg = fcm.build_message(title=t, body=body, data={"type": "service.notice", "event_id": new_id("ev")},
+                            topic=config.FCM_NOTICE_TOPIC)
+    result = await fcm.send(msg)
+    log_push(PendingPush(msg, None, 0), result)
+    return {"target": f"topic:{config.FCM_NOTICE_TOPIC}", "result": result.value, "title": t, "body": body}
 
 
 def reset() -> None:

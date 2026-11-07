@@ -74,6 +74,13 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
 - 事件仍會寫進信箱，App 打開時用 `/mailboxes/{id}/events` 補拉，推播漏掉也不會少資料。
 - 設定 `FCM_PROJECT_ID`、`FCM_CREDENTIALS_FILE`（Firebase 服務帳號金鑰，不要 commit）才會真的發。
 
+## 設定（app/config.py）
+
+所有設定集中在 `app/config.py`：
+- **`.env` 只放幾個特別的**：`HOST`、`PORT`、`TEST_MODE`、`DB_PATH`、`ENABLE_BACKGROUND_JOBS`，以及機密
+  `HOOK_SECRET`、`FCM_PROJECT_ID`、`FCM_CREDENTIALS_FILE`（範本見 `.env.example`）。
+- **其他直接改 `config.py`**：`API_ENABLED`（每組 API 開或關，關掉的回 404）、排程間隔、推播 topic、CORS…
+
 ## 測試模式（TEST_MODE）
 
 `.env` 設 `TEST_MODE=true` 後啟動 server（`python app/main.py`）：
@@ -81,6 +88,9 @@ python -m app.tools.crawlers.check stock     # 或 catalog / centers / calendar 
 - 爬蟲**不連官網**，改用 `app/tools/testdata.py` 的固定假資料：12 類 62 款、3 間中心、行事曆（例假日 / 國定假日 /
   臨時休館 / 補班）、4 則公告。欄位刻意做得變化多（沒圖、規格空、說明很長、名稱很長、庫存 0 / 999…）方便測相容性。
 - 開放 `/assistive/v1/_test/*` 測試 API（正式模式回 404），可以直接觸發各種狀態，不用等時間、不用中心系統。
+  要同時符合 `config.API_ENABLED["test"] = True` 與 `.env` 的 `TEST_MODE=true`。
+- **測試面板**：瀏覽器打開 `http://<HOST>:<PORT>/assistive/v1/_test/panel`（同 Wi-Fi 的隊友也能開）。
+  按按鈕直接推送 8 種通知、走真正的預約流程，下方即時顯示推播結果，並寫好「這個結果代表是誰的問題」。
 - 沒設定 FCM 也會跑完整推播流程，結果記成 `local`（只記錄在本機）；設定了就真的送到手機。
 - `scenario` / `flow` 沒給 `--token` 時會登記本機假裝置（`local-信箱ID`），推播照樣記錄，`outbox` / `watch` 看得到。
 - 每一則推播都記錄在本機 DB（`DB_PATH`，預設 `data/local.db`）的 `push_log`。
