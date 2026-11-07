@@ -106,6 +106,21 @@ const rank = (r: { option: { disabled: boolean }; stock?: number }) =>
 const ordered = computed(() => [...rows.value].sort((a, b) => rank(a) - rank(b)));
 const allClosed = computed(() => rows.value.every((r) => r.option.disabled));
 
+// 三家中心在取貨期限內都沒有開館（例如週六晚上、隔天週日休館）：直接告訴使用者哪天可以再來，
+// 而不是只留下三張灰掉的卡片。從明天起逐日找，第一個有中心開館的日子就是答案。
+const nextOpenDate = computed(() => {
+  if (!allClosed.value) return null;
+  const today = now.value;
+  for (let i = 1; i <= 14; i++) {
+    const morning = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i, 8, 0);
+    const firsts = centers
+      .map((c) => store.windowFor(c, morning).openDates[0])
+      .filter((d): d is Date => !!d);
+    if (firsts.length) return firsts.reduce((a, b) => (a.getTime() <= b.getTime() ? a : b));
+  }
+  return null;
+});
+
 const selected = computed<string>({
   get: () => store.centerId,
   set: (v) => {
@@ -139,6 +154,17 @@ const next = () => {
           {{ t('center.locate') }}
         </BaseButton>
       </div>
+      <p
+        v-if="allClosed"
+        role="status"
+        class="mb-4 rounded-lg border border-orange-700 bg-orange-50 p-3 text-base text-orange-800"
+      >
+        {{
+          nextOpenDate
+            ? t('center.allClosedNext', { date: formatDate(nextOpenDate) })
+            : t('center.allClosed')
+        }}
+      </p>
       <p v-if="message" role="status" class="mb-3 text-sm text-grey-700">{{ message }}</p>
       <AChoice
         v-model="selected"

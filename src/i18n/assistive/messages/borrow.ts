@@ -64,6 +64,8 @@ export const zh: Record<string, string> = {
   'center.stockLeft': '● 這款剩 {n} 件',
   'center.stockNone': '○ 這家目前沒有這款',
   'center.allClosed': '這幾天三家中心都休館，請改天再預約。',
+  'center.allClosedNext':
+    '現在三家中心在取貨期限（2 天內，含當日）內都沒有開館，暫時無法預約借用。下一個開館日是 {date}，請屆時再預約。',
   'center.pickRequired': '請選擇一家取貨的輔具中心',
   'center.open': '● 開館中',
   'center.closedNow': '○ 目前休館',
@@ -157,6 +159,8 @@ export const en: Record<string, string> = {
   'center.stockNone': '○ None of this model here right now',
   'center.allClosed':
     'All three centers are closed for the next few days. Please reserve another day.',
+  'center.allClosedNext':
+    'All three centers are closed within the pickup deadline (2 days, including today), so loans cannot be reserved right now. The next opening day is {date}; please come back then.',
   'center.pickRequired': 'Select an assistive device center for pickup',
   'center.open': '● Open now',
   'center.closedNow': '○ Closed now',
