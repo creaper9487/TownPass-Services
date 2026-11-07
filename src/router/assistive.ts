@@ -92,6 +92,18 @@ export const assistiveRoutes: RouteRecordRaw[] = [
         meta: titleMeta()
       },
       {
+        path: 'education',
+        name: 'assistive-education',
+        component: () => import('@/views/assistive/EducationView.vue'),
+        meta: titleMeta()
+      },
+      {
+        path: 'education/:id',
+        name: 'assistive-education-article',
+        component: () => import('@/views/assistive/EducationArticleView.vue'),
+        meta: titleMeta()
+      },
+      {
         path: 'welfare',
         name: 'assistive-welfare',
         component: () => import('@/views/assistive/WelfareIntroView.vue'),

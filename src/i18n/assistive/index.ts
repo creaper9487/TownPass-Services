@@ -6,6 +6,7 @@ import * as assess from './messages/assess';
 import * as review from './messages/review';
 import * as reservations from './messages/reservations';
 import * as welfare from './messages/welfare';
+import * as education from './messages/education';
 import { dataEn } from './data-en';
 
 /**
@@ -55,7 +56,8 @@ const zhMessages: Record<string, string> = {
   ...assess.zh,
   ...review.zh,
   ...reservations.zh,
-  ...welfare.zh
+  ...welfare.zh,
+  ...education.zh
 };
 const enMessages: Record<string, string> = {
   ...common.en,
@@ -64,7 +66,8 @@ const enMessages: Record<string, string> = {
   ...assess.en,
   ...review.en,
   ...reservations.en,
-  ...welfare.en
+  ...welfare.en,
+  ...education.en
 };
 
 const warned = new Set<string>();

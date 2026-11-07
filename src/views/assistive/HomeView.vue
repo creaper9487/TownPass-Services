@@ -7,6 +7,7 @@ import ALanguageSwitch from '@/components/assistive/ALanguageSwitch.vue';
 import welfareIcon from '@/assets/images/assistive/icon-welfare.svg';
 import assessIcon from '@/assets/images/assistive/icon-assess.svg';
 import reservationIcon from '@/assets/images/assistive/icon-reservation.svg';
+import educationIcon from '@/assets/images/assistive/icon-education.svg';
 import { useAssistiveStore } from '@/stores/assistive';
 import { serviceTitle } from '@/utils/assistive/services';
 import { t } from '@/i18n/assistive';
@@ -55,6 +56,13 @@ onMounted(() => store.loadCalendars());
         <AServiceCard
           class="a-rise"
           :style="{ '--i': 3 }"
+          :title="t('home.education')"
+          :icon="educationIcon"
+          :to="{ name: 'assistive-education' }"
+        />
+        <AServiceCard
+          class="a-rise"
+          :style="{ '--i': 4 }"
           :title="t('home.reservations')"
           :icon="reservationIcon"
           :to="{ name: 'assistive-reservations' }"
@@ -62,7 +70,7 @@ onMounted(() => store.loadCalendars());
       </nav>
 
       <div class="mt-4">
-        <ALanguageSwitch class="a-rise" :style="{ '--i': 4 }" />
+        <ALanguageSwitch class="a-rise" :style="{ '--i': 5 }" />
       </div>
     </div>
   </AStepPage>

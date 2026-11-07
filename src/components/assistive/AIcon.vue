@@ -22,6 +22,7 @@ export type IconName =
   | 'closed'
   | 'hourglass'
   | 'people'
+  | 'play'
   | 'more';
 
 defineProps<{ name: IconName }>();
@@ -126,6 +127,10 @@ defineProps<{ name: IconName }>();
       <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
       <circle cx="17" cy="9" r="2.4" />
       <path d="M16.2 14.1a4.4 4.4 0 0 1 5.3 4.2" />
+    </template>
+    <template v-else-if="name === 'play'">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 8.6v6.8l5.6-3.4z" />
     </template>
     <template v-else>
       <circle cx="6" cy="12" r="1.25" fill="currentColor" />
