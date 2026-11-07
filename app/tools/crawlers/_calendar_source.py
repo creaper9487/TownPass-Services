@@ -6,10 +6,11 @@ import csv
 from datetime import date, datetime, timedelta
 from functools import lru_cache
 import io
+from pathlib import Path
 import re
 from threading import Lock
 import time
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -20,26 +21,21 @@ from .centers import fetch_centers
 from .schemas import CalendarDay, CenterId
 
 BASE = "https://tpap.gov.taipei"
-# 官方資料集 https://data.gov.tw/dataset/14718 的 115、116 年 CSV。
-GOVERNMENT_CALENDARS = {2026: (
-    "https://www.dgpa.gov.tw/FileConversion?filename=dgpa%2Ffiles%2F202506%2F"
-    "a52331bd-a189-466b-b0f0-cae3062bbf74.csv&name="
-    "115%E5%B9%B4%E4%B8%AD%E8%8F%AF%E6%B0%91%E5%9C%8B%E6%94%BF%E5%BA%9C"
-    "%E8%A1%8C%E6%94%BF%E6%A9%9F%E9%97%9C%E8%BE%A6%E5%85%AC%E6%97%A5"
-    "%E6%9B%86%E8%A1%A8.csv&nfix="
-), 2027: (
-    "https://www.dgpa.gov.tw/FileConversion?filename=dgpa%2Ffiles%2F202607%2F"
-    "f538b1ff-ba60-4c63-9477-10db8e6612d1.csv&name="
-    "116%E5%B9%B4%E4%B8%AD%E8%8F%AF%E6%B0%91%E5%9C%8B%E6%94%BF%E5%BA%9C"
-    "%E8%A1%8C%E6%94%BF%E6%A9%9F%E9%97%9C%E8%BE%A6%E5%85%AC%E6%97%A5"
-    "%E6%9B%86%E8%A1%A8_utf8bom.csv&nfix="
-)}
+# 官方資料集 https://data.gov.tw/dataset/14718；來源與手動更新步驟見 data/README.md。
+# 2026 原始來源：https://www.dgpa.gov.tw/FileConversion?filename=dgpa%2Ffiles%2F202506%2Fa52331bd-a189-466b-b0f0-cae3062bbf74.csv&nfix=
+# 2027 原始來源：https://www.dgpa.gov.tw/FileConversion?filename=dgpa%2Ffiles%2F202607%2Ff538b1ff-ba60-4c63-9477-10db8e6612d1.csv&nfix=
+# 只讀隨 repo 部署的本機檔，不在處理預約時下載政府日曆。
+_DATA_DIRECTORY = Path(__file__).with_name("data")
+GOVERNMENT_CALENDARS = {
+    year: _DATA_DIRECTORY / f"holidays_{year}.csv" for year in (2026, 2027)
+}
 logger = get_logger(__name__)
 _CENTER_NAMES = {"合宜": "heyi", "南區": "south", "西區": "west"}
 _DATE_PATTERN = re.compile(r"(\d{3,4})[年/.-](\d{1,2})[月/.-](\d{1,2})日?")
 _closures: dict[tuple[str, date], str] | None = None
 _closures_at = 0.0
 _closures_lock = Lock()
+_notice_closures: dict[str, dict[tuple[str, date], str]] = {}
 
 
 def _get(client: httpx.Client, url: str) -> bytes:
@@ -70,8 +66,7 @@ def parse_holidays(body: bytes, year: int) -> dict[date, str]:
 def _load_holidays(year: int) -> dict[date, str]:
     if year not in GOVERNMENT_CALENDARS:
         raise NotImplementedError(f"尚未設定 {year} 年官方日曆來源，不能推測開館日")
-    with httpx.Client(follow_redirects=True, timeout=20) as client:
-        return parse_holidays(_get(client, GOVERNMENT_CALENDARS[year]), year)
+    return parse_holidays(GOVERNMENT_CALENDARS[year].read_bytes(), year)
 
 
 def _source_date(match) -> date:
@@ -86,9 +81,13 @@ def parse_closure_notice(body: bytes) -> dict[tuple[str, date], str]:
     if content is None:
         raise ValueError("休館公告缺少內容區塊")
     result = {}
+    explicit_withdrawal = False
     for paragraph in content.select("p, li"):
         text = paragraph.get_text(" ", strip=True)
         if "休館" not in text:
+            continue
+        if re.search(r"(?:取消|撤銷|撤回)(?:原定)?休館", text):
+            explicit_withdrawal = True
             continue
         closed_part = re.split(r"將於|恢復|開館服務|開放服務", text, maxsplit=1)[0]
         before_closed = closed_part.split("休館", 1)[0]
@@ -112,7 +111,7 @@ def parse_closure_notice(body: bytes) -> dict[tuple[str, date], str]:
         for cid in centers:
             for day in days:
                 result[cid, day] = "中心公告休館"
-    if not result:
+    if not result and not explicit_withdrawal:
         raise ValueError("休館公告無法對應中心與日期，需人工確認")
     return result
 
@@ -128,11 +127,10 @@ def _reviewed_closures() -> dict[tuple[str, date], str]:
 
 
 def _fetch_closures() -> dict[tuple[str, date], str]:
+    global _notice_closures
     pending, visited, notices = deque([BASE + "/app37/newsView/index"]), set(), set()
     result = _reviewed_closures()
-    # 單則公告暫時讀不懂時，仍保留此前已成功確認的休館日期。
-    if _closures is not None:
-        result.update(_closures)
+    next_notices = {}
     with httpx.Client(follow_redirects=True, timeout=20,
                       headers={"User-Agent": "TownPass-AssistiveCrawler/0.1"}) as client:
         while pending:
@@ -160,13 +158,23 @@ def _fetch_closures() -> dict[tuple[str, date], str]:
                     if "休館" in card.get_text(" ", strip=True):
                         notices.add(href)
         for url in sorted(notices):
+            # newsid 穩定，不受同則公告的 newstype 或參數順序影響。
+            key = parse_qs(urlparse(url).query).get("newsid", [url])[0]
+            if key in next_notices:
+                continue
             time.sleep(1)
             try:
-                result.update(parse_closure_notice(_get(client, url)))
+                dates = parse_closure_notice(_get(client, url))
             except Exception as exc:
                 # 不輸出例外本文、HTML 或 URL，以免第三方內容含有個資。
                 logger.warning("Skipping unavailable or unreadable closure notice (%s)",
                                type(exc).__name__)
+                # 只保留這則失敗公告的舊日期，不合併整份歷史結果。
+                dates = _notice_closures.get(key, {})
+            next_notices[key] = dates
+            result.update(dates)
+    # 清單完整讀取後才替換；已下架公告會移除，更正日期／明確撤回會取代舊結果。
+    _notice_closures = next_notices
     return result
 
 

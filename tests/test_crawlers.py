@@ -16,6 +16,7 @@ from app.tools.crawlers import _calendar_source as cal
 def isolated_calendar_cache(monkeypatch):
     monkeypatch.setattr(cal, "_closures", None)
     monkeypatch.setattr(cal, "_closures_at", 0)
+    monkeypatch.setattr(cal, "_notice_closures", {})
     loader = cal._load_holidays
     loader.cache_clear()
     yield
@@ -211,6 +212,7 @@ def test_closure_refresh_failure_keeps_last_success_then_recovers(monkeypatch, c
 def test_unreadable_notice_does_not_discard_other_or_previous_closures(monkeypatch, caplog, bad_status):
     previous = {("west", date(2026, 11, 12)): "先前成功公告"}
     monkeypatch.setattr(cal, "_closures", previous)
+    monkeypatch.setattr(cal, "_notice_closures", {"1": previous})
     monkeypatch.setattr(cal.time, "sleep", lambda seconds: None)
     client_class = httpx.Client
 
@@ -235,27 +237,70 @@ def test_unreadable_notice_does_not_discard_other_or_previous_closures(monkeypat
 
 
 def test_official_sources_support_december_and_new_year_windows(monkeypatch):
-    client_class = httpx.Client
-    requested_years = []
+    def no_network(**kwargs):
+        raise AssertionError("政府日曆應讀本機檔案，不可建立 HTTP client")
 
-    def respond(request):
-        year = next(year for year, url in cal.GOVERNMENT_CALENDARS.items() if str(request.url) == str(httpx.URL(url)))
-        requested_years.append(year)
-        writer_buffer = io.StringIO()
-        writer = csv.writer(writer_buffer)
-        writer.writerow(["西元日期", "是否放假", "備註"])
-        for i in range(365):
-            day = date(year, 1, 1) + timedelta(days=i)
-            note = "元旦" if day.month == day.day == 1 else ""
-            writer.writerow([day.strftime("%Y%m%d"), "2" if note or day.isoweekday() >= 6 else "0", note])
-        return httpx.Response(200, content=writer_buffer.getvalue().encode("utf-8-sig"))
-
-    monkeypatch.setattr(cal.httpx, "Client", lambda **kwargs: client_class(
-        transport=httpx.MockTransport(respond), **kwargs))
+    monkeypatch.setattr(cal.httpx, "Client", no_network)
     monkeypatch.setattr(cal, "_load_closures", lambda: {})
     days = fetch_center_calendar("heyi", date(2026, 12, 19), 14)
     assert len(days) == 14 and days[-1].date == date(2027, 1, 1)
-    assert not days[-1].open and days[-1].reason == "元旦"
+    assert not days[-1].open and days[-1].reason == "開國紀念日"
     pickup = fetch_center_calendar("south", date(2026, 12, 31), 2)
     assert [d.open for d in pickup] == [True, False]
-    assert requested_years == [2026, 2027]
+    assert all(path.is_file() for path in cal.GOVERNMENT_CALENDARS.values())
+
+
+@pytest.fixture
+def notice_server(monkeypatch):
+    state = {"listed": ["1", "2"], "body": {
+        "1": "西區中心115/11/10休館",
+        "2": "南區中心115/11/11休館",
+    }}
+    client_class = httpx.Client
+
+    def respond(request):
+        if request.url.path.endswith("/index"):
+            cards = "".join(f'<div class="row">休館公告<a href="/app37/newsView/detail?newsid={nid}&newstype=4">閱讀</a></div>'
+                            for nid in state["listed"])
+            return httpx.Response(200, text='<div class="col-md-9"><h2>全部消息</h2>' + cards + '</div>')
+        text = state["body"][request.url.params["newsid"]]
+        return httpx.Response(200, text='<div class="col-md-9"><p>' + text + '</p></div>')
+
+    monkeypatch.setattr(cal.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(cal.httpx, "Client", lambda **kwargs: client_class(
+        transport=httpx.MockTransport(respond), **kwargs))
+    return state
+
+
+def test_only_failed_notice_keeps_old_dates_and_removed_notice_is_pruned(monkeypatch, notice_server):
+    first = cal._fetch_closures()
+    monkeypatch.setattr(cal, "_closures", first)
+    notice_server["body"]["1"] = "休館詳見圖片"
+    notice_server["body"]["2"] = "南區中心115/11/12休館"
+    second = cal._fetch_closures()
+    assert ("west", date(2026, 11, 10)) in second  # 僅這則失敗，保留先前結果。
+    assert ("south", date(2026, 11, 11)) not in second  # 更正成功，不能合併舊日期。
+    assert ("south", date(2026, 11, 12)) in second
+    notice_server["listed"] = ["2"]
+    third = cal._fetch_closures()
+    assert ("west", date(2026, 11, 10)) not in third
+    assert set(cal._notice_closures) == {"2"}
+
+
+def test_corrected_notice_replaces_old_dates(monkeypatch, notice_server):
+    first = cal._fetch_closures()
+    monkeypatch.setattr(cal, "_closures", first)
+    notice_server["body"]["1"] = "西區中心115/11/12休館"
+    updated = cal._fetch_closures()
+    assert ("west", date(2026, 11, 10)) not in updated
+    assert ("west", date(2026, 11, 12)) in updated
+
+
+def test_explicit_withdrawal_clears_only_that_notice(monkeypatch, notice_server):
+    first = cal._fetch_closures()
+    monkeypatch.setattr(cal, "_closures", first)
+    notice_server["body"]["1"] = "西區中心115/11/10取消休館，正常服務"
+    updated = cal._fetch_closures()
+    assert ("west", date(2026, 11, 10)) not in updated
+    assert ("south", date(2026, 11, 11)) in updated
+    assert cal._notice_closures["1"] == {}

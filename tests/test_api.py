@@ -162,6 +162,42 @@ def test_subscription_arrival(client, monkeypatch):
     assert ev["events"][0]["type"] == "stock.arrived"
 
 
+def test_offline_calendar_and_year_end_borrow_use_bundled_holidays(client, monkeypatch):
+    import httpx
+    from app.features.reservation import service as reservation_service
+    from app.tools.crawlers import _calendar_source as cal
+
+    requested_hosts = []
+    client_class = httpx.Client
+
+    def offline(request):
+        requested_hosts.append(request.url.host)
+        raise httpx.ConnectError("網路不可用", request=request)
+
+    cal._load_holidays.cache_clear()
+    monkeypatch.setattr(cal, "_closures", None)
+    monkeypatch.setattr(cal, "_closures_at", 0)
+    monkeypatch.setattr(cal, "_notice_closures", {})
+    monkeypatch.setattr(cal.httpx, "Client", lambda **kwargs: client_class(
+        transport=httpx.MockTransport(offline), **kwargs))
+    monkeypatch.setattr(reservation_service, "today", lambda: date(2026, 12, 31))
+    response = client.get(f"{P}/centers/heyi/calendar?from=2026-12-19&days=14")
+    assert response.status_code == 200, response.text
+    days = response.json()["days"]
+    assert len(days) == 14
+    assert days[-1]["date"] == "2027-01-01" and not days[-1]["open"]
+    assert days[-1]["reason"] == "開國紀念日"
+    assert signed_post(client, "/hooks/center/stock",
+                       {"event_id": "offline-stock", "variant_id": "101", "stock": 1, "waiting": 0}).status_code == 204
+    mailbox_id, _ = new_mailbox(client)
+    response = client.post(f"{P}/reservations", json=borrow_body(mailbox_id),
+                           headers={"Idempotency-Key": "offline-borrow"})
+    assert response.status_code == 201, response.text
+    assert response.json()["pickup"] == {"deadline": "2027-01-01", "open_dates": ["2026-12-31"]}
+    assert requested_hosts == ["tpap.gov.taipei"]  # 公告失敗後回退，政府日曆完全沒有網路請求。
+    cal._load_holidays.cache_clear()
+
+
 def test_repair_status_hook(client):
     mailbox_id, auth = new_mailbox(client)
     body = {"service": "repair", "mailbox_id": mailbox_id, "items": ["輪椅"], "contact": CONTACT,
