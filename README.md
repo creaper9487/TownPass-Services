@@ -1,34 +1,51 @@
 # taipei-codefest-2026-Backend
 
-FastAPI 後端。
+輔具預約後端（FastAPI）。API 基準路徑 `/assistive/v1`，啟動後看 http://127.0.0.1:8000/docs
 
-## 專案結構
+## 分層
+
+```
+routers/   HTTP 層：參數、header、狀態碼、ETag/304。不寫邏輯。
+   ↓
+features/  商業邏輯：<feature>/schemas.py + repository.py（資料，目前記憶體）+ service.py
+   ↓
+tools/     共用工具與爬蟲：crawlers/（爬蟲組實作）、exceptions、security、push…
+```
 
 ```
 app/
-├── main.py            # 進入點：建立 app、CORS、exception handler、掛 routers
-├── config.py          # 設定（讀取環境變數 / .env）
-├── routers/           # HTTP 層：定義 endpoint，呼叫 features
-│   ├── __init__.py    # api_router，集中 include 所有 router
-│   ├── health.py
-│   └── example.py
-├── features/          # 商業邏輯，一個功能一個資料夾
-│   └── example/
-│       ├── schemas.py # Pydantic models
-│       └── service.py # 邏輯實作
-└── tools/             # 共用工具
-    ├── logger.py
-    ├── response.py    # 統一回應格式 ApiResponse / ok / fail
-    ├── exceptions.py  # AppError、NotFoundError、全域 handler
-    └── http_client.py # 共用 httpx AsyncClient
-tests/
+├── main.py                 # 進入點（可直接 python app/main.py）
+├── config.py
+├── routers/                # catalog, centers, stock, mailboxes, reservations, subscriptions, hooks
+├── features/
+│   ├── catalog/  centers/  stock/  mailbox/  subscription/
+│   ├── reservation/  forwarding/（送件佇列）  hooks/（中心 webhook）
+│   └── jobs.py             # 背景排程：庫存同步、逾期掃描、送件
+└── tools/
+    ├── crawlers/           # ★ 爬蟲組寫這裡
+    │   ├── schemas.py      # 回傳格式（契約）
+    │   ├── catalog.py      # fetch_catalog()
+    │   ├── stock.py        # fetch_stock()
+    │   ├── centers.py      # fetch_centers()
+    │   ├── center_calendar.py  # fetch_center_calendar()
+    │   └── center_forward.py   # forward_reservation()
+    ├── exceptions.py       # problem+json 錯誤碼
+    ├── security.py  districts.py  push.py  cache.py  timeutil.py  http_client.py  logger.py
 ```
 
-## 新增一個功能
+## 爬蟲（tools/crawlers）
 
-1. 建立 `app/features/<name>/schemas.py`、`service.py`
-2. 建立 `app/routers/<name>.py`，呼叫 service
-3. 在 `app/routers/__init__.py` 中 `include_router`
+寫「同步」function 即可，回傳符合 `schemas.py` 的格式；還沒寫好前保持 `raise NotImplementedError`（API 回 501）。
+
+| function | 資料來源 | 回傳 | 用在 |
+|---|---|---|---|
+| `fetch_catalog()` | tpap.gov.taipei/app37/rentView/index | `list[CatalogCategory]` | `GET /catalog` |
+| `fetch_stock()` | 同上（剩餘數、等待人數） | `list[StockItem]` | 每 45 秒同步 → `GET /stock` |
+| `fetch_centers()` | 各中心介紹頁（可手填常數） | `list[Center]` | `GET /centers` |
+| `fetch_center_calendar(center_id, start, days)` | 開館時段 + data.gov.tw 辦公日曆表 + 臨時休館公告 | `list[CalendarDay]` | 行事曆、取貨期限 |
+| `forward_reservation(payload)` | 送往中心（介接方式待確認） | `ForwardReceipt` | 送件佇列 |
+
+詳細欄位與範例寫在每個 function 的 docstring。
 
 ## 開發
 
@@ -36,13 +53,12 @@ tests/
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-uvicorn app.main:app --reload
-```
-
-API 文件：http://localhost:8000/docs
-
-測試：
-
-```bash
+python app/main.py        # 或 uvicorn app.main:app --reload
 pytest
 ```
+
+## 尚未完成（TODO）
+
+- 資料庫：目前全在記憶體，重啟即消失（換 DB 只改各 feature 的 repository.py）
+- 送件佇列個資的 KMS 加密
+- Rate limit（每信箱寫入 ≤ 10 次/分、讀取 ≤ 120 次/分）

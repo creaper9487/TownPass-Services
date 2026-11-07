@@ -20,6 +20,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.features import jobs
 from app.routers import api_router
 from app.tools.exceptions import register_exception_handlers
 from app.tools.http_client import close_http_client
@@ -31,7 +32,9 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application startup")
+    tasks = jobs.start() if get_settings().enable_background_jobs else []
     yield
+    await jobs.stop(tasks)
     await close_http_client()
     logger.info("Application shutdown")
 
