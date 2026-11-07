@@ -10,29 +10,39 @@ from app.features.forwarding import service as forwarding_service
 from app.features.mailbox import service as mailbox_service
 from app.features.reservation import repository as repo
 from app.features.reservation.schemas import (
+    BatchGetError,
     BatchGetItem,
+    CancelResult,
     PickupInfo,
     ReservationCreate,
     ReservationCreated,
-    ReservationOut,
+    ReservationStatus,
 )
 from app.features.stock import service as stock_service
 from app.tools import exceptions as E
-from app.tools.districts import center_for_district
+from app.tools.districts import DISTRICT_TO_CENTER
 from app.tools.security import hash_secret, new_secret, verify_secret
-from app.tools.timeutil import TAIPEI, now, today
+from app.tools.timeutil import TAIPEI as TZ, now, today
 
+TAIPEI = {"臺北市", "台北市"}
 FINAL_STATUSES = {"completed", "cancelled", "expired"}
 _PREFIX = {"borrow": "B", "assess": "A", "repair": "R", "recycle": "C"}
 
 
 # ---------- helpers ----------
-def _to_out(row: repo.ReservationRow) -> ReservationOut:
-    pickup = PickupInfo(deadline=row.pickup_deadline, open_dates=row.pickup_dates) if row.pickup_deadline else None
-    return ReservationOut(
-        id=row.id, service=row.service, center_id=row.center_id, items=row.items, status=row.status,
-        version=row.version, pickup=pickup, created_at=row.created_at, updated_at=row.updated_at,
-    )
+def _pickup(row: repo.ReservationRow) -> PickupInfo | None:
+    if row.pickup_deadline is None:
+        return None
+    return PickupInfo(deadline=row.pickup_deadline, open_dates=row.pickup_dates)
+
+
+def _status(row: repo.ReservationRow) -> ReservationStatus:
+    return ReservationStatus(id=row.id, status=row.status, version=row.version,
+                             updated_at=row.updated_at, pickup=_pickup(row))
+
+
+def _created(row: repo.ReservationRow, access_key: str) -> ReservationCreated:
+    return ReservationCreated(id=row.id, access_key=access_key, status=row.status, pickup=_pickup(row))
 
 
 def _new_reservation_id(service: str) -> str:
@@ -43,11 +53,18 @@ def _new_reservation_id(service: str) -> str:
 
 
 def _resolve_center(p: ReservationCreate) -> str:
-    """借用用使用者選的中心；其他服務依居住行政區分派，算完即丟棄行政區。"""
+    """借用用使用者選的中心；其他服務依居住行政區分派，算完即丟棄行政區。只服務臺北市。"""
     if p.service == "borrow":
         return p.center_id
-    district = p.subject.living_district if p.service in ("assess", "repair") else p.pickup.district
-    return center_for_district(district)
+    if p.service in ("assess", "repair"):
+        if p.subject.living_county not in TAIPEI:
+            raise E.not_eligible()
+        district = p.subject.living_district
+    else:
+        district = p.pickup.district
+    if district not in DISTRICT_TO_CENTER:
+        raise E.not_eligible()
+    return DISTRICT_TO_CENTER[district]
 
 
 def _set_status(row: repo.ReservationRow, status: str) -> None:
@@ -70,7 +87,7 @@ async def create(p: ReservationCreate, idempotency_key: str) -> ReservationCreat
         saved_hash, rid, key = repo.idempotency[idempotency_key]
         if saved_hash != body_hash:
             raise E.idempotency_conflict()
-        return ReservationCreated(**_to_out(repo.reservations[rid]).model_dump(), access_key=key)
+        return _created(repo.reservations[rid], key)
 
     if not mailbox_service.exists(p.mailbox_id):
         raise E.invalid_field(["mailbox_id"])
@@ -100,14 +117,14 @@ async def create(p: ReservationCreate, idempotency_key: str) -> ReservationCreat
             row.mailbox_id, "reservation.booked", ref={"reservation_id": row.id},
             data={"pickup_deadline": deadline.isoformat(), "pickup_dates": [d.isoformat() for d in open_dates]},
         )
-    return ReservationCreated(**_to_out(row).model_dump(), access_key=access_key)
+    return _created(row, access_key)
 
 
-async def cancel(reservation_id: str, access_key: str) -> ReservationOut:
+async def cancel(reservation_id: str, access_key: str) -> CancelResult:
     """使用者取消；重複呼叫結果相同。"""
     row = _load(reservation_id, access_key)
     await _cancel_row(row)
-    return _to_out(row)
+    return CancelResult(id=row.id, status=row.status, version=row.version)
 
 
 async def _cancel_row(row: repo.ReservationRow) -> None:
@@ -120,13 +137,15 @@ async def _cancel_row(row: repo.ReservationRow) -> None:
     mailbox_service.append_event(row.mailbox_id, "reservation.cancelled", ref={"reservation_id": row.id})
 
 
-def batch_get(items: list[BatchGetItem]) -> list[ReservationOut]:
-    """密鑰不符的直接略過，不透露該 id 是否存在。"""
-    out = []
+def batch_get(items: list[BatchGetItem]) -> list[ReservationStatus | BatchGetError]:
+    """密鑰不符或不存在都回 {id, error: "BAD_KEY"}，不透露該 id 是否存在。"""
+    out: list[ReservationStatus | BatchGetError] = []
     for it in items:
         row = repo.reservations.get(it.id)
         if row and verify_secret(it.access_key, row.access_key_hash):
-            out.append(_to_out(row))
+            out.append(_status(row))
+        else:
+            out.append(BatchGetError(id=it.id))
     return out
 
 
@@ -159,7 +178,7 @@ async def expire_overdue() -> int:
     for row in list(repo.reservations.values()):
         if row.service != "borrow" or row.status != "booked" or row.pickup_deadline is None:
             continue
-        end_of_deadline = datetime.combine(row.pickup_deadline + timedelta(days=1), datetime.min.time(), TAIPEI)
+        end_of_deadline = datetime.combine(row.pickup_deadline + timedelta(days=1), datetime.min.time(), TZ)
         if t >= end_of_deadline:
             await stock_service.release(row.items)
             forwarding_service.cancel(row.id)
@@ -179,10 +198,10 @@ async def send_pickup_reminders() -> None:
             day = (await centers_service.get_calendar(row.center_id, t.date(), 1))[0]
         except NotImplementedError:
             return
-        if not day.is_open or not day.open or not day.close:
+        if not day.open or not day.hours:
             continue
-        opening = datetime.combine(t.date(), datetime.strptime(day.open, "%H:%M").time(), TAIPEI)
-        closing = datetime.combine(t.date(), datetime.strptime(day.close, "%H:%M").time(), TAIPEI)
+        opening = datetime.combine(t.date(), datetime.strptime(day.hours[0].from_, "%H:%M").time(), TZ)
+        closing = datetime.combine(t.date(), datetime.strptime(day.hours[-1].to, "%H:%M").time(), TZ)
         for tag, at in (("open", opening), ("close-2h", closing - timedelta(hours=2))):
             if tag not in row.reminders_sent and at <= t < closing:
                 row.reminders_sent.add(tag)

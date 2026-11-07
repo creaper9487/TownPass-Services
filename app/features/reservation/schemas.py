@@ -1,15 +1,13 @@
 """POST /reservations 欄位（規格「POST /reservations 欄位」表）。
 
 contact / subject / pickup / other_text 是個資：只轉送，不存資料庫、不進日誌。
-本系統只服務臺北市：所有行政區欄位只接受臺北市 12 區，其他值回 422 INVALID_FIELD。
+本系統只服務臺北市：居住縣市不是臺北市、或行政區不在臺北市 12 區 → 422 NOT_ELIGIBLE。
 """
 
 from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
-
-from app.tools.districts import TaipeiDistrict
 
 Service = Literal["borrow", "assess", "repair", "recycle"]
 CenterId = Literal["heyi", "south", "west"]
@@ -29,15 +27,16 @@ class Subject(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=50)
     id_no: str = Field(..., pattern=r"^[A-Z][0-9A-Z]\d{8}$")
-    registered_district: TaipeiDistrict  # 戶籍行政區
-    living_district: TaipeiDistrict  # 居住行政區（決定由哪間中心服務）
+    registered_district: str  # 戶籍行政區
+    living_county: str  # 居住縣市，只收「臺北市」
+    living_district: str  # 居住行政區（決定由哪間中心服務）
     remark: str | None = Field(None, max_length=500)
 
 
 class Pickup(BaseModel):
     """回收地點。"""
 
-    district: TaipeiDistrict  # 回收地點行政區（決定由哪間中心收取）
+    district: str  # 回收地點行政區（臺北市），決定由哪間中心收取
     address: str = Field(..., min_length=1, max_length=200)
     has_elevator: bool
     need_certificate: bool
@@ -70,22 +69,34 @@ class PickupInfo(BaseModel):
     open_dates: list[date]
 
 
-class ReservationOut(BaseModel):
-    """預約狀態（不含任何個資）。"""
+class ReservationCreated(BaseModel):
+    """POST /reservations 回傳。access_key 只回這一次，前端自己保存。"""
 
     id: str
-    service: Service
-    center_id: CenterId
-    items: list[str]
+    access_key: str
+    status: Status
+    pickup: PickupInfo | None = None
+
+
+class ReservationStatus(BaseModel):
+    """POST /reservations:batchGet 每一筆（不含任何個資）。"""
+
+    id: str
     status: Status
     version: int
-    pickup: PickupInfo | None = None
-    created_at: datetime
     updated_at: datetime
+    pickup: PickupInfo | None = None
 
 
-class ReservationCreated(ReservationOut):
-    access_key: str  # 只在建立時回傳一次，前端自己保存
+class BatchGetError(BaseModel):
+    id: str
+    error: Literal["BAD_KEY"] = "BAD_KEY"
+
+
+class CancelResult(BaseModel):
+    id: str
+    status: Status
+    version: int
 
 
 class AccessKeyIn(BaseModel):
@@ -95,7 +106,3 @@ class AccessKeyIn(BaseModel):
 class BatchGetItem(BaseModel):
     id: str
     access_key: str
-
-
-class BatchGetIn(BaseModel):
-    reservations: list[BatchGetItem] = Field(..., max_length=50)

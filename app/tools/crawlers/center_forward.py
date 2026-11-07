@@ -26,8 +26,8 @@ def forward_reservation(payload: dict) -> ForwardReceipt:
             "items": ["101"]（借用：品項代碼）或 ["輪椅"]（其他：官方表單勾選項目）,
             "other_text": "「其他」輔具說明" | None,
             "contact": {"name", "mobile", "phone", "gender", "email"},       # 聯絡人
-            "subject": {"name", "id_no", "registered_district",               # 輔具使用者
-                        "living_district", "remark"} | None,                  # 只有評估、維修
+            "subject": {"name", "id_no", "registered_district", "living_county", # 輔具使用者
+                        "living_district", "remark"} | None,                    # 只有評估、維修
             "pickup":  {"district", "address", "has_elevator",                # 回收地點
                         "need_certificate", "remark"} | None                  # 只有回收
         }

@@ -13,9 +13,8 @@ from app.tools.timeutil import now
 
 
 async def create(payload: SubscriptionCreate) -> str:
-    variant = await catalog_service.find_variant(payload.variant_id)
     # 目錄還抓不到時 category 未知，退而以 variant 判斷重複
-    category_id = variant.category_id if variant else None
+    category_id = await catalog_service.category_of(payload.variant_id)
     for s in repo.subscriptions.values():
         if s.mailbox_id != payload.mailbox_id:
             continue

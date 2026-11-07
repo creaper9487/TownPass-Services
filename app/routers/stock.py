@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Query, Request, Response
 
 from app.features.stock import service
 from app.routers.deps import etag_json
@@ -10,4 +10,6 @@ router = APIRouter(tags=["stock"])
 async def get_stock(request: Request, since: int | None = Query(None, ge=0)):
     data = service.snapshot(since)
     etag = f'"{data["version"]}"'
+    if since is not None and since >= data["version"]:
+        return Response(status_code=304, headers={"ETag": etag})
     return etag_json(request, data, etag, max_age=0)

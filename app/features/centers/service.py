@@ -19,7 +19,7 @@ async def get_centers() -> tuple[list[dict], str]:
     cached = _centers_cache.get()
     if cached is None:
         centers = await run_crawler(fetch_centers, list[Center])
-        data = [c.model_dump() for c in centers]
+        data = [c.model_dump(mode="json", by_alias=True) for c in centers]
         cached = (data, etag_of(data))
         _centers_cache.set(cached)
     return cached
@@ -39,7 +39,7 @@ async def get_calendar(center_id: str, start: date, days: int) -> list[CalendarD
 async def pickup_window(center_id: str, today: date) -> tuple[date, list[date]]:
     """借用取貨期限：回傳 (期限日, 期限內的開館日)。沒有開館日 → PICKUP_WINDOW_CLOSED。"""
     calendar = await get_calendar(center_id, today, PICKUP_DAYS)
-    open_dates = [d.date for d in calendar if d.is_open]
+    open_dates = [d.date for d in calendar if d.open]
     if not open_dates:
         raise E.pickup_window_closed()
     return today + timedelta(days=PICKUP_DAYS - 1), open_dates

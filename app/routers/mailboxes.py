@@ -29,7 +29,7 @@ async def get_events(
     row = service.authenticate(mailbox_id, key)
     events = await service.wait_events(row, cursor, wait)
     response.headers.update(NO_STORE)
-    return EventsPage(cursor=events[-1].cursor if events else cursor, events=events)
+    return EventsPage(events=events, next_cursor=events[-1].cursor if events else cursor)
 
 
 @router.get("/{mailbox_id}/stream", summary="SSE 版本，Last-Event-ID = cursor")

@@ -3,7 +3,7 @@
 from app.tools.cache import TTLCache, etag_of
 from app.tools.crawlers import fetch_catalog
 from app.tools.crawlers.runner import run_crawler
-from app.tools.crawlers.schemas import CatalogCategory, CatalogVariant
+from app.tools.crawlers.schemas import CatalogCategory
 
 _cache = TTLCache(ttl_seconds=3600)
 
@@ -19,14 +19,13 @@ async def get_catalog() -> tuple[list[dict], str]:
     return cached
 
 
-async def find_variant(variant_id: str) -> CatalogVariant | None:
-    """查某個品項；目錄還拿不到時回 None。"""
+async def category_of(variant_id: str) -> str | None:
+    """查某款式屬於哪個分類；目錄還拿不到或找不到時回 None。"""
     try:
         data, _ = await get_catalog()
     except NotImplementedError:
         return None
     for cat in data:
-        for v in cat["variants"]:
-            if v["variant_id"] == variant_id:
-                return CatalogVariant(**v)
+        if any(v["id"] == variant_id for v in cat["variants"]):
+            return cat["id"]
     return None

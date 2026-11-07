@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Body, Header
 
 from app.features.reservation import service
 from app.features.reservation.schemas import (
     AccessKeyIn,
-    BatchGetIn,
+    BatchGetError,
+    BatchGetItem,
+    CancelResult,
     ReservationCreate,
     ReservationCreated,
-    ReservationOut,
+    ReservationStatus,
 )
 from app.tools import exceptions as E
 
@@ -20,11 +22,12 @@ async def create_reservation(payload: ReservationCreate, idempotency_key: str | 
     return await service.create(payload, idempotency_key)
 
 
-@router.post(":batchGet", response_model=list[ReservationOut], summary="以 id + access_key 取多筆最新狀態")
-async def batch_get(body: BatchGetIn):
-    return service.batch_get(body.reservations)
+@router.post(":batchGet", response_model=list[ReservationStatus | BatchGetError],
+             summary="Body [{id, access_key}]；密鑰不符的項目回 {id, error: BAD_KEY}")
+async def batch_get(body: list[BatchGetItem] = Body(..., max_length=50)):
+    return service.batch_get(body)
 
 
-@router.post("/{reservation_id}:cancel", response_model=ReservationOut, summary="取消（借用會釋回庫存，可重複呼叫）")
+@router.post("/{reservation_id}:cancel", response_model=CancelResult, summary="取消（借用會釋回庫存，可重複呼叫）")
 async def cancel(reservation_id: str, body: AccessKeyIn):
     return await service.cancel(reservation_id, body.access_key)

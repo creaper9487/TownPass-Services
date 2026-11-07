@@ -42,6 +42,10 @@ def invalid_field(fields: list[str]) -> AppError:
     return AppError("INVALID_FIELD", 422, "欄位格式錯誤", fields=fields)
 
 
+def not_eligible() -> AppError:
+    return AppError("NOT_ELIGIBLE", 422, "居住地不在服務範圍（只服務臺北市）")
+
+
 def bad_key() -> AppError:
     return AppError("BAD_KEY", 401, "金鑰不符")
 

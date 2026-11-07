@@ -20,13 +20,13 @@ def fetch_stock() -> list[StockItem]:
     網頁上看到的 → 要填的欄位
         | 網頁上的東西                | 欄位        | 型別 | 範例  |
         |-----------------------------|-------------|------|-------|
-        | 品項代碼（同 fetch_catalog） | variant_id  | str  | "101" |
+        | 款式代碼（= fetch_catalog 的款式 id） | variant_id | str | "101" |
         | 剩餘數量 / 可借數量          | stock       | int  | 0     |
         | 等待人數 / 候補人數          | waiting     | int  | 23    |
 
     ─────────────────────────────────────────
     注意
-        - variant_id 必須跟 fetch_catalog() 的一模一樣。
+        - variant_id 必須跟 fetch_catalog() 款式的 id 一模一樣。
         - 網頁顯示「無」「-」或空白 → 當 0。
         - 數字要轉成 int，不要回傳字串 "3"。
         - 正式上線前要先取得輔具中心同意這個抓取頻率。

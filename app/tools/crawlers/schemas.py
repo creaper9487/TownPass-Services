@@ -1,83 +1,90 @@
-"""爬蟲回傳格式（契約）。爬蟲組只要讓回傳值符合這裡的欄位即可。
+"""爬蟲回傳格式（契約）。欄位名稱直接等於 API 回給前端的格式，爬蟲組照這裡填就好。
 
 ID 規則：
-- category_id / variant_id：用官網上的原始代碼（例如 option value、URL 參數）轉成字串；
-  一定要「穩定」，同一個品項每次爬都要得到同一個 ID，因為庫存、訂閱都靠它對應。
-- center_id：固定為 "heyi"（合宜）/ "south"（南區）/ "west"（西區）。
+- 類別 id / 款式 id：用官網上的原始代碼（option value、網址參數…）轉成字串；
+  一定要「穩定」，同一個東西每次爬都要得到同一個 id，庫存、到貨通知都靠它對應。
+- 中心 id：固定為 "heyi"（合宜）/ "south"（南區）/ "west"（西區）。
+- 時間一律 24 小時制 "HH:MM"。
 """
 
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 CenterId = Literal["heyi", "south", "west"]
+HHMM = r"^\d{2}:\d{2}$"
 
 
-# ---------- 品項目錄 fetch_catalog() ----------
+class TimeRange(BaseModel):
+    """一段開館時間，例：{"from": "08:30", "to": "12:00"}"""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    from_: str = Field(..., alias="from", pattern=HHMM, description="開始 HH:MM")
+    to: str = Field(..., pattern=HHMM, description="結束 HH:MM")
+
+
+# ---------- 目錄 fetch_catalog() → GET /catalog ----------
+class VariantAttrs(BaseModel):
+    """可篩選的數值屬性（官網規格裡有寫才填，沒有就 None）。"""
+
+    height_min: float | None = Field(None, description="適用身高下限（公分）")
+    height_max: float | None = Field(None, description="適用身高上限（公分）")
+    seat_width_in: float | None = Field(None, description="座寬（英吋）")
+    weight_max_kg: float | None = Field(None, description="最大承重（公斤）")
+
+
 class CatalogVariant(BaseModel):
-    """一種輔具（例如「一般型輪椅」）。官網共 62 種。"""
+    """一款輔具，例：一般型輪椅。官網共約 62 款。"""
 
-    variant_id: str = Field(..., description="品項代碼，穩定不變")
-    category_id: str = Field(..., description="所屬類別代碼")
-    name: str = Field(..., description="品項名稱，例：一般型輪椅")
-    photo_url: str | None = Field(None, description="照片絕對網址")
-    spec: str | None = Field(None, description="規格文字（尺寸、重量等）")
+    id: str = Field(..., description="款式代碼（= 庫存的 variant_id），穩定不變")
+    name: str = Field(..., description="款式名稱")
+    image: str | None = Field(None, description="照片完整網址")
+    specs: list[str] = Field(default_factory=list, description="規格，一行一筆，例：['座寬 18 吋', '重量 15 公斤']")
     description: str | None = Field(None, description="說明 / 注意事項")
+    attrs: VariantAttrs | None = None
 
 
 class CatalogCategory(BaseModel):
-    """一個類別（例如「輪椅類」）。官網共 12 類。"""
+    """一個分類，例：輪椅類。官網共約 12 類。"""
 
-    category_id: str = Field(..., description="類別代碼，穩定不變")
-    name: str = Field(..., description="類別名稱，例：輪椅類")
+    id: str = Field(..., description="類別代碼，穩定不變")
+    name: str = Field(..., description="類別名稱")
+    image: str | None = Field(None, description="類別代表圖完整網址")
     variants: list[CatalogVariant] = Field(default_factory=list)
 
 
-# ---------- 庫存 fetch_stock() ----------
+# ---------- 庫存 fetch_stock() → GET /stock ----------
 class StockItem(BaseModel):
-    """某一種輔具目前的剩餘數與等待人數。"""
-
-    variant_id: str = Field(..., description="對應 CatalogVariant.variant_id")
-    stock: int = Field(..., ge=0, description="剩餘可借數量")
-    waiting: int = Field(..., ge=0, description="等待（候補）人數")
+    variant_id: str = Field(..., description="= CatalogVariant.id")
+    stock: int = Field(..., ge=0, description="剩餘數量")
+    waiting: int = Field(..., ge=0, description="等待人數")
 
 
-# ---------- 服務中心 fetch_centers() ----------
-class OpeningHours(BaseModel):
-    """每週固定開館時段。一天有多段（例如午休）就放多筆。"""
-
-    weekday: int = Field(..., ge=0, le=6, description="0=星期一 … 6=星期日")
-    open: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="開館時間 HH:MM")
-    close: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="閉館時間 HH:MM")
-
-
+# ---------- 中心 fetch_centers() → GET /centers ----------
 class Center(BaseModel):
-    center_id: CenterId
+    id: CenterId
     name: str = Field(..., description="例：臺北市合宜輔具中心")
     address: str
     phone: str
-    districts: list[str] = Field(..., description="負責的行政區，例：['中山區','大同區','士林區','北投區']")
-    opening_hours: list[OpeningHours]
-    lat: float = Field(..., description="約略緯度（前端算最近中心用）")
-    lng: float = Field(..., description="約略經度")
+    districts: list[str] = Field(..., description="負責的臺北市行政區")
+    open_days: list[int] = Field(..., description="每週開館日，1=星期一 … 7=星期日，例：[1,2,3,4,5]")
+    hours: list[TimeRange] = Field(..., description="開館時段，有午休就兩段")
+    lat: float = Field(..., description="緯度（約略即可）")
+    lng: float = Field(..., description="經度")
 
 
-# ---------- 開館行事曆 fetch_center_calendar() ----------
+# ---------- 行事曆 fetch_center_calendar() → GET /centers/{id}/calendar ----------
 class CalendarDay(BaseModel):
-    """某中心某一天是否開館（已考慮國定假日、臨時休館）。"""
-
     date: date
-    is_open: bool
-    open: str | None = Field(None, description="當天開館時間 HH:MM，休館為 None")
-    close: str | None = Field(None, description="當天閉館時間 HH:MM，休館為 None")
-    note: str | None = Field(None, description="例：國慶日、臨時休館")
+    open: bool = Field(..., description="這天有沒有開館")
+    hours: list[TimeRange] = Field(default_factory=list, description="這天的開館時段；休館為 []")
+    reason: str | None = Field(None, description="休館原因，例：國慶日、臨時休館；開館日為 None")
 
 
 # ---------- 送件 forward_reservation() ----------
 class ForwardReceipt(BaseModel):
-    """把預約送到中心後的回執。"""
-
     accepted: bool = Field(..., description="中心是否已收到")
     center_reference: str | None = Field(None, description="中心那邊的單號（如果有）")
     message: str | None = Field(None, description="失敗原因，不要放個資")

@@ -25,5 +25,5 @@ async def get_calendar(
 ):
     start = from_ or today()
     days_list = await service.get_calendar(center_id, start, days)
-    data = {"center_id": center_id, "days": [d.model_dump(mode="json") for d in days_list]}
+    data = {"center_id": center_id, "days": [d.model_dump(mode="json", by_alias=True) for d in days_list]}
     return etag_json(request, data, etag_of(data), max_age=300)

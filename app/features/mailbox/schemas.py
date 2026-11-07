@@ -31,8 +31,8 @@ class Event(BaseModel):
 
 
 class EventsPage(BaseModel):
-    cursor: int  # 下次請帶這個 cursor
     events: list[Event]
+    next_cursor: int  # 下次請帶這個 cursor
 
 
 class AckIn(BaseModel):

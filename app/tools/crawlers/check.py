@@ -28,27 +28,27 @@ CHECKS = {
 def _extra_checks(name: str, data: list) -> list[str]:
     problems = []
     if name == "catalog":
-        ids = [v.variant_id for c in data for v in c.variants]
+        ids = [v.id for c in data for v in c.variants]
         if len(ids) != len(set(ids)):
-            problems.append("variant_id 有重複")
+            problems.append("款式 id 有重複")
         print(f"  類別 {len(data)} 個、品項 {len(ids)} 種（官網約 12 類 62 種）")
     elif name == "stock":
         ids = [s.variant_id for s in data]
         if len(ids) != len(set(ids)):
             problems.append("variant_id 有重複")
         try:
-            catalog_ids = {v.variant_id for c in TypeAdapter(list[CatalogCategory]).validate_python(
+            catalog_ids = {v.id for c in TypeAdapter(list[CatalogCategory]).validate_python(
                 fetch_catalog(), from_attributes=True) for v in c.variants}
             missing = set(ids) - catalog_ids
             if missing:
-                problems.append(f"這些 variant_id 在 catalog 裡找不到：{sorted(missing)[:10]}")
+                problems.append(f"這些 variant_id 在 catalog 款式 id 裡找不到：{sorted(missing)[:10]}")
         except NotImplementedError:
             print("  （fetch_catalog 還沒寫，略過 variant_id 對照）")
         print(f"  共 {len(data)} 筆")
     elif name == "centers":
-        got = sorted(c.center_id for c in data)
+        got = sorted(c.id for c in data)
         if got != ["heyi", "south", "west"]:
-            problems.append(f"center_id 應該剛好是 heyi / south / west，拿到 {got}")
+            problems.append(f"id 應該剛好是 heyi / south / west，拿到 {got}")
     elif name == "calendar":
         if len(data) != 14:
             problems.append(f"要 14 筆，拿到 {len(data)} 筆")
@@ -56,8 +56,10 @@ def _extra_checks(name: str, data: list) -> list[str]:
             if (d.date - date.today()).days != i:
                 problems.append(f"第 {i} 筆日期不連續：{d.date}")
                 break
-            if d.is_open and not (d.open and d.close):
-                problems.append(f"{d.date} 有開館但沒填 open / close")
+            if d.open and not d.hours:
+                problems.append(f"{d.date} 有開館但 hours 是空的")
+            if not d.open and d.hours:
+                problems.append(f"{d.date} 休館但 hours 不是空的")
     return problems
 
 
@@ -80,7 +82,7 @@ def run(name: str) -> bool:
     for p in problems:
         print(f"  ✗ {p}")
     if not problems:
-        sample = TypeAdapter(result_type).dump_python(data[:2], mode="json")
+        sample = TypeAdapter(result_type).dump_python(data[:2], mode="json", by_alias=True)
         print("  ✓ 格式正確，前兩筆：")
         print("   ", json.dumps(sample, ensure_ascii=False)[:500])
     return not problems
