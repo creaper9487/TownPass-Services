@@ -71,4 +71,6 @@ if __name__ == "__main__":
     import uvicorn
 
     s = get_settings()
-    uvicorn.run("app.main:app", host=s.host, port=s.port, reload=True, app_dir=str(ROOT_DIR))
+    # 只監看程式碼（app/），資料庫檔案變動不觸發重啟
+    uvicorn.run("app.main:app", host=s.host, port=s.port, reload=True, app_dir=str(ROOT_DIR),
+                reload_dirs=[str(ROOT_DIR / "app")])

@@ -79,7 +79,7 @@ async def state(limit: int = 20):
         "devices": [{"token": d.token[:12] + "…", "mailbox_id": d.mailbox_id, "updated_at": d.updated_at}
                     for d in devices_repo.all_devices()],
         "subscriptions": [dict(r) for r in db.query(
-            "SELECT s.id, s.mailbox_id, s.variant_id, COALESCE(k.stock, 0) AS stock, "
+            "SELECT s.id, s.mailbox_id, s.variant_id, s.status, s.arrived_at, COALESCE(k.stock, 0) AS stock, "
             "(SELECT COUNT(*) FROM devices d WHERE d.mailbox_id = s.mailbox_id) AS devices "
             "FROM subscriptions s LEFT JOIN stock k ON k.variant_id = s.variant_id ORDER BY s.seq")],
         "recent_pushes": [dict(r) | {"data": json.loads(r["data"] or "{}")} for r in db.query(

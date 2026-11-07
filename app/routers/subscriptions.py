@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Response
 
 from app.features.mailbox import service as mailbox_service
 from app.features.subscription import service
-from app.features.subscription.schemas import SubscriptionCreate, SubscriptionCreated
+from app.features.subscription.schemas import SubscriptionCreate, SubscriptionCreated, SubscriptionOut
 from app.routers.deps import bearer_key
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
@@ -12,6 +12,13 @@ router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 async def subscribe(payload: SubscriptionCreate, key: str | None = Depends(bearer_key)):
     mailbox_service.authenticate(payload.mailbox_id, key)
     return SubscriptionCreated(id=await service.create(payload))
+
+
+@router.get("", response_model=list[SubscriptionOut],
+            summary="我的到貨通知（Bearer mailbox_key）；status：waiting 等待中 / arrived 已到貨")
+async def list_subscriptions(mailbox_id: str, key: str | None = Depends(bearer_key)):
+    mailbox_service.authenticate(mailbox_id, key)
+    return service.list_for(mailbox_id)
 
 
 @router.delete("/{subscription_id}", status_code=204, summary="取消到貨通知（Bearer mailbox_key）")

@@ -97,7 +97,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     mailbox_id   TEXT NOT NULL,
     variant_id   TEXT NOT NULL,
     category_id  TEXT,
-    created_at   TEXT NOT NULL
+    created_at   TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'waiting',   -- waiting（等待中）/ arrived（已到貨）
+    arrived_at   TEXT
 );
 
 CREATE TABLE IF NOT EXISTS stock (
@@ -133,7 +135,22 @@ def conn() -> sqlite3.Connection:
             _conn.row_factory = sqlite3.Row
             _conn.execute("PRAGMA journal_mode=WAL") if path != ":memory:" else None
             _conn.executescript(SCHEMA)
+            _migrate(_conn)
         return _conn
+
+
+# 舊的 DB 檔缺少的欄位：(表, 欄位, 定義)。新增欄位時加在這裡，舊檔開啟時會自動補上
+_COLUMNS = [
+    ("subscriptions", "status", "TEXT NOT NULL DEFAULT 'waiting'"),
+    ("subscriptions", "arrived_at", "TEXT"),
+]
+
+
+def _migrate(c: sqlite3.Connection) -> None:
+    for table, column, ddl in _COLUMNS:
+        have = {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}
+        if column not in have:
+            c.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
 
 def execute(sql: str, params: tuple | dict = ()) -> sqlite3.Cursor:
