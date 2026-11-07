@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { t } from '@/i18n/assistive';
 
 const props = defineProps<{
   src?: string | null;
@@ -38,7 +39,7 @@ const failed = computed(() => !props.src || imgError.value);
       class="px-2 text-center text-sm text-grey-600"
       :aria-hidden="alt ? undefined : 'true'"
     >
-      {{ alt || '無照片' }}
+      {{ alt || t('common.noPhoto') }}
     </span>
   </div>
 </template>

@@ -45,6 +45,14 @@ const genderText = (g: string) => (g === 'M' ? tx('男') : g === 'F' ? tx('女')
 type Line = { text: string; zh?: boolean };
 type Row = [string, string | Line[]];
 type Section = { title: string; step: string; rows: Row[]; items?: VariantInfo[] };
+const centerRow = computed<Row>(() => [
+  t('review.row.center'),
+  [
+    { text: centerName(center.value) },
+    { text: center.value.address, zh: true },
+    { text: `${openDaysText(center.value)} ${hoursText(center.value)}` }
+  ]
+]);
 const sections = computed<Section[]>(() => {
   const list: Section[] = [];
   const first = isBorrow.value ? 'cart' : 'need';
@@ -58,17 +66,18 @@ const sections = computed<Section[]>(() => {
       ...(isBorrow.value
         ? ([] as Row[])
         : ([[t('review.row.item'), store.summary.map(trSummary).join('\n')]] as Row[])),
-      [
-        t('review.row.center'),
-        [
-          { text: centerName(center.value) },
-          { text: center.value.address, zh: true },
-          { text: `${openDaysText(center.value)} ${hoursText(center.value)}` }
-        ]
-      ],
-      ...(isBorrow.value ? ([[t('review.row.pickup'), pickupText.value]] as Row[]) : [])
+      // 評估、維修的中心依行政區決定，沒有可以改的步驟，跟服務內容放在一起
+      ...(isBorrow.value ? ([] as Row[]) : [centerRow.value])
     ]
   });
+  // 借用的取貨中心是單獨一步選的：獨立一區，「修改」直接回到選中心那一步
+  if (isBorrow.value) {
+    list.push({
+      title: t('review.section.center'),
+      step: 'center',
+      rows: [centerRow.value, [t('review.row.pickup'), pickupText.value]]
+    });
+  }
   list.push({
     title: t('review.section.contact'),
     step: 'contact',
@@ -166,11 +175,11 @@ const submit = async () => {
           <li v-for="item in s.items" :key="item.id"><AItemCard :item="item" /></li>
         </ul>
       </div>
-      <dl class="mt-2 divide-y divide-grey-100">
+      <dl class="a-dl mt-2 divide-y divide-grey-100">
         <div
           v-for="[k, v] in s.rows"
           :key="k"
-          class="grid grid-cols-[7rem_1fr] gap-3 py-3 text-base first:pt-1"
+          class="a-dl-row py-3 text-base [--a-dt:7rem] first:pt-1"
         >
           <dt class="text-grey-700">{{ k }}</dt>
           <dd class="whitespace-pre-line break-words">

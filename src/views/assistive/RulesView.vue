@@ -7,8 +7,11 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import { t, zhAttr } from '@/i18n/assistive';
 import { useAssistiveStore } from '@/stores/assistive';
 import { useAssistiveFlow } from '@/composables/useAssistiveFlow';
+import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { officialCenterRows } from '@/utils/assistive/centers';
 import { BORROW_RULES } from '@/utils/assistive/services';
+
+const native = useAssistiveNative();
 
 // 官方「二手輔具借用須知」：原文照登，三項同意都勾選後按「我同意」。
 const store = useAssistiveStore();
@@ -45,15 +48,16 @@ const agree = () => {
 <template>
   <AStepPage :title="t('borrow.rules.title')" :step="flow.current.value" :total="flow.total.value">
     <ASection>
-      <dl :lang="zhAttr" class="flex flex-col gap-3 text-base">
-        <div v-for="[k, v] in BORROW_RULES.items" :key="k">
-          <dt v-if="!v" class="tp-h3-semibold mt-2">{{ k }}</dt>
-          <template v-else>
-            <dt class="inline font-semibold">{{ k }}</dt>
-            <dd class="inline">{{ v }}</dd>
-          </template>
-        </div>
-      </dl>
+      <!-- 「取貨規定」這類分段標題用 h3，讀屏可以用標題跳段 -->
+      <div :lang="zhAttr" class="flex flex-col gap-3 text-base">
+        <template v-for="[k, v] in BORROW_RULES.items" :key="k">
+          <h3 v-if="!v" class="tp-h3-semibold mt-2">{{ k }}</h3>
+          <p v-else>
+            <span class="font-semibold">{{ k }}</span>
+            <span>{{ v }}</span>
+          </p>
+        </template>
+      </div>
       <p :lang="zhAttr" class="mt-4 text-sm text-grey-700">{{ BORROW_RULES.footnote }}</p>
     </ASection>
 
@@ -68,7 +72,14 @@ const agree = () => {
           <p class="font-semibold">{{ c.name }}</p>
           <p class="mt-1">{{ c.hours }}</p>
           <p>{{ c.address }}</p>
-          <p>{{ c.phone }}</p>
+          <!-- 電話可以直接撥打，也不在號碼中間斷行 -->
+          <button
+            type="button"
+            class="a11y-focus -my-1 flex min-h-11 items-center whitespace-nowrap font-semibold text-primary-700 underline"
+            @click="native.callPhone(c.phone)"
+          >
+            {{ c.phone }}
+          </button>
         </li>
       </ul>
     </ASection>

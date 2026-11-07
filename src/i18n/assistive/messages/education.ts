@@ -19,7 +19,7 @@ export const zh: Record<string, string> = {
   'education.related.borrow': '借用{category}',
   'education.related.assess': '預約輔具評估、維修',
   'education.related.rules': '二手輔具借用須知',
-  'education.related.hint': '看完想行動？',
+  'education.related.hint': '相關服務',
   'education.notFound': '找不到這篇文章',
   'education.back': '回輔具衛教'
 };
@@ -43,7 +43,7 @@ export const en: Record<string, string> = {
   'education.related.borrow': 'Borrow: {category}',
   'education.related.assess': 'Book an assessment or repair',
   'education.related.rules': 'Second-hand device loan rules',
-  'education.related.hint': 'Ready to act?',
+  'education.related.hint': 'Related services',
   'education.notFound': 'Article not found',
   'education.back': 'Back to health education'
 };

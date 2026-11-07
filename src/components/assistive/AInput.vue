@@ -20,6 +20,8 @@ const props = defineProps<{
   uppercase?: boolean;
   /** 欄位上方已有同樣的標題時，只留給讀屏使用 */
   hideLabel?: boolean;
+  /** 篩選這類本來就不是表單必填項的欄位，不標「（選填）」 */
+  noOptionalMark?: boolean;
 }>();
 const emit = defineEmits<{ 'update:modelValue': [string]; blur: [] }>();
 
@@ -41,7 +43,10 @@ const onInput = (e: Event) => {
     <label :for="id" :class="hideLabel ? 'sr-only' : 'tp-h3-semibold mb-1 block'">
       {{ label }}
       <span v-if="required" class="text-red-500" aria-hidden="true">*</span>
-      <span v-else-if="!hideLabel" class="ml-1 text-sm font-normal text-grey-700">
+      <span
+        v-else-if="!hideLabel && !noOptionalMark"
+        class="ml-1 text-sm font-normal text-grey-700"
+      >
         {{ t('form.parens', { text: t('common.optional') }) }}
       </span>
     </label>

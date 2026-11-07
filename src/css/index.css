@@ -58,9 +58,12 @@
     @apply border-primary-700 text-primary-700;
   }
   /* 連結形式的按鈕是 <a>（預設 inline）：不是 flex／grid 的子元素時，w-full、mt-* 都不會生效，
-     內距還會蓋到上一行文字。改成 block，放哪裡都和 <button> 一樣。 */
+     內距還會蓋到上一行文字。改成 flex 並置中，旁邊的按鈕換行變高時文字仍在中間，和 <button> 一樣。 */
   .assistive-scope a.base-button {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
   /* Android 沒有 PingFang，系統字型沒有 600 這一級，半粗會退回一般字重；Android 上改用 700 保留層次。 */
   .assistive-android .font-semibold,
@@ -107,6 +110,43 @@
   }
   @container (max-width: 12rem) {
     .assistive-scope .a-choice-tile {
+      display: none;
+    }
+  }
+}
+
+/* 文字放大（約 135% 以上）時的版面：寬度用 rem 量，字放大後同樣的螢幕寬度就「變窄」 */
+@layer components {
+  /* 名稱／內容兩欄（確認資料、預約明細）：放大後名稱改放在內容上方，不把預約編號、電話擠成一字一行 */
+  .assistive-scope .a-dl {
+    container-type: inline-size;
+  }
+  .assistive-scope .a-dl-row {
+    display: grid;
+    grid-template-columns: var(--a-dt, 5rem) minmax(0, 1fr);
+    column-gap: 0.75rem;
+  }
+  @container (max-width: 16rem) {
+    .assistive-scope .a-dl-row {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 0.25rem;
+    }
+  }
+  /* 兩欄排列（選擇輔具的卡片、身高體重欄位）：放大後改成一欄 */
+  .assistive-scope .a-grid-fit {
+    container-type: inline-size;
+  }
+  @container (max-width: 18rem) {
+    .assistive-scope .a-grid-fit > * {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  /* 輔具卡片：太窄時收起照片（照片只是輔助，品名與規格仍完整） */
+  .assistive-scope .a-item-card {
+    container-type: inline-size;
+  }
+  @container (max-width: 13rem) {
+    .assistive-scope .a-item-photo {
       display: none;
     }
   }

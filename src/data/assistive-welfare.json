@@ -258,8 +258,16 @@
   "text": "您可能符合以下補助項目，請點選各項目名稱以獲得更多資訊：",
   "items": [
    {
+    "title": "身障證明申請",
+    "href": "https://dosw.gov.taipei/cp.aspx?n=26BB4C5F2992FAFB"
+   },
+   {
     "title": "失能者生活輔助器具補助與無障礙環境改善補助",
     "href": "https://1966.gov.tw/LTC/cp-6453-69940-207.html"
+   },
+   {
+    "title": "職災器具補助",
+    "href": "https://newrepat.sfaa.gov.tw/home/gov-repat-service/jobIntro3"
    },
    {
     "title": "特殊教育的輔具服務",
@@ -274,26 +282,6 @@
     "page": "otherdetail9"
    },
    {
-    "title": "居家身障者維生器材及必要生活輔具用電優惠",
-    "href": "https://dosw.gov.taipei/cp.aspx?n=925E969F27F24C0B&s=CD8361E1F112C6D4"
-   },
-   {
-    "title": "身障輔具補助(含居家環境改善)",
-    "page": "otherdetail6"
-   },
-   {
-    "title": "身心障礙者醫療費用及醫療輔具補助服務",
-    "page": "otherdetail5"
-   },
-   {
-    "title": "身障證明申請",
-    "href": "https://dosw.gov.taipei/cp.aspx?n=26BB4C5F2992FAFB"
-   },
-   {
-    "title": "職災器具補助",
-    "href": "https://newrepat.sfaa.gov.tw/home/gov-repat-service/jobIntro3"
-   },
-   {
     "title": "身障者職務再設計",
     "page": "otherdetail4"
    },
@@ -302,12 +290,24 @@
     "page": "otherdetail5"
    },
    {
+    "title": "居家身障者維生器材及必要生活輔具用電優惠",
+    "href": "https://dosw.gov.taipei/cp.aspx?n=925E969F27F24C0B&s=CD8361E1F112C6D4"
+   },
+   {
     "title": "身障輔具補助(不含居家環境改善)",
+    "page": "otherdetail6"
+   },
+   {
+    "title": "身障輔具補助(含居家環境改善)",
     "page": "otherdetail6"
    },
    {
     "title": "身障輔具補助(不含居家環境改善、不含限居家使用輔具)",
     "page": "otherdetail6"
+   },
+   {
+    "title": "身心障礙者醫療費用及醫療輔具補助服務",
+    "page": "otherdetail5"
    }
   ]
  },

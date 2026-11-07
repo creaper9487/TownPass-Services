@@ -10,7 +10,7 @@ import { variantInfo, type VariantInfo } from '@/utils/assistive/catalog';
 import APickupCountdown from '@/components/assistive/APickupCountdown.vue';
 import AErrorText from '@/components/assistive/AErrorText.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
-import BaseDialog from '@/components/atoms/BaseDialog.vue';
+import ADialog from '@/components/assistive/ADialog.vue';
 import { useAssistiveNative } from '@/composables/useAssistiveNative';
 import { pickupRemaining } from '@/utils/assistive/pickup';
 import { useTaipeiNow } from '@/utils/assistive/time';
@@ -47,6 +47,9 @@ const center = computed(() =>
 // 借用的項目用照片＋品名＋規格顯示；舊紀錄沒有款式代碼、或目錄裡找不到時退回文字
 const itemInfos = computed<VariantInfo[]>(() =>
   (reservation.value?.itemIds ?? []).flatMap((id) => variantInfo(id) ?? [])
+);
+const needsVisit = computed(
+  () => reservation.value?.service === 'borrow' && effectiveStatus(reservation.value) === 'booked'
 );
 const canCancel = computed(
   () =>
@@ -112,12 +115,12 @@ const doCancel = async () => {
           :service="reservation.service"
         />
         <APickupCountdown v-if="remaining" :remaining="remaining" class="mt-4" />
-        <dl class="mt-4 divide-y divide-grey-100">
-          <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base first:pt-0">
+        <dl class="a-dl mt-4 divide-y divide-grey-100">
+          <div class="a-dl-row py-3 text-base first:pt-0">
             <dt class="text-grey-700">{{ t('reservations.number') }}</dt>
             <dd>{{ reservation.id }}</dd>
           </div>
-          <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base">
+          <div class="a-dl-row py-3 text-base">
             <dt class="text-grey-700">{{ t('reservations.row.item') }}</dt>
             <dd v-if="itemInfos.length" class="flex flex-col gap-3">
               <AItemCard v-for="item in itemInfos" :key="item.id" :item="item" compact />
@@ -131,7 +134,7 @@ const doCancel = async () => {
               reservation.pickupDeadline &&
               ['booked', 'submitted', 'confirmed'].includes(effectiveStatus(reservation))
             "
-            class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base"
+            class="a-dl-row py-3 text-base"
           >
             <dt class="text-grey-700">{{ t('reservations.row.pickup') }}</dt>
             <dd>
@@ -141,7 +144,7 @@ const doCancel = async () => {
               </span>
             </dd>
           </div>
-          <div class="grid grid-cols-[5rem_1fr] gap-3 py-3 text-base">
+          <div class="a-dl-row py-3 text-base">
             <dt class="text-grey-700">{{ t('reservations.row.contact') }}</dt>
             <dd>{{ reservation.contactName }} {{ reservation.mobile }}</dd>
           </div>
@@ -149,11 +152,12 @@ const doCancel = async () => {
       </ASection>
       <ASection v-if="center" :title="t('reservations.center')">
         <CenterCard :center="center" />
-        <div class="mt-3 grid grid-cols-2 gap-2">
+        <!-- 導航只在還要去中心取貨時有用；取消、逾期或評估維修（中心來電）只留撥打電話 -->
+        <div class="mt-3 grid gap-2" :class="needsVisit ? 'grid-cols-2' : 'grid-cols-1'">
           <BaseButton outline @click="native.callPhone(center.phone)">
             {{ t('common.call') }}
           </BaseButton>
-          <BaseButton outline @click="native.openMap(mapUrl(center))">
+          <BaseButton v-if="needsVisit" outline @click="native.openMap(mapUrl(center))">
             {{ t('common.navigate') }}
           </BaseButton>
         </div>
@@ -167,16 +171,20 @@ const doCancel = async () => {
       </BaseButton>
     </template>
 
-    <BaseDialog
+    <ADialog
       v-model="cancelledDialog"
       is-check
       :title="t('reservations.cancelledDialog.title')"
       :content="t('reservations.cancelledDialog.content', { id: reservation?.id ?? '' })"
     />
-    <BaseDialog
+    <ADialog
       v-model="confirming"
       :title="t('reservations.cancelDialog.title')"
-      :content="t('reservations.cancelDialog.content')"
+      :content="
+        reservation?.service === 'borrow'
+          ? t('reservations.cancelDialog.contentBorrow')
+          : t('reservations.cancelDialog.contentAssess')
+      "
       :negative-text="t('reservations.cancelDialog.keep')"
       :positive-text="t('reservations.cancelDialog.confirm')"
       @on-positive-click="doCancel"

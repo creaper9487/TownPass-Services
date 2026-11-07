@@ -84,7 +84,8 @@ const next = () => {
     </p>
     <ErrorSummary :errors="summary" :trigger="trigger" />
 
-    <ASection :title="t('contact.title')">
+    <!-- 頁面標題已是「聯絡人資料」，區塊不再重複同一個標題 -->
+    <ASection>
       <div class="flex flex-col gap-5">
         <AInput
           v-model="f.name"

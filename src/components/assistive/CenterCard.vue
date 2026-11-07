@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import AIcon from './AIcon.vue';
 import { t, zhAttr } from '@/i18n/assistive';
 import { useTaipeiNow } from '@/utils/assistive/time';
 import { centerName, hoursText, isOpenAt, openDaysText } from '@/utils/assistive/centers';
@@ -27,9 +28,10 @@ const open = computed(() => isOpenAt(props.center, now.value));
     <p class="mt-1 text-base text-grey-700">
       {{ openDaysText(center) }} {{ hoursText(center) }}
       <span
-        class="ml-1 whitespace-nowrap font-semibold"
+        class="ml-1 inline-flex items-center gap-1 whitespace-nowrap font-semibold"
         :class="open ? 'text-primary-700' : 'text-grey-700'"
       >
+        <AIcon :name="open ? 'check' : 'closed'" class="h-[1.1em] w-[1.1em] shrink-0" />
         {{ open ? t('center.open') : t('center.closedNow') }}
       </span>
     </p>

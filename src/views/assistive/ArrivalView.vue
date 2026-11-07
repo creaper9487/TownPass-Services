@@ -19,8 +19,7 @@ const found = computed(() => {
   for (const c of catalog.value) {
     const v = c.variants.find((x) => x.id === route.params.variantId);
     if (v) {
-      const specs = v.specs.filter((s) => s && s !== '---' && s !== '--' && s !== v.name);
-      return { category: c, variant: v, label: [c.name, v.name, ...specs].join('・') };
+      return { category: c, variant: v, label: v.name };
     }
   }
   return null;
@@ -73,6 +72,7 @@ const submit = async () => {
         <p class="mt-3 text-base text-grey-700">{{ t('arrival.device') }}</p>
         <AItemCard v-if="info" :item="info" class="mt-2" />
         <p v-else class="mt-2 break-words text-base font-semibold">{{ trSummary(found.label) }}</p>
+        <p class="mt-4 text-base">{{ t('arrival.explain') }}</p>
         <AErrorText v-if="failed" class="mt-3">{{ t(failureKey) }}</AErrorText>
       </ASection>
     </template>

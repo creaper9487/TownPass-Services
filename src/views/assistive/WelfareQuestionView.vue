@@ -8,7 +8,14 @@ import AImage from '@/components/assistive/AImage.vue';
 import AInput from '@/components/assistive/AInput.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import { useAssistiveWelfareStore } from '@/stores/assistiveWelfare';
-import { OFFICIAL_SITE, RESULT, checkAge, nextQuestion, welfare } from '@/utils/assistive/welfare';
+import {
+  FIRST_QUESTION,
+  OFFICIAL_SITE,
+  RESULT,
+  checkAge,
+  nextQuestion,
+  welfare
+} from '@/utils/assistive/welfare';
 import { t, tx, zhAttr } from '@/i18n/assistive';
 
 const route = useRoute();
@@ -59,7 +66,10 @@ const back = () => {
 </script>
 
 <template>
-  <AStepPage :title="t('welfare.title')">
+  <AStepPage
+    :title="t('welfare.title')"
+    :lead="id === FIRST_QUESTION ? t('welfare.introText') : undefined"
+  >
     <ASection>
       <p class="text-sm text-grey-700">{{ t('welfare.question', { n: id }) }}</p>
       <h2 class="tp-h2 mt-1" :lang="zhAttr">{{ question.text }}</h2>
