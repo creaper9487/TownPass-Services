@@ -32,7 +32,7 @@ export interface VariantFit {
 export interface Variant extends VariantFit {
   id: string;
   name: string;
-  image: string;
+  image?: string | null;
   specs: string[];
   description: string;
   source: string;
@@ -53,7 +53,7 @@ export type CenterStockMap = Record<string, { stock: number }>;
 export interface Category {
   id: string;
   name: string;
-  image: string;
+  image?: string | null;
   source: string;
   variants: Variant[];
 }

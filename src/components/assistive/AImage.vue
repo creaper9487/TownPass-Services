@@ -1,8 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
-defineProps<{ src: string; alt?: string; hideOnError?: boolean; eager?: boolean }>();
-const failed = ref(false);
+const props = defineProps<{
+  src?: string | null;
+  alt?: string;
+  hideOnError?: boolean;
+  eager?: boolean;
+}>();
+
+const imgError = ref(false);
+watch(
+  () => props.src,
+  () => {
+    imgError.value = false;
+  }
+);
+const failed = computed(() => !props.src || imgError.value);
 </script>
 
 <template>
@@ -11,14 +24,14 @@ const failed = ref(false);
     class="flex items-center justify-center overflow-hidden bg-white"
   >
     <img
-      v-if="!failed"
+      v-if="!failed && src"
       :src="src"
       :alt="alt ?? ''"
       :loading="eager ? 'eager' : 'lazy'"
       decoding="async"
       :fetchpriority="eager ? 'high' : 'low'"
       class="h-full w-full object-contain"
-      @error="failed = true"
+      @error="imgError = true"
     />
     <span
       v-else

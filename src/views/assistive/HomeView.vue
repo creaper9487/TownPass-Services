@@ -17,7 +17,10 @@ const store = useAssistiveStore();
 
 // 借用卡片放官方品項照片（輪椅、助行器、拐杖）
 const photos = computed(() =>
-  catalog.value.filter((c) => ['輪椅', '助行器', '拐杖'].includes(c.name)).map((c) => c.image)
+  catalog.value
+    .filter((c) => ['輪椅', '助行器', '拐杖'].includes(c.name))
+    .map((c) => c.image)
+    .filter((img): img is string => !!img)
 );
 
 onMounted(() => store.loadCalendars());
