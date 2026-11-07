@@ -41,7 +41,7 @@ app/
 | function | 資料來源 | 回傳 | 用在 |
 |---|---|---|---|
 | `fetch_catalog()` | tpap.gov.taipei/app37/rentView/index | `list[CatalogCategory]` | `GET /catalog` |
-| `fetch_stock()` | 同上（剩餘數、等待人數） | `list[StockItem]` | 每 45 秒同步 → `GET /stock` |
+| `fetch_stock()` | 同上（剩餘數、等待人數） | `list[StockItem]` | 每 3 分鐘同步 → `GET /stock` |
 | `fetch_centers()` | 各中心介紹頁（可手填常數） | `list[Center]` | `GET /centers` |
 | `fetch_center_calendar(center_id, start, days)` | 開館時段 + data.gov.tw 辦公日曆表 + 臨時休館公告 | `list[CalendarDay]` | 行事曆、取貨期限 |
 | `forward_reservation(payload)` | 送往中心（介接方式待確認） | `ForwardReceipt` | 送件佇列 |
